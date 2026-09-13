@@ -192,7 +192,7 @@ let mode = 'menu', demo = false, levelKind = 'campaign', levelIndex = 0, L = DEM
 let nodes = [], edges = [], adj = [], rocks = [], groups = [], particles = [], zaps = [], motes = [];
 let running = false, paused = false, speed = 1, elapsed = 0, levelTime = 0, last = 0, hudTimer = 0, demoTimer = 0;
 let drag = null, selected = null, pointer = { x:0, y:0 }, abilityMode = null, panelConv = false, sendMode = 0.5;
-const SEND_MODES = [[0.25, '25 %'], [0.5, '50 %'], [0.75, '75 %'], [1, 'Alle'], ['route', 'Dauerroute']];
+const SEND_MODES = [[0.25, '25 %'], [0.5, '50 %'], [0.75, '75 %'], [1, 'Alle']];
 let aiTimers = {}, staticLayer = null, stats = { captured:0 }, energy = 0, tipTimer = null;
 
 const X = n => n.nx * W, Y = n => n.ny * H;
@@ -720,7 +720,7 @@ function drawRoutes() {
       ctx.save(); ctx.strokeStyle = rgba(C, 0.45); ctx.lineWidth = 1.5 * S; ctx.setLineDash([4 * S, 6 * S]);
       ctx.beginPath(); ctx.moveTo(X(lastN), Y(lastN)); ctx.lineTo(pointer.x, pointer.y); ctx.stroke(); ctx.restore();
     }
-    const label = sendMode === 'route' && !drag.shift ? 'Dauerroute' : `${sendAmount(drag.src, drag.shift ? 1 : sendMode)} Einheiten`;
+    const label = `${sendAmount(drag.src, drag.shift ? 1 : sendMode)} Einheiten`;
     pill(ctx, label, pointer.x, pointer.y - 26 * S, Math.round(12 * S), C);
   }
 }
@@ -858,14 +858,16 @@ function sendAmount(n, frac) { const avail = Math.max(0, n.units - n.reserve * c
 function setSendMode(m) { sendMode = m; renderSendbar(); }
 function renderSendbar() {
   const bar = $('#sendbar'); bar.querySelectorAll('button').forEach(b => b.remove());
-  for (const [m, label] of SEND_MODES) { const b = document.createElement('button'); b.textContent = label; b.setAttribute('aria-pressed', String(sendMode === m)); b.title = m === 'route' ? 'Ziehen legt eine dauerhafte Route an (Taste T)' : `Ziehen schickt ${label === 'Alle' ? 'alle' : label} der verfügbaren Einheiten einmalig`; b.addEventListener('click', () => { setSendMode(m); audio.play('click'); }); bar.appendChild(b); }
+  for (const [m, label] of SEND_MODES) { const b = document.createElement('button'); b.textContent = label; b.setAttribute('aria-pressed', String(sendMode === m)); b.title = `Ziehen schickt sofort ${label === 'Alle' ? 'alle' : label} der verfügbaren Einheiten und legt die Route an`; b.addEventListener('click', () => { setSendMode(m); audio.play('click'); }); bar.appendChild(b); }
 }
 function nodeAt(x, y) { return nodes.find(n => Math.hypot(X(n) - x, Y(n) - y) <= NR(n) + 16 * S) || null; }
 function addRoute(src, route) {
   const target = route[route.length - 1], i = src.routes.findIndex(r => r[r.length - 1] === target);
+  const isNew = i < 0;
   if (i >= 0) src.routes[i] = route; else { if (src.routes.length >= 3) src.routes.shift(); src.routes.push(route); }
-  src.flowT = 0; audio.play('route');
-  tip(src.routes.length > 1 ? `Route ${src.routes.length} von 3 gesetzt – der Abfluss teilt sich auf.` : 'Dauerroute gesetzt. Alles über der Reserve fließt jetzt weiter. Tippe den Knoten an für Ausbau, Reserve und Routen.', 3200);
+  src.flowT = 0;
+  if (isNew) audio.play('route', 0.2);
+  return isNew;
 }
 document.addEventListener('pointerdown', () => { audio.init(); audio.resume(); }, { passive:true });
 cv.addEventListener('pointerdown', e => {
@@ -893,10 +895,15 @@ cv.addEventListener('pointerup', e => {
   if (!drag) return;
   const { src, path, shift } = drag; drag = null;
   if (path.length >= 2) {
-    if (sendMode === 'route' && !shift) { addRoute(src, path.slice(1)); return; }
+    // Every drawn path becomes a persistent route and immediately sends the selected share.
     const k = sendAmount(src, shift ? 1 : sendMode);
-    if (launch(src, path.slice(1), k, true)) { stats.sends = (stats.sends || 0) + 1; if (stats.sends <= 2) tip(`${k} Einheiten unterwegs. Ziehe erneut, um mehr zu schicken – unten links stellst du den Anteil oder eine Dauerroute ein.`, 3500); }
-    else { audio.play('error'); tip('Hier sind gerade keine Einheiten zum Senden.', 1500); }
+    const sent = launch(src, path.slice(1), k, true);
+    const isNew = addRoute(src, path.slice(1));
+    stats.sends = (stats.sends || 0) + 1;
+    if (isNew && src.routes.length > 1) tip(`Route ${src.routes.length} von 3 gesetzt – der Nachschub teilt sich auf.`, 3000);
+    else if (stats.sends <= 2) tip(sent ? `${k} Einheiten unterwegs, die Route bleibt: Alles über der Reserve fließt nach. Ziehe erneut, um sofort mehr zu schicken.` : 'Route gesetzt. Sobald Einheiten da sind, fließen sie nach.', 3800);
+    else if (!sent) tip('Route gesetzt, gerade keine Einheiten zum Senden.', 1500);
+    renderPanel();
     return;
   }
   selected = selected === src ? null : src; panelConv = false; renderPanel();
@@ -913,7 +920,7 @@ addEventListener('keydown', e => {
   if (mode !== 'game') return;
   if (e.key === ' ' && running) { e.preventDefault(); togglePause(); }
   if (e.key.toLowerCase() === 'f') toggleSpeed();
-  const km = { q:0.25, w:0.5, e:0.75, r:1, t:'route' }[e.key.toLowerCase()]; if (km !== undefined) setSendMode(km);
+  const km = { q:0.25, w:0.5, e:0.75, r:1 }[e.key.toLowerCase()]; if (km !== undefined) setSendMode(km);
   const ids = ['stoss', 'frost', 'schild'].filter(id => P.abilities.has(id));
   if (['1', '2', '3'].includes(e.key) && ids[+e.key - 1] && running && !paused) toggleAbility(ids[+e.key - 1]);
 });
@@ -973,8 +980,8 @@ function showScreen(kind) {
       <div class="actions"><button data-go="menu">Zurück</button></div>`;
   } else if (kind === 'howto') {
     h = `<h2>Anleitung</h2>
-      <ul><li><b>Senden:</b> Ziehe von einem eigenen Knoten über verbundene Knoten. Standardmäßig geht die Hälfte der verfügbaren Einheiten los; ziehe erneut für mehr. Unten links (oder <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd>) wählst du 25 bis 100 %, <kbd>Shift</kbd> + Ziehen schickt alles.</li>
-      <li><b>Dauerroute</b> (<kbd>T</kbd> oder Button): Die Route bleibt, alles über der Reserve fließt automatisch weiter. Bis zu drei Routen je Knoten teilen den Abfluss.</li>
+      <ul><li><b>Senden:</b> Ziehe von einem eigenen Knoten über verbundene Knoten. Sofort geht die Hälfte der verfügbaren Einheiten los, und die Route bleibt bestehen: Alles über der Reserve fließt automatisch nach. Ziehe erneut, um sofort wieder die Hälfte zu schicken. Unten links (oder <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd>) wählst du 25 bis 100 %, <kbd>Shift</kbd> + Ziehen schickt alles.</li>
+      <li><b>Routen:</b> Bis zu drei Routen je Knoten teilen den Nachschub. Im Knotenmenü legst du die Reserve fest und entfernst Routen; Rechtsklick löscht alle.</li>
       <li><b>Knotenmenü:</b> Eigenen Knoten antippen: Ausbau bis Stufe 3, Reserve, Umbau in eine andere Art, Routen verwalten. Rechtsklick löscht alle Routen.</li>
       <li><b>Kampf:</b> Angriffsstärke der Truppen gegen Einheiten × Verteidigung des Knotens. Bleibt etwas übrig, wechselt der Knoten die Seite.</li>
       <li><b>Truppen:</b> Jede Knotenart erzeugt eigene Truppen: Drohnen sind schnell und schwach, Panzer stark und langsam, Pfeile am schnellsten.</li>
@@ -984,11 +991,11 @@ function showScreen(kind) {
   } else if (kind === 'intro') {
     running = false; paused = false;
     h = `<h2>${L.name}</h2><p class="sub">${levelKind === 'campaign' ? `Kapitel ${L.ch + 1}: ${CHAPTERS[L.ch].name}, Level ${levelIndex + 1} von ${CAMPAIGN.length}` : 'Endlos'} · ${L.enemies === 1 ? 'ein Gegner' : L.enemies + ' Gegner'} · Zielzeit ${fmtTime(L.par)}</p>`;
-    if (levelKind === 'campaign' && levelIndex === 0) h += `<ul><li>Ziehe vom goldenen Knoten zu einem Nachbarn: Die Hälfte deiner Einheiten bricht auf. Ziehe erneut für mehr, oder wähle unten links „Dauerroute“ für einen stetigen Strom.</li><li>Fremde Knoten werden angegriffen; ist deine Stärke größer, gehören sie dir.</li><li>Nur gepunktete Linien sind Wege. Felsen trennen das Netz.</li></ul>`;
+    if (levelKind === 'campaign' && levelIndex === 0) h += `<ul><li>Ziehe vom goldenen Knoten zu einem Nachbarn: Die Hälfte deiner Einheiten bricht sofort auf, und die Route bleibt – alles, was nachwächst, fließt weiter. Ziehe erneut, um sofort mehr zu schicken.</li><li>Fremde Knoten werden angegriffen; ist deine Stärke größer, gehören sie dir.</li><li>Nur gepunktete Linien sind Wege. Felsen trennen das Netz.</li></ul>`;
     else h += `<p>${L.text}</p>`;
     if (L.newType) h += `<div class="new"><div class="icon"></div><div><b>Neu: ${TYPES[L.newType].name}</b><span>${TYPES[L.newType].desc}</span></div></div>`;
     if (L.feature === 'upgrade') h += `<div class="new"><div class="icon" data-lv="3"></div><div><b>Neu: Ausbau</b><span>Tippe einen eigenen Knoten an und zahle Einheiten, um ihn auf Stufe 2 und 3 zu bringen: mehr Produktion, mehr Vorrat, mehr Verteidigung.</span></div></div>`;
-    if (L.feature === 'split') h += `<div class="new"><div><b>Neu: Geteilte Routen und Reserve</b><span>Ziehe mehrere Routen von einem Knoten (bis zu drei); der Abfluss wird aufgeteilt. Im Knotenmenü legst du eine Reserve fest, die zur Verteidigung bleibt. Mit Shift + Ziehen schickst du einmalig alles.</span></div></div>`;
+    if (L.feature === 'split') h += `<div class="new"><div><b>Neu: Geteilte Routen und Reserve</b><span>Ziehe mehrere Routen von einem Knoten (bis zu drei); der Nachschub wird aufgeteilt. Im Knotenmenü legst du eine Reserve fest, die zur Verteidigung bleibt und nicht abfließt. Mit Shift + Ziehen schickst du sofort alles.</span></div></div>`;
     if (L.feature === 'convert') h += `<div class="new"><div><b>Neu: Umbau</b><span>Im Knotenmenü kannst du eine andere Knotenart wählen. Der Knoten fällt dabei auf Stufe 1 zurück.</span></div></div>`;
     h += `<div class="actions"><button class="primary" id="go">Level starten</button><button data-go="${levelKind === 'campaign' ? 'campaign' : 'menu'}">Zurück</button></div>`;
   } else if (kind === 'win') {
@@ -1039,7 +1046,7 @@ function startLevel() { buildLevel(); resumePlay(); }
 function resumePlay() {
   if (isTouch() && save.autoFs !== false) toggleFullscreen(true);
   hideScreen(); renderSendbar(); running = true; paused = false; setGameUi(true);
-  if (levelTime < 0.01) tip(levelKind === 'campaign' && levelIndex === 0 ? 'Ziehe vom goldenen Knoten zu einem Nachbarn – die Hälfte bricht auf.' : `${L.name}: ${nodes.length} Knoten, ${L.enemies === 1 ? 'ein Gegner' : L.enemies + ' Gegner'}. Zielzeit ${fmtTime(L.par)}.`, 4500);
+  if (levelTime < 0.01) tip(levelKind === 'campaign' && levelIndex === 0 ? 'Ziehe vom goldenen Knoten zu einem Nachbarn – die Hälfte bricht auf, der Rest fließt nach.' : `${L.name}: ${nodes.length} Knoten, ${L.enemies === 1 ? 'ein Gegner' : L.enemies + ' Gegner'}. Zielzeit ${fmtTime(L.par)}.`, 4500);
 }
 function finish(won) {
   if (!running) return;
