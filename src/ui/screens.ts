@@ -38,28 +38,40 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     stars = game.totalStars(),
     unlocked = game.campaignUnlocked(),
     L = game.def;
-  const levelBtn = (i: number) => {
-    const lv = CAMPAIGN[i];
-    if (!lv) return '';
-    const locked = i > unlocked;
-    const st = save.stars[i];
-    const bt = save.bestTimes[i];
-    const cls = locked ? 'locked' : st ? 'done' : 'next';
-    return `<button class="lv ${cls}" data-play="${i}" ${locked ? 'disabled' : ''} aria-label="${i + 1}. ${lv.name}"><span class="num">${locked ? icon('lock') : i + 1}</span><b>${lv.name}</b>${st ? starIcons(st) : `<small>${locked ? 'Gesperrt' : 'Offen'}</small>`}<small>${lv.enemies} Gegner${bt ? ` · ${fmtTime(bt)}` : ''}</small></button>`;
-  };
   let h = '';
   if (kind === 'menu') {
     h = `<h1>Tiefenlicht</h1><p class="sub">Ein Strategiespiel um leuchtende Knoten im Abgrund</p>
       <div class="menu"><button class="primary" data-go="campaign">${icon('campaign')}Kampagne</button><button data-go="endless">${icon('endless')}Endlos</button><button data-go="skills">${icon('skills')}Fähigkeiten ${pts ? `(${pts} Punkte frei)` : ''}</button><button data-go="settings">${icon('settings')}Einstellungen</button><button data-go="howto">${icon('help')}Anleitung</button><button id="mFs">${icon('fullscreen')}Vollbild</button></div>
       <div class="meta">${stars} von ${CAMPAIGN.length * 3} Sternen, beste Endlos-Welle ${save.endlessBest}, Schwierigkeit ${DIFF[save.difficulty].label} · v${__APP_VERSION__}</div>`;
   } else if (kind === 'campaign') {
-    card.className = 'card wide';
-    h = `<h2>Kampagne</h2><p class="sub">${stars} Sterne gesammelt. Schneller als die Zielzeit bringt drei Sterne, Sterne werden zu Fähigkeitspunkten.</p><div class="lvmap">`;
+    card.className = 'card wide seamap-card';
+    const STEP = 104,
+      TOP = 90;
+    const height = TOP + CAMPAIGN.length * STEP + 60;
+    h = `<h2>Kampagne</h2><p class="sub">${stars} Sterne gesammelt. Vom Schelf hinab in den Abgrund: Jedes Level führt tiefer. Schneller als die Zielzeit bringt drei Sterne.</p>
+      <div class="seamap" style="height:${height}px">`;
     CHAPTERS.forEach((c, ci) => {
-      const ids = CAMPAIGN.map((l, i) => (l.ch === ci ? i : -1)).filter((i) => i >= 0);
-      h += `<div class="chapter"><h3>Kapitel ${ci + 1}: ${c.name}<span class="meta">${c.desc}</span></h3><div class="lvrow" data-ch="${ci}">${ids.map((i) => levelBtn(i)).join('')}</div></div>`;
+      const first = CAMPAIGN.findIndex((l) => l.ch === ci),
+        count = CAMPAIGN.filter((l) => l.ch === ci).length;
+      const y0 = TOP + first * STEP - 60,
+        hh = count * STEP;
+      h += `<div class="zone z${ci}" style="top:${y0}px;height:${hh}px"><b>Kapitel ${ci + 1}: ${c.name}</b><span>${c.desc}</span></div>`;
     });
-    h += `</div><div class="actions"><button data-go="menu">${icon('back')}Zurück</button></div>`;
+    h += `<svg class="path" viewBox="0 0 1000 ${height}" preserveAspectRatio="none"></svg>`;
+    CAMPAIGN.forEach((lv, i) => {
+      const locked = i > unlocked,
+        st = save.stars[i],
+        bt = save.bestTimes[i];
+      const x = 50 + Math.sin(i * 0.95) * 28,
+        y = TOP + i * STEP;
+      const cls = locked ? 'locked' : st ? 'done' : 'next';
+      const side = x > 50 ? 'left' : 'right';
+      h += `<button class="mnode ${cls} ${lv.boss ? 'boss' : ''} ${side}" style="left:${x}%;top:${y}px" data-play="${i}" data-x="${x}" data-y="${y}" ${locked ? 'disabled' : ''} aria-label="${i + 1}. ${lv.name}">
+        <span class="num">${locked ? icon('lock') : lv.boss ? icon('trophy') : i + 1}</span>
+        <span class="lbl"><b>${lv.name}</b>${st ? starIcons(st) : `<small>${locked ? 'Gesperrt' : 'Nächstes Level'}</small>`}<small>${lv.enemies} Gegner${bt ? ` · ${fmtTime(bt)}` : ''}</small></span>
+      </button>`;
+    });
+    h += `</div><div class="actions sticky"><button data-go="menu">${icon('back')}Zurück</button><span class="meta">${unlocked + 1} von ${CAMPAIGN.length} Leveln erreicht</span></div>`;
   } else if (kind === 'skills') {
     card.className = 'card wide';
     const branches = [...new Set(SKILLS.map((s) => s.branch))];
@@ -125,7 +137,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     h = `<h2>Pause</h2><p class="sub">${L.name}, ${fmtTime(game.levelTime)} gespielt</p><div class="actions"><button class="primary" id="go">Weiter</button><button id="again">Neu starten</button><button data-go="menu">Aufgeben</button></div>`;
   }
   card.innerHTML = h;
-  if (kind === 'campaign') requestAnimationFrame(() => drawLevelPaths(card, unlocked));
+  if (kind === 'campaign') requestAnimationFrame(() => drawSeaPath(card, unlocked));
   if (kind === 'skills') requestAnimationFrame(() => drawSkillLinks(card, save.spent));
   if (kind === 'intro') {
     card
@@ -229,35 +241,29 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
   if (first) first.focus();
 }
 
-/** Connects the level buttons of each chapter with a dotted path (gold up to the last cleared level). */
-function drawLevelPaths(card: HTMLElement, unlocked: number): void {
-  card.querySelectorAll<HTMLElement>('.lvrow').forEach((row) => {
-    row.querySelector('svg.path')?.remove();
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'path');
-    const rr = row.getBoundingClientRect();
-    svg.setAttribute('viewBox', `0 0 ${rr.width} ${rr.height}`);
-    svg.style.position = 'absolute';
-    svg.style.inset = '0';
-    svg.style.width = '100%';
-    svg.style.height = '100%';
-    svg.style.pointerEvents = 'none';
-    const pts = [...row.querySelectorAll<HTMLElement>('.lv .num')].map((el, i) => {
-      const r = el.getBoundingClientRect();
-      const idx = +((el.parentElement as HTMLElement).dataset.play ?? i);
-      return { x: r.left + r.width / 2 - rr.left, y: r.top + r.height / 2 - rr.top, idx };
-    });
-    for (let i = 0; i < pts.length - 1; i++) {
-      const a = pts[i] as { x: number; y: number; idx: number },
-        b = pts[i + 1] as { x: number; y: number; idx: number };
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      const mx = (a.x + b.x) / 2;
-      path.setAttribute('d', `M${a.x},${a.y} C${mx},${a.y - 10} ${mx},${b.y + 10} ${b.x},${b.y}`);
-      if (b.idx <= unlocked) path.setAttribute('class', 'done');
-      svg.appendChild(path);
-    }
-    row.appendChild(svg);
-  });
+/** Draws the winding descent path through all campaign levels and scrolls to the next one. */
+function drawSeaPath(card: HTMLElement, unlocked: number): void {
+  const map = card.querySelector<HTMLElement>('.seamap');
+  const svg = map?.querySelector<SVGSVGElement>('svg.path');
+  if (!map || !svg) return;
+  const nodes = [...map.querySelectorAll<HTMLElement>('.mnode')].map((el) => ({
+    x: (+(el.dataset.x ?? 50) / 100) * 1000,
+    y: +(el.dataset.y ?? 0),
+    idx: +(el.dataset.play ?? 0),
+  }));
+  svg.innerHTML = '';
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const a = nodes[i] as { x: number; y: number; idx: number },
+      b = nodes[i + 1] as { x: number; y: number; idx: number };
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const my = (a.y + b.y) / 2;
+    path.setAttribute('d', `M${a.x},${a.y} C${a.x},${my} ${b.x},${my} ${b.x},${b.y}`);
+    path.setAttribute('vector-effect', 'non-scaling-stroke');
+    if (b.idx <= unlocked) path.setAttribute('class', 'done');
+    svg.appendChild(path);
+  }
+  const next = map.querySelector<HTMLElement>('.mnode.next');
+  if (next) next.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior });
 }
 
 /** Draws prerequisite lines between skills of a branch. */
