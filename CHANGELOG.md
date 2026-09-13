@@ -7,6 +7,8 @@
 - Sechs neue Gebäude: Korallen-Nest, Quallen-Kolonie, Muschel-Festung, Strudel-Turbine, Leuchtturm-Wächter, Riesenmuschel-Quelle; Besitzerfarbe auf Ring, Kuppel und Licht, Ausbau fügt sichtbar Teile hinzu.
 - Truppen als Meerestiere: Fisch, Qualle, Panzerkrebs, Manta, Kugelfisch, Perle.
 - Fraktionsfarben: Gold, Koralle, Alge, Tinte; Neutral Perlmutt.
+- Neues Hauptmenü: großer „Weiter spielen“-Knopf, Kacheln für Kampagne, Tages-Karte, Endlos und Fähigkeiten, kleine Leiste für Erfolge, Einstellungen, Anleitung, Editor, Vollbild.
+- Kampagnen-Karte als heller Inselpfad: große Bojen (60 px) als Level, gemeisterter Weg in Gold, Kapitel als Buchten, Namen und Sterne neben den Bojen, Tippfläche ohne Überlagerung.
 
 ## 0.8.1 – Phase 5: Feinschliff (2026-09-14)
 

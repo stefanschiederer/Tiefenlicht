@@ -13,7 +13,7 @@ import {
 import { enterFullscreen } from '@/app/pwa';
 import { $ } from './dom';
 import { tip } from './hud';
-import { icon, stars as starIcons } from './icons';
+import { ICONS, icon, stars as starIcons } from './icons';
 
 export type ScreenKind =
   | 'menu'
@@ -51,38 +51,55 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     L = game.def;
   let h = '';
   if (kind === 'menu') {
-    h = `<h1>Tiefenlicht</h1><p class="sub">Ein Strategiespiel um leuchtende Knoten im Abgrund</p>
-      <div class="menu"><button class="primary" data-go="campaign">${icon('campaign')}Kampagne</button><button data-go="endless">${icon('endless')}Endlos</button><button data-go="daily">${icon('time')}Tages-Herausforderung ${game.dailyDone() ? '✓' : ''}${save.dailyStreak > 1 ? ` · ${save.dailyStreak} Tage` : ''}</button><button data-go="stats">${icon('trophy')}Erfolge (${save.achievements.length}/${ACHIEVEMENTS.length})</button><button data-go="skills">${icon('skills')}Fähigkeiten ${pts ? `(${pts} Punkte frei)` : ''}</button><button data-go="settings">${icon('settings')}Einstellungen</button><button data-go="howto">${icon('help')}Anleitung</button><button id="mEditor">${icon('route')}Karten-Editor</button><button id="mFs">${icon('fullscreen')}Vollbild</button></div>
-      <div class="meta">${stars} von ${CAMPAIGN.length * 3} Sternen, beste Endlos-Welle ${save.endlessBest}, Schwierigkeit ${DIFF[save.difficulty].label} · v${__APP_VERSION__}</div>`;
+    card.className = 'card menu-card';
+    const next = unlocked;
+    const nextName = CAMPAIGN[next]?.name ?? '';
+    const anyStars = stars > 0;
+    h = `<div class="menu-hero"><h1>Tiefenlicht</h1><p class="tagline">Erobere die Lagune</p></div>
+      <button class="primary big" data-play="${next}">${icon('play')} ${anyStars ? `Weiter spielen · Level ${next + 1}: ${nextName}` : 'Spiel starten'}</button>
+      <div class="tiles">
+        <button class="tile" data-go="campaign">${icon('campaign')}<b>Kampagne</b><small>${stars} / ${CAMPAIGN.length * 3} Sterne</small></button>
+        <button class="tile" data-go="daily">${icon('time')}<b>Tages-Karte</b><small>${game.dailyDone() ? 'Heute geschafft' : 'Heute offen'}${save.dailyStreak > 1 ? ` · ${save.dailyStreak} Tage` : ''}</small></button>
+        <button class="tile" data-go="endless">${icon('endless')}<b>Endlos</b><small>Beste Welle ${save.endlessBest}</small></button>
+        <button class="tile" data-go="skills">${icon('skills')}<b>Fähigkeiten</b><small>${pts ? `${pts} Punkte frei` : `${save.spent.length} freigeschaltet`}</small></button>
+      </div>
+      <div class="menu-row">
+        <button data-go="stats" title="Erfolge und Statistik">${icon('trophy')} Erfolge ${save.achievements.length}/${ACHIEVEMENTS.length}</button>
+        <button data-go="settings">${icon('settings')} Einstellungen</button>
+        <button data-go="howto">${icon('help')} Anleitung</button>
+        <button id="mEditor">${icon('route')} Editor</button>
+        <button id="mFs" class="iconbtn" title="Vollbild" aria-label="Vollbild">${ICONS.fullscreen}</button>
+      </div>
+      <div class="meta">Schwierigkeit ${DIFF[save.difficulty].label} · v${__APP_VERSION__}</div>`;
   } else if (kind === 'campaign') {
     card.className = 'card wide seamap-card';
-    const STEP = 104,
-      TOP = 90;
-    const height = TOP + CAMPAIGN.length * STEP + 60;
-    h = `<h2>Kampagne</h2><p class="sub">${stars} Sterne gesammelt. Vom Schelf hinab in den Abgrund: Jedes Level führt tiefer. Schneller als die Zielzeit bringt drei Sterne.</p>
+    const STEP = 112,
+      TOP = 110;
+    const height = TOP + CAMPAIGN.length * STEP + 80;
+    h = `<div class="seamap-head"><h2>Kampagne</h2><span class="meta">${stars} von ${CAMPAIGN.length * 3} Sternen · ${unlocked + 1} von ${CAMPAIGN.length} Leveln erreicht</span></div>
       <div class="seamap" style="height:${height}px">`;
     CHAPTERS.forEach((c, ci) => {
       const first = CAMPAIGN.findIndex((l) => l.ch === ci),
         count = CAMPAIGN.filter((l) => l.ch === ci).length;
-      const y0 = TOP + first * STEP - 60,
+      const y0 = TOP + first * STEP - 70,
         hh = count * STEP;
-      h += `<div class="zone z${ci}" style="top:${y0}px;height:${hh}px"><b>Kapitel ${ci + 1}: ${c.name}</b><span>${c.desc}</span></div>`;
+      h += `<div class="zone z${ci}" style="top:${y0}px;height:${hh}px"><b>${c.name}</b><span>${c.desc}</span></div>`;
     });
     h += `<svg class="path" viewBox="0 0 1000 ${height}" preserveAspectRatio="none"></svg>`;
     CAMPAIGN.forEach((lv, i) => {
       const locked = i > unlocked,
         st = save.stars[i],
         bt = save.bestTimes[i];
-      const x = 50 + Math.sin(i * 0.95) * 28,
+      const x = 50 + Math.sin(i * 0.95) * 30,
         y = TOP + i * STEP;
       const cls = locked ? 'locked' : st ? 'done' : 'next';
       const side = x > 50 ? 'left' : 'right';
-      h += `<button class="mnode ${cls} ${lv.boss ? 'boss' : ''} ${side}" style="left:${x}%;top:${y}px" data-play="${i}" data-x="${x}" data-y="${y}" ${locked ? 'disabled' : ''} aria-label="${i + 1}. ${lv.name}">
-        <span class="num">${locked ? icon('lock') : lv.boss ? icon('trophy') : i + 1}</span>
-        <span class="lbl"><b>${lv.name}</b>${st ? starIcons(st) : `<small>${locked ? 'Gesperrt' : 'Nächstes Level'}</small>`}<small>${lv.enemies} Gegner${bt ? ` · ${fmtTime(bt)}` : ''}</small></span>
-      </button>`;
+      h += `<div class="mnode-wrap ${side}" style="left:${x}%;top:${y}px">
+        <button class="mnode ${cls} ${lv.boss ? 'boss' : ''}" data-play="${i}" data-x="${x}" data-y="${y}" ${locked ? 'disabled' : ''} aria-label="${i + 1}. ${lv.name}">${locked ? icon('lock') : lv.boss ? icon('trophy') : i + 1}</button>
+        <div class="lbl"><b>${lv.name}</b>${st ? starIcons(st) : `<small>${locked ? 'Gesperrt' : 'Nächstes Level'}</small>`}<small>${lv.enemies} Gegner${bt ? ` · ${fmtTime(bt)}` : ''}</small></div>
+      </div>`;
     });
-    h += `</div><div class="actions sticky"><button data-go="menu">${icon('back')}Zurück</button><span class="meta">${unlocked + 1} von ${CAMPAIGN.length} Leveln erreicht</span></div>`;
+    h += `</div><div class="actions sticky"><button data-go="menu">${icon('back')}Zurück</button><span class="meta">Tippe auf eine Boje, um das Level zu starten</span></div>`;
   } else if (kind === 'skills') {
     card.className = 'card wide';
     const branches = [...new Set(SKILLS.map((s) => s.branch))];
@@ -327,7 +344,9 @@ function drawSeaPath(card: HTMLElement, unlocked: number): void {
     if (b.idx <= unlocked) path.setAttribute('class', 'done');
     svg.appendChild(path);
   }
-  const next = map.querySelector<HTMLElement>('.mnode.next');
+  const next =
+    map.querySelector<HTMLElement>('.mnode.next') ??
+    [...map.querySelectorAll<HTMLElement>('.mnode.done')].pop();
   if (next) next.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior });
 }
 

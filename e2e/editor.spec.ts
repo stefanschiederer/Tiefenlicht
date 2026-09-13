@@ -4,7 +4,7 @@ import { startLevel } from './helpers';
 test('editor: place nodes, connect them, set owners, export JSON, play-test', async ({ page }) => {
   test.skip(test.info().project.name === 'mobile', 'mouse only');
   await page.goto('./');
-  await page.getByRole('button', { name: /Karten-Editor/ }).click();
+  await page.getByRole('button', { name: /^Editor$/ }).click();
   await expect(page.locator('.edbar')).toBeVisible();
   const view = await page.evaluate(() => {
     const v = (window as unknown as { TL: { view: { sx(x: number): number; sy(y: number): number } } }).TL
