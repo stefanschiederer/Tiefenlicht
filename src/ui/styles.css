@@ -1079,3 +1079,83 @@ html.compact .objective {
 .edjson textarea {
   height: 120px;
 }
+
+.achievements {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+.ach {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  opacity: 0.5;
+}
+.ach .ic {
+  font-size: 22px;
+  color: var(--mist);
+}
+.ach.on {
+  opacity: 1;
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+.ach.on .ic {
+  color: var(--gold);
+}
+.ach b {
+  display: block;
+  font-size: 13px;
+}
+.ach small {
+  font-size: 11px;
+  color: var(--mist);
+}
+/* ---- tutorial arrows ---- */
+#tutorial {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+#tutorial .arrow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+#tutorial .arrow path {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 10 8;
+  filter: drop-shadow(0 0 6px rgba(255, 196, 90, 0.7));
+  animation: dash 0.8s linear infinite;
+}
+#tutorial .arrow .head {
+  fill: var(--gold);
+  stroke: none;
+}
+#tutorial .label {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: var(--gold);
+  color: #1a1205;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(255, 196, 90, 0.35);
+}
+@keyframes dash {
+  to {
+    stroke-dashoffset: -18;
+  }
+}

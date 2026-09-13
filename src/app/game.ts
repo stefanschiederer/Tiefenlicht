@@ -6,8 +6,13 @@ import {
   CAMPAIGN,
   PLAYER,
   TYPES,
+  dailyDef,
+  dateSeed,
   demoDef,
   endlessDef,
+  todayKey,
+  unlockAchievements,
+  yesterdayKey,
   type AbilityId,
   type LevelDef,
 } from '@/data';
@@ -22,7 +27,7 @@ import { aliveFactions, drainEvents, step } from '@/sim/update';
 import { readSave, writeSave, type SaveGame } from './save';
 import { enterFullscreen } from './pwa';
 
-export type LevelKind = 'campaign' | 'endless' | 'custom';
+export type LevelKind = 'campaign' | 'endless' | 'custom' | 'daily';
 export type SendMode = 0.25 | 0.5 | 0.75 | 1;
 export const SEND_MODES: [SendMode, string][] = [
   [0.25, '25 %'],
@@ -84,6 +89,9 @@ export class Game {
   private dragShift = false;
   private lastTap: { id: number; at: number } | null = null;
   editor: Editor | null = null;
+  private lostThisLevel = 0;
+  /** Achievements unlocked by the last finished level (shown on the result screen). */
+  unlocked: { id: string; name: string; desc: string }[] = [];
   private customDef: LevelDef | null = null;
 
   constructor(renderer: Renderer, listeners: GameListeners) {
@@ -131,6 +139,9 @@ export class Game {
   bestTime(kind: LevelKind, index: number): number | undefined {
     return (kind === 'campaign' ? this.save.bestTimes : this.save.endlessBestTimes)[index];
   }
+  dailyDone(): boolean {
+    return this.save.lastDaily === todayKey();
+  }
 
   private buildDemo(): GameState {
     const s = buildLevel(demoDef(Math.floor(Math.random() * 1e6)), {
@@ -166,7 +177,9 @@ export class Game {
         ? (CAMPAIGN[i] as LevelDef)
         : kind === 'endless'
           ? endlessDef(i)
-          : (this.customDef as LevelDef);
+          : kind === 'daily'
+            ? dailyDef(todayKey(), dateSeed(todayKey()))
+            : (this.customDef as LevelDef);
     this.mode = 'game';
     this.buildCurrent(def);
   }
@@ -181,6 +194,7 @@ export class Game {
     this.paused = false;
     this.levelTime = 0;
     this.result = null;
+    this.lostThisLevel = 0;
     this.resetUi();
     this.listeners.onLegend();
     this.listeners.onAbilities();
@@ -336,7 +350,12 @@ export class Game {
           if (this.save.haptics) vibrate(25);
           if (this.state.stats.captured === 1)
             this.listeners.onTip('Erobert! Der Knoten produziert jetzt für dich.', 3000);
-        } else if (e.prev === PLAYER && this.save.haptics) vibrate([40, 40, 40]);
+        } else if (e.prev === PLAYER) {
+          this.lostThisLevel++;
+          if (this.save.haptics) vibrate([40, 40, 40]);
+        }
+      } else if (e.type === 'cut') {
+        this.save.stats.cuts++;
       } else if (e.type === 'surrender') {
         this.listeners.onTip('Ein Gegner gibt auf.', 2500);
       } else if (e.type === 'finished') this.finish(e.won);
@@ -350,11 +369,36 @@ export class Game {
     this.cancelGesture();
     const L = this.def;
     let result: LevelResult | null = null;
+    const st0 = this.save.stats;
+    st0.gamesPlayed++;
+    st0.playTime += this.levelTime;
+    st0.captures += this.state.stats.captured;
+    st0.lost += this.lostThisLevel;
+    st0.unitsSent += this.state.stats.sends;
+    if (won) {
+      st0.wins++;
+      if (this.lostThisLevel === 0) st0.flawlessWins++;
+      if (L.objective && this.state.objectiveT >= L.objective.seconds) st0.objectives++;
+    } else st0.losses++;
+    if (won && this.levelKind === 'daily') {
+      const today = todayKey();
+      if (this.save.lastDaily !== today) {
+        this.save.dailyStreak = this.save.lastDaily === yesterdayKey() ? this.save.dailyStreak + 1 : 1;
+        this.save.lastDaily = today;
+        st0.dailies++;
+        st0.bestDailyStreak = Math.max(st0.bestDailyStreak, this.save.dailyStreak);
+        this.save.points += 1;
+      }
+      const prev = this.save.dailyTimes[today];
+      if (prev === undefined || this.levelTime < prev) this.save.dailyTimes[today] = this.levelTime;
+      const keys = Object.keys(this.save.dailyTimes).sort();
+      while (keys.length > 14) delete this.save.dailyTimes[keys.shift() as string];
+    }
     if (won) {
       const st = this.levelTime <= L.par ? 3 : this.levelTime <= L.par * 1.6 ? 2 : 1;
       let gained = 0;
-      if (this.levelKind === 'custom') {
-        /* play-test: nothing is saved */
+      if (this.levelKind === 'custom' || this.levelKind === 'daily') {
+        /* play-test / daily: no campaign stars */
       } else if (this.levelKind === 'campaign') {
         const prev = this.save.stars[this.levelIndex] ?? 0;
         if (st > prev) {
@@ -366,15 +410,18 @@ export class Game {
         this.save.endlessBest = this.levelIndex;
       }
       const times = this.levelKind === 'campaign' ? this.save.bestTimes : this.save.endlessBestTimes;
-      const prevBest = this.levelKind === 'custom' ? undefined : times[this.levelIndex];
-      const newBest = this.levelKind !== 'custom' && (prevBest === undefined || this.levelTime < prevBest);
+      const tracked = this.levelKind === 'campaign' || this.levelKind === 'endless';
+      const prevBest = tracked ? times[this.levelIndex] : undefined;
+      const newBest = tracked && (prevBest === undefined || this.levelTime < prevBest);
       if (newBest) times[this.levelIndex] = this.levelTime;
       this.save.points += gained;
       result = { stars: st, gained, bestTime: times[this.levelIndex] ?? this.levelTime, newBest };
-      if (this.levelKind !== 'custom') this.persist();
       if (this.save.haptics) vibrate([60, 60, 120]);
     } else if (this.save.haptics) vibrate(200);
+    if (this.levelKind !== 'custom') this.persist();
     this.result = result;
+    this.unlocked = this.levelKind === 'custom' ? [] : unlockAchievements(this.save);
+    if (this.unlocked.length) this.persist();
     this.listeners.onFinish(won, result);
   }
 

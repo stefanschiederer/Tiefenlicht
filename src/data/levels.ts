@@ -402,3 +402,24 @@ export function demoDef(seed: number): LevelDef {
     text: '',
   };
 }
+
+/** Daily challenge: one fixed map per calendar day, shared by everyone. */
+export function dailyDef(dateKey: string, seed: number): LevelDef {
+  const n = 3 + (seed % 4);
+  return {
+    ch: 1,
+    name: `Tages-Herausforderung ${dateKey}`,
+    nodes: 13 + (seed % 5),
+    enemies: 2 + (seed % 2),
+    types: ALL,
+    ai: 2.0 - (seed % 3) * 0.15,
+    obst: n,
+    seed: 900000 + seed,
+    gar: 22,
+    prod: 1.05 + (seed % 4) * 0.03,
+    par: 200,
+    barriers: seed % 3,
+    mines: (seed >> 2) % 3,
+    text: 'Eine Karte für alle, nur heute. Schaffst du sie unter der Zielzeit?',
+  };
+}

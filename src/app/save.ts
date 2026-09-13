@@ -32,6 +32,43 @@ export interface SaveV2 {
   graphics: GraphicsSetting;
   /** Vibration feedback on supported devices. */
   haptics: boolean;
+  stats: SaveStats;
+  achievements: string[];
+  /** Date key of the last completed daily challenge and the current streak. */
+  lastDaily: string;
+  dailyStreak: number;
+  /** Best daily time per date key (only the last few are kept). */
+  dailyTimes: Record<string, number>;
+}
+export interface SaveStats {
+  gamesPlayed: number;
+  wins: number;
+  losses: number;
+  captures: number;
+  lost: number;
+  unitsSent: number;
+  cuts: number;
+  playTime: number;
+  flawlessWins: number;
+  objectives: number;
+  dailies: number;
+  bestDailyStreak: number;
+}
+export function emptyStats(): SaveStats {
+  return {
+    gamesPlayed: 0,
+    wins: 0,
+    losses: 0,
+    captures: 0,
+    lost: 0,
+    unitsSent: 0,
+    cuts: 0,
+    playTime: 0,
+    flawlessWins: 0,
+    objectives: 0,
+    dailies: 0,
+    bestDailyStreak: 0,
+  };
 }
 export type GraphicsSetting = 'auto' | 'hoch' | 'mittel' | 'niedrig';
 const GRAPHICS: readonly GraphicsSetting[] = ['auto', 'hoch', 'mittel', 'niedrig'];
@@ -58,9 +95,23 @@ export function defaultSave(now = Date.now()): SaveGame {
     endlessBestTimes: {},
     graphics: 'auto',
     haptics: true,
+    stats: emptyStats(),
+    achievements: [],
+    lastDaily: '',
+    dailyStreak: 0,
+    dailyTimes: {},
   };
 }
 
+function statsOf(v: unknown): SaveStats {
+  const out = emptyStats();
+  if (!isObject(v)) return out;
+  for (const k of Object.keys(out) as (keyof SaveStats)[]) {
+    const n = Number(v[k]);
+    if (Number.isFinite(n) && n >= 0) out[k] = n;
+  }
+  return out;
+}
 function timeMap(v: unknown): Record<string, number> {
   const out: Record<string, number> = {};
   if (!isObject(v)) return out;
@@ -118,6 +169,13 @@ export function migrate(raw: unknown, now = Date.now()): SaveGame {
     endlessBestTimes: version >= 2 ? timeMap(raw.endlessBestTimes) : {},
     graphics: isGraphics(raw.graphics) ? raw.graphics : 'auto',
     haptics: raw.haptics !== false,
+    stats: statsOf(raw.stats),
+    achievements: Array.isArray(raw.achievements)
+      ? raw.achievements.filter((a): a is string => typeof a === 'string')
+      : [],
+    lastDaily: typeof raw.lastDaily === 'string' ? raw.lastDaily : '',
+    dailyStreak: nonNegInt(raw.dailyStreak),
+    dailyTimes: timeMap(raw.dailyTimes),
   };
 }
 

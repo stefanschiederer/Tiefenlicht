@@ -14,6 +14,7 @@ import { positionPanel, renderPanel, updatePanel } from '@/ui/panel';
 import { hideScreen, showScreen, type ScreenActions, type ScreenKind } from '@/ui/screens';
 import { hideEditorUi, renderEditorUi } from '@/ui/editor';
 import { customDef } from './editor';
+import { Tutorial } from './tutorial';
 import { Game, isTouch } from './game';
 import { createRenderer, type GraphicsQuality } from '@/render/renderer';
 import { readSave } from './save';
@@ -34,7 +35,10 @@ export async function startApp(): Promise<Game> {
       if (game.ui.selected.length) updatePanel(game);
     },
     onPanel: () => renderPanel(game),
-    onFrame: () => positionPanel(game),
+    onFrame: () => {
+      positionPanel(game);
+      tutorial.update(1 / 60);
+    },
     onTip: tip,
     onLegend: () => buildLegend(game),
     onAbilities: () => renderAbilities(game),
@@ -47,6 +51,7 @@ export async function startApp(): Promise<Game> {
     setGameUi(false);
     showScreen(game, kind, actions);
   };
+  const tutorial = new Tutorial(game);
   const openEditor = () => {
     hideScreen();
     setGameUi(false);
@@ -101,6 +106,10 @@ export async function startApp(): Promise<Game> {
     next: () => {
       if (game.levelKind === 'custom') {
         openEditor();
+        return;
+      }
+      if (game.levelKind === 'daily') {
+        toMenu('menu');
         return;
       }
       if (game.levelKind === 'campaign') {

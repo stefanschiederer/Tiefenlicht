@@ -1,4 +1,4 @@
-import { CAMPAIGN, CHAPTERS, DIFF, FACTIONS, MINE_UNITS, SKILLS, TYPES } from '@/data';
+import { ACHIEVEMENTS, CAMPAIGN, CHAPTERS, DIFF, FACTIONS, MINE_UNITS, SKILLS, TYPES } from '@/data';
 import { computePerks } from '@/data/skills';
 import { nodeIcon } from '@/render/pixi/textures';
 import { fmtTime, type Game } from '@/app/game';
@@ -16,11 +16,21 @@ import { tip } from './hud';
 import { icon, stars as starIcons } from './icons';
 
 export type ScreenKind =
-  'menu' | 'campaign' | 'skills' | 'settings' | 'howto' | 'intro' | 'chapter' | 'win' | 'lose' | 'pause';
+  | 'menu'
+  | 'campaign'
+  | 'skills'
+  | 'settings'
+  | 'howto'
+  | 'intro'
+  | 'chapter'
+  | 'win'
+  | 'lose'
+  | 'pause'
+  | 'stats';
 
 export interface ScreenActions {
   toMenu(kind: ScreenKind): void;
-  play(kind: 'campaign' | 'endless', index: number): void;
+  play(kind: 'campaign' | 'endless' | 'daily', index: number): void;
   resume(): void;
   restart(): void;
   next(): void;
@@ -42,7 +52,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
   let h = '';
   if (kind === 'menu') {
     h = `<h1>Tiefenlicht</h1><p class="sub">Ein Strategiespiel um leuchtende Knoten im Abgrund</p>
-      <div class="menu"><button class="primary" data-go="campaign">${icon('campaign')}Kampagne</button><button data-go="endless">${icon('endless')}Endlos</button><button data-go="skills">${icon('skills')}Fähigkeiten ${pts ? `(${pts} Punkte frei)` : ''}</button><button data-go="settings">${icon('settings')}Einstellungen</button><button data-go="howto">${icon('help')}Anleitung</button><button id="mEditor">${icon('route')}Karten-Editor</button><button id="mFs">${icon('fullscreen')}Vollbild</button></div>
+      <div class="menu"><button class="primary" data-go="campaign">${icon('campaign')}Kampagne</button><button data-go="endless">${icon('endless')}Endlos</button><button data-go="daily">${icon('time')}Tages-Herausforderung ${game.dailyDone() ? '✓' : ''}${save.dailyStreak > 1 ? ` · ${save.dailyStreak} Tage` : ''}</button><button data-go="stats">${icon('trophy')}Erfolge (${save.achievements.length}/${ACHIEVEMENTS.length})</button><button data-go="skills">${icon('skills')}Fähigkeiten ${pts ? `(${pts} Punkte frei)` : ''}</button><button data-go="settings">${icon('settings')}Einstellungen</button><button data-go="howto">${icon('help')}Anleitung</button><button id="mEditor">${icon('route')}Karten-Editor</button><button id="mFs">${icon('fullscreen')}Vollbild</button></div>
       <div class="meta">${stars} von ${CAMPAIGN.length * 3} Sternen, beste Endlos-Welle ${save.endlessBest}, Schwierigkeit ${DIFF[save.difficulty].label} · v${__APP_VERSION__}</div>`;
   } else if (kind === 'campaign') {
     card.className = 'card wide seamap-card';
@@ -115,7 +125,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
       <li><b>Tasten:</b> <kbd>Leertaste</kbd> Pause, <kbd>F</kbd> Tempo, <kbd>Esc</kbd> Abbrechen.</li></ul>
       <div class="actions"><button data-go="menu">Zurück</button></div>`;
   } else if (kind === 'intro') {
-    h = `<h2>${L.name}</h2><p class="sub">${game.levelKind === 'campaign' ? `Kapitel ${L.ch + 1}: ${CHAPTERS[L.ch]?.name ?? ''}, Level ${game.levelIndex + 1} von ${CAMPAIGN.length}` : 'Endlos'} · ${L.enemies === 1 ? 'ein Gegner' : L.enemies + ' Gegner'} · Zielzeit ${fmtTime(L.par)}</p>`;
+    h = `<h2>${L.name}</h2><p class="sub">${game.levelKind === 'campaign' ? `Kapitel ${L.ch + 1}: ${CHAPTERS[L.ch]?.name ?? ''}, Level ${game.levelIndex + 1} von ${CAMPAIGN.length}` : game.levelKind === 'daily' ? 'Heute für alle gleich' : game.levelKind === 'custom' ? 'Eigene Karte' : 'Endlos'} · ${L.enemies === 1 ? 'ein Gegner' : L.enemies + ' Gegner'} · Zielzeit ${fmtTime(L.par)}</p>`;
     if (game.levelKind === 'campaign' && game.levelIndex === 0)
       h += `<ul><li>Ziehe vom goldenen Knoten zu einem Nachbarn: Die Hälfte deiner Einheiten bricht sofort auf, und die Route bleibt – ein Teil des Nachwuchses fließt laufend weiter. Ziehe erneut, um sofort mehr zu schicken.</li><li>Fremde Knoten werden angegriffen; ist deine Stärke größer, gehören sie dir.</li><li>Nur gepunktete Linien sind Wege. Felsen trennen das Netz.</li></ul>`;
     else h += `<p>${L.text}</p>`;
@@ -134,6 +144,15 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     if (L.feature === 'convert')
       h += `<div class="new"><div><b>Neu: Umbau</b><span>Im Knotenmenü kannst du eine andere Knotenart wählen. Der Knoten fällt dabei auf Stufe 1 zurück.</span></div></div>`;
     h += `<div class="actions"><button class="primary" id="go">Level starten</button><button data-go="${game.levelKind === 'campaign' ? 'campaign' : 'menu'}">Zurück</button></div>`;
+  } else if (kind === 'stats') {
+    card.className = 'card wide';
+    const st = save.stats;
+    const hours = Math.floor(st.playTime / 3600),
+      mins = Math.floor((st.playTime % 3600) / 60);
+    h = `<h2>Erfolge und Statistik</h2><p class="sub">${save.achievements.length} von ${ACHIEVEMENTS.length} Erfolgen freigeschaltet.</p>
+      <div class="stats"><div><b>${st.gamesPlayed}</b>Level gespielt</div><div><b>${st.wins}</b>gewonnen</div><div><b>${st.captures}</b>Knoten erobert</div><div><b>${st.lost}</b>Knoten verloren</div><div><b>${st.cuts}</b>Routen gekappt</div><div><b>${hours ? `${hours} h ` : ''}${mins} min</b>Spielzeit</div><div><b>${save.dailyStreak}</b>Tage in Folge</div></div>
+      <div class="achievements">${ACHIEVEMENTS.map((a) => `<div class="ach ${save.achievements.includes(a.id) ? 'on' : ''}">${icon(save.achievements.includes(a.id) ? 'trophy' : 'lock')}<div><b>${a.name}</b><small>${a.desc}</small></div></div>`).join('')}</div>
+      <div class="actions"><button data-go="menu">${icon('back')}Zurück</button></div>`;
   } else if (kind === 'chapter') {
     const c = CHAPTERS[L.ch];
     h = `<p class="sub">Kapitel ${L.ch + 1}</p><h2>${c?.name ?? ''}</h2><p class="chapter-intro">${c?.intro ?? ''}</p>
@@ -142,7 +161,9 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     const r = game.result ?? { stars: 1, gained: 0, bestTime: game.levelTime, newBest: false };
     h = `<h2>${r.newBest ? 'Neue Bestzeit!' : 'Der Abgrund leuchtet golden'}</h2><p class="sub">${L.name} geschafft</p>
       <div class="stats"><div><b>${starIcons(r.stars)}</b>${r.stars === 3 ? 'unter Zielzeit' : r.stars === 2 ? 'nah an der Zielzeit' : 'geschafft'}</div><div><b>${fmtTime(game.levelTime)}</b>Zeit (Ziel ${fmtTime(L.par)})</div><div><b class="${r.newBest ? 'newbest' : ''}">${fmtTime(r.bestTime)}</b>${r.newBest ? 'neuer Rekord' : 'Bestzeit'}</div><div><b>${game.state.stats.captured}</b>erobert</div><div><b>+${r.gained}</b>Punkte</div></div>
-      <div class="actions"><button class="primary" id="next">${game.levelKind === 'campaign' ? (game.levelIndex + 1 < CAMPAIGN.length ? 'Nächstes Level' : 'Kampagne geschafft – zur Übersicht') : game.levelKind === 'custom' ? 'Zurück zum Editor' : 'Nächste Welle'}</button><button id="again">Nochmal</button>${save.points ? '<button data-go="skills">Fähigkeiten</button>' : ''}<button data-go="menu">Menü</button></div>`;
+      ${game.unlocked.length ? `<div class="new"><div><b>${icon('trophy')} Erfolg freigeschaltet</b><span>${game.unlocked.map((a) => `${a.name} – ${a.desc}`).join(' · ')}</span></div></div>` : ''}
+      ${game.levelKind === 'daily' ? `<p class="meta">Tages-Herausforderung geschafft. Serie: ${save.dailyStreak} Tag${save.dailyStreak === 1 ? '' : 'e'}. Morgen wartet eine neue Karte.</p>` : ''}
+      <div class="actions"><button class="primary" id="next">${game.levelKind === 'campaign' ? (game.levelIndex + 1 < CAMPAIGN.length ? 'Nächstes Level' : 'Kampagne geschafft – zur Übersicht') : game.levelKind === 'custom' ? 'Zurück zum Editor' : game.levelKind === 'daily' ? 'Zum Menü' : 'Nächste Welle'}</button><button id="again">Nochmal</button>${save.points ? '<button data-go="skills">Fähigkeiten</button>' : ''}<button data-go="menu">Menü</button></div>`;
   } else if (kind === 'lose') {
     const winner = FACTIONS[game.state.nodes.find((n) => n.owner > 1)?.owner ?? 2] ?? FACTIONS[2];
     h = `<h2>Der Goldschwarm ist erloschen</h2><p class="sub">${L.name}</p>
@@ -174,8 +195,9 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
   card.querySelectorAll<HTMLButtonElement>('[data-go]').forEach((b) =>
     b.addEventListener('click', () => {
       game.audio.play('click');
-      const g = b.dataset.go as ScreenKind | 'endless';
+      const g = b.dataset.go as ScreenKind | 'endless' | 'daily';
       if (g === 'endless') act.play('endless', Math.max(1, save.endlessBest + 1));
+      else if (g === 'daily') act.play('daily', 0);
       else act.toMenu(g);
     }),
   );

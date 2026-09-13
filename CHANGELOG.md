@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 – Phase 4c: Erfolge, Statistik, Tages-Herausforderung, Tutorial (2026-09-14)
+
+- 16 Erfolge (Eroberungen, Kapitel, Sterne, makelloser Sieg, Sonderziel, gekappte Routen, Endlos, Tages-Serie) mit Freischalt-Hinweis im Siegbildschirm und eigener Übersicht mit Statistik (Level, Siege, Eroberungen, Verluste, Spielzeit).
+- Tages-Herausforderung: jeden Tag eine Karte aus dem Datums-Seed, gleich für alle; Serie (Streak), Bestzeit, ein Fähigkeitspunkt pro Tag.
+- Tutorial im ersten Level: animierter Pfeil zum ersten Ziel, danach Hinweis auf Ausbau.
+
 ## 0.7.0 – Phase 4: Hindernisse, handgebaute Karten, Sonderziele (2026-09-14)
 
 - Handgebaute Karten: Level 1 „Erstes Leuchten“ (sanfter Einstieg) und Level 7 „Wachtposten“ (zwei Gassen mit neutralen Wächtern, Bastion in der Mitte, Barrieren vor den Gegnern) sind jetzt von Hand gebaut. Datenformat `HandMap` für den Editor.
