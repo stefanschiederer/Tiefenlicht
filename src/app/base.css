@@ -1,4 +1,7 @@
 /* Base styles that apply regardless of the game UI implementation. */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+}
 html,
 body {
   touch-action: manipulation; /* no double-tap zoom */
@@ -40,4 +43,83 @@ body {
   white-space: pre-wrap;
   max-height: 40vh;
   overflow: auto;
+}
+
+/* Bars are transparent to touch except for their buttons, so nodes underneath stay draggable. */
+#sendbar,
+#abilities {
+  pointer-events: none;
+}
+#sendbar button,
+#abilities button {
+  pointer-events: auto;
+}
+
+/* Compact HUD for short screens (phones in landscape): one line at the top, map below it. */
+html.compact #hud {
+  padding: max(6px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) 4px
+    max(10px, env(safe-area-inset-left));
+  gap: 8px;
+  align-items: center;
+}
+html.compact .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+html.compact .brand .t {
+  display: none;
+}
+html.compact .brand .l {
+  margin-top: 0;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 34vw;
+}
+html.compact .share {
+  margin-top: 0;
+  width: 110px;
+  height: 5px;
+}
+html.compact .energy {
+  margin-top: 0;
+  width: 110px;
+  font-size: 10px;
+}
+html.compact .energy .bar {
+  margin-top: 2px;
+}
+html.compact #hud button {
+  padding: 5px 9px;
+  font-size: 12px;
+}
+html.compact #sendbar {
+  bottom: max(8px, env(safe-area-inset-bottom));
+}
+html.compact #sendbar button {
+  padding: 6px 8px;
+  font-size: 11px;
+  min-width: 38px;
+}
+html.compact #abilities {
+  bottom: max(8px, env(safe-area-inset-bottom));
+  left: auto;
+  right: max(10px, env(safe-area-inset-right));
+  transform: none;
+}
+html.compact #abilities button {
+  width: 52px;
+  height: 52px;
+  font-size: 9px;
+}
+html.compact #nodePanel,
+html.compact #legend {
+  top: 48px;
+}
+html.compact #tip {
+  bottom: 56px;
+  font-size: 12px;
 }

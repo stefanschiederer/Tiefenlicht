@@ -10,6 +10,7 @@
 - Knotenmenü ist rechts angedockt statt neben dem Knoten, damit es keine Nachbarknoten verdeckt.
 - Schwierigkeitskurve der Kampagne neu abgestimmt (siehe `BALANCE.md`).
 - Designbefund in `GAMEDESIGN.md`.
+- Handy im Querformat: kompakte einzeilige HUD, das Spielfeld wird darunter eingepasst; Sende- und Fähigkeitenleiste sind außer ihren Buttons berührungsdurchlässig. Kein Knoten liegt mehr unter Anzeigen.
 
 ## 0.2.1 (2026-09-13)
 

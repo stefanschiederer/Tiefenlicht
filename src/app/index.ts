@@ -83,7 +83,11 @@ export function startApp(): Game {
   });
 
   const resize = () => {
-    game.renderer.resize(innerWidth, innerHeight);
+    // Short screens (phones in landscape) get a compact one-line HUD and the map is fitted below it.
+    const compact = innerHeight < 500;
+    document.documentElement.classList.toggle('compact', compact);
+    const safeTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sat')) || 0;
+    game.renderer.resize(innerWidth, innerHeight, { top: compact ? 44 + safeTop : 0 });
     if (game.ui.selected.length) renderPanel(game);
   };
   window.addEventListener('resize', resize);

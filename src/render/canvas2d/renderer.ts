@@ -64,14 +64,14 @@ export class CanvasRenderer {
     this.ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
   }
 
-  resize(width: number, height: number): void {
+  resize(width: number, height: number, insets?: Partial<View['insets']>): void {
     this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.canvas.width = Math.ceil(width * this.dpr);
     this.canvas.height = Math.ceil(height * this.dpr);
     this.canvas.style.width = width + 'px';
     this.canvas.style.height = height + 'px';
     this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    this.view.resize(width, height);
+    this.view.resize(width, height, insets);
     this.initMotes();
     this.staticLayer = null;
   }

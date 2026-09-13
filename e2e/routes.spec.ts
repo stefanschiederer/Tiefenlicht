@@ -167,3 +167,23 @@ test('multi-select: tapping two own nodes and dragging sends from both', async (
   expect(routes).toBe(2);
   expect(after).toBeGreaterThanOrEqual(before + 1);
 });
+
+test('on a phone in landscape no node is covered by HUD chrome', async ({ page }) => {
+  test.skip(test.info().project.name !== 'mobile', 'phone layout only');
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Kampagne' }).tap();
+  await page.getByRole('button', { name: /1\. Erstes Leuchten/ }).tap();
+  await page.getByRole('button', { name: 'Level starten' }).tap();
+  await page.waitForTimeout(300);
+  const covered = await page.evaluate(() => {
+    const t = (window as unknown as { TL: TL & { view: { offsetY: number } } }).TL;
+    const hits: string[] = [];
+    for (const n of t.nodes) {
+      const el = document.elementFromPoint(t.view.sx(n.x), t.view.sy(n.y));
+      if (el && el.id !== 'c') hits.push(`${n.id}:${el.id || el.className}`);
+    }
+    return { hits, offsetY: t.view.offsetY };
+  });
+  expect(covered.hits).toEqual([]);
+  expect(covered.offsetY).toBeGreaterThanOrEqual(44);
+});

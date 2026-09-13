@@ -10,12 +10,18 @@ export class View {
   /** UI scale for stroke widths, fonts, hit slop (≈ prototype's S). */
   S = 1;
 
-  resize(width: number, height: number): void {
+  /** Screen margins reserved for HUD chrome (map is fitted into the remaining rect). */
+  insets = { top: 0, bottom: 0, left: 0, right: 0 };
+
+  resize(width: number, height: number, insets?: Partial<View['insets']>): void {
     this.width = width;
     this.height = height;
-    this.scale = Math.min(width / WORLD_W, height / WORLD_H);
-    this.offsetX = (width - WORLD_W * this.scale) / 2;
-    this.offsetY = (height - WORLD_H * this.scale) / 2;
+    if (insets) this.insets = { ...this.insets, ...insets };
+    const aw = Math.max(1, width - this.insets.left - this.insets.right),
+      ah = Math.max(1, height - this.insets.top - this.insets.bottom);
+    this.scale = Math.min(aw / WORLD_W, ah / WORLD_H);
+    this.offsetX = this.insets.left + (aw - WORLD_W * this.scale) / 2;
+    this.offsetY = this.insets.top + (ah - WORLD_H * this.scale) / 2;
     this.S = Math.max(0.55, Math.min(1.3, Math.min(width, height) / 760));
   }
   sx(x: number): number {
