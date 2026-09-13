@@ -128,7 +128,7 @@ export function generateMapSafe(def: Pick<LevelDef, 'nodes' | 'enemies' | 'obst'
     else cur.nodes = Math.max(5, cur.nodes - 1);
     cur.seed += 7;
   }
-  const last = generateMap({ ...cur, obst: 0, nodes: 6 });
+  const last = generateMap({ nodes: 6, enemies: def.enemies, obst: 0, seed: def.seed });
   if (!last) throw new Error('map generation failed');
   return last;
 }
