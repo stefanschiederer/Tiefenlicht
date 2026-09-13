@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=overlays-content"
+    />
+    <meta
+      name="description"
+      content="Tiefenlicht – Echtzeit-Strategie um leuchtende Knoten in der Tiefsee."
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Tiefenlicht" />
+    <meta name="theme-color" content="#050d17" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="icon" type="image/svg+xml" href="logo.svg" />
+    <link rel="apple-touch-icon" href="icons/icon-180.png" />
+    <title>Tiefenlicht</title>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="hud" hidden>
+      <div class="brand">
+        <div class="t">Tiefenlicht</div>
+        <div class="l" id="levelLabel"></div>
+        <div class="share" id="share" aria-label="Anteil der Knoten"></div>
+        <div class="energy">
+          Energie <span id="energyVal">0</span> / 100
+          <div class="bar"><i id="energyBar"></i></div>
+        </div>
+      </div>
+      <div class="tools">
+        <button id="legendBtn" aria-pressed="false">Knotenarten</button>
+        <button id="speedBtn" aria-pressed="false">Tempo 1×</button>
+        <button id="pauseBtn">Pause</button>
+        <button id="fsBtn" title="Vollbild">⛶</button>
+      </div>
+    </div>
+    <div id="sendbar" hidden><span class="lbl">Senden</span></div>
+    <div id="abilities" hidden></div>
+    <div id="nodePanel" hidden></div>
+    <div id="legend" hidden></div>
+    <div id="tip"></div>
+    <div id="screen" class="screen" hidden><div class="card" id="card"></div></div>
+    <div id="pwaToast" class="toast" hidden>
+      <span>Neue Version verfügbar.</span>
+      <button id="pwaReload" class="primary">Neu laden</button>
+      <button id="pwaLater">Später</button>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

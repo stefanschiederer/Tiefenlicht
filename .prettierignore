@@ -1,0 +1,10 @@
+dist
+dev-dist
+node_modules
+e2e/results
+playwright-report
+src/legacy
+tiefenlicht.html
+package-lock.json
+public/icons
+BALANCE.md

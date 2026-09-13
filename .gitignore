@@ -1,0 +1,13 @@
+node_modules/
+dist/
+dev-dist/
+e2e/results/
+e2e/screenshots/*.png
+!e2e/screenshots/.gitkeep
+playwright-report/
+test-results/
+coverage/
+*.log
+.DS_Store
+.env
+.env.*
