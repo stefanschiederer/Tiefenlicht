@@ -1,13 +1,31 @@
 import { ALL_TYPES, type NodeType } from './types';
+import { MAP_ERSTES_LEUCHTEN, MAP_WACHTPOSTEN, type HandMap, type Objective } from './maps';
 
 export interface Chapter {
   name: string;
   desc: string;
+  /** Narrative intro shown once before the chapter's first level. */
+  intro: string;
 }
 export const CHAPTERS: readonly Chapter[] = [
-  { name: 'Der Schelf', desc: 'Flaches Wasser. Lerne Routen, Ausbau und die ersten Knotenarten.' },
-  { name: 'Das Riff', desc: 'Engstellen, Türme und Quellen. Zwei Gegner zugleich.' },
-  { name: 'Der Abgrund', desc: 'Drei Schwärme, kein Licht. Alles, was du gelernt hast, zählt.' },
+  {
+    name: 'Der Schelf',
+    desc: 'Flaches Wasser. Lerne Routen, Ausbau und die ersten Knotenarten.',
+    intro:
+      'Im flachen Wasser über dem Schelf leuchten die ersten Knoten. Der Goldschwarm ist klein, aber das Licht hier oben ist noch warm. Lerne, wie Routen fließen und wie ein Nest wächst, bevor die Strömung dich tiefer trägt.',
+  },
+  {
+    name: 'Das Riff',
+    desc: 'Engstellen, Türme und Quellen. Zwei Gegner zugleich.',
+    intro:
+      'Das Riff ist ein Labyrinth aus Fels und Gassen. Wächter bewachen die Engstellen, Quellen nähren, wer sie hält, und Barrieren versperren die kurzen Wege. Hier kämpfen zwei Schwärme gegen dich – und gegeneinander.',
+  },
+  {
+    name: 'Der Abgrund',
+    desc: 'Drei Schwärme, kein Licht. Alles, was du gelernt hast, zählt.',
+    intro:
+      'Unter dem Riff endet das Licht. Drei Schwärme streiten um die letzten Knoten, Minen treiben in den Gräben, und die Gegner beginnen ausgebaut. Wer den Grund erreicht, hat den Abgrund bezwungen.',
+  },
 ];
 
 export type LevelFeature = 'upgrade' | 'split' | 'convert' | 'barrier' | 'mine';
@@ -41,6 +59,12 @@ export interface LevelDef {
   barriers?: number;
   /** Mines on random edges: the first group passing loses units. */
   mines?: number;
+  /** Hand-made map (replaces the generator; seed still drives node types of untyped nodes). */
+  map?: HandMap;
+  /** Optional special objective that wins the level early. */
+  objective?: Objective;
+  /** Short chapter intro shown before the first level of a chapter. */
+  chapterIntro?: string;
 }
 
 const T1: NodeType[] = ['nest'];
@@ -65,6 +89,7 @@ export const CAMPAIGN: readonly LevelDef[] = [
     par: 85,
     aiUpgrades: false,
     text: 'Tief unten im Abgrund leuchten Knoten. Wer alle hält, gewinnt.',
+    map: MAP_ERSTES_LEUCHTEN,
   },
   {
     ch: 0,
@@ -145,7 +170,7 @@ export const CAMPAIGN: readonly LevelDef[] = [
   {
     ch: 1,
     name: 'Wachtposten',
-    nodes: 12,
+    nodes: 13,
     enemies: 2,
     types: T5,
     ai: 2.3,
@@ -156,6 +181,8 @@ export const CAMPAIGN: readonly LevelDef[] = [
     par: 145,
     newType: 'waechter',
     text: 'Wächter sind Türme: Sie beschießen alles Fremde in Reichweite. Führe keine Route durch ihr Feld.',
+    map: MAP_WACHTPOSTEN,
+    objective: { type: 'hold', node: 5, seconds: 45, label: 'Halte die Bastion in der Mitte 45 Sekunden' },
   },
   {
     ch: 1,
@@ -171,6 +198,7 @@ export const CAMPAIGN: readonly LevelDef[] = [
     par: 150,
     newType: 'quelle',
     text: 'Eine Quelle verstärkt ihre Nachbarn. Wer sie hält, wächst schneller.',
+    objective: { type: 'hold', node: -1, seconds: 60, label: 'Halte eine Quelle 60 Sekunden' },
   },
   {
     ch: 1,

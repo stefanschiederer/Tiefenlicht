@@ -381,7 +381,7 @@ export class PixiRenderer implements Renderer {
       sp.anchor.set(0.5);
       sp.position.set(b.x, b.y);
       sp.rotation = Math.atan2(nb.y - na.y, nb.x - na.x);
-      sp.scale.set(0.42);
+      sp.scale.set(0.6);
       const hp = new Graphics();
       this.obstacles.addChild(sp, hp);
       this.barrierViews.push({ s: sp, hp, ref: b });
@@ -390,7 +390,7 @@ export class PixiRenderer implements Renderer {
       const sp = new Sprite(mineTexture());
       sp.anchor.set(0.5);
       sp.position.set(m.x, m.y);
-      sp.scale.set(0.5);
+      sp.scale.set(0.7);
       this.obstacles.addChild(sp);
       this.mineViews.push({ s: sp, ref: m, ph: Math.random() * TAU });
     }

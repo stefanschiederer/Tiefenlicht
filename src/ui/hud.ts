@@ -44,6 +44,13 @@ export function updateHud(game: Game): void {
         `<i style="width:${((counts[i] ?? 0) / s.nodes.length) * 100}%;background:${FACTIONS[i]?.color ?? '#fff'}" title="${FACTIONS[i]?.name ?? ''}: ${counts[i] ?? 0}"></i>`,
     )
     .join('');
+  const obj = L.objective,
+    objEl = $('#objective');
+  if (obj) {
+    objEl.hidden = false;
+    const left = Math.max(0, Math.ceil(obj.seconds - s.objectiveT));
+    objEl.innerHTML = `${icon('target')} ${obj.label} <b>${s.objectiveT > 0 ? `${left} s` : ''}</b><div class="bar"><i style="width:${Math.min(100, (s.objectiveT / obj.seconds) * 100)}%"></i></div>`;
+  } else objEl.hidden = true;
   $('#energyVal').textContent = String(Math.floor(s.energy));
   $('#energyBar').style.width = s.energy + '%';
   for (const b of document.querySelectorAll<HTMLButtonElement>('#abilities button')) {

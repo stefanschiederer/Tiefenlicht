@@ -222,6 +222,19 @@ export function step(s: GameState, dt: number): void {
   }
   const pAlive = s.nodes.some((n) => n.owner === PLAYER) || s.groups.some((g) => g.owner === PLAYER);
   const eAlive = s.nodes.some((n) => n.owner > 1) || s.groups.some((g) => g.owner > 1);
+  // Hold objective: keep the target node (or any node of the objective type) for N seconds.
+  const obj = s.def.objective;
+  if (obj && obj.type === 'hold') {
+    const held =
+      s.objectiveNode >= 0
+        ? (s.nodes[s.objectiveNode] as SimNode).owner === PLAYER
+        : s.nodes.some((n) => n.owner === PLAYER && n.type === 'quelle');
+    s.objectiveT = held ? s.objectiveT + dt : 0;
+    if (s.objectiveT >= obj.seconds) {
+      finish(s, true);
+      return;
+    }
+  }
   if (!eAlive) finish(s, true);
   else if (!pAlive) finish(s, false);
 }

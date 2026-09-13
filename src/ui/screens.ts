@@ -16,7 +16,7 @@ import { tip } from './hud';
 import { icon, stars as starIcons } from './icons';
 
 export type ScreenKind =
-  'menu' | 'campaign' | 'skills' | 'settings' | 'howto' | 'intro' | 'win' | 'lose' | 'pause';
+  'menu' | 'campaign' | 'skills' | 'settings' | 'howto' | 'intro' | 'chapter' | 'win' | 'lose' | 'pause';
 
 export interface ScreenActions {
   toMenu(kind: ScreenKind): void;
@@ -118,6 +118,8 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     if (game.levelKind === 'campaign' && game.levelIndex === 0)
       h += `<ul><li>Ziehe vom goldenen Knoten zu einem Nachbarn: Die Hälfte deiner Einheiten bricht sofort auf, und die Route bleibt – ein Teil des Nachwuchses fließt laufend weiter. Ziehe erneut, um sofort mehr zu schicken.</li><li>Fremde Knoten werden angegriffen; ist deine Stärke größer, gehören sie dir.</li><li>Nur gepunktete Linien sind Wege. Felsen trennen das Netz.</li></ul>`;
     else h += `<p>${L.text}</p>`;
+    if (L.objective)
+      h += `<div class="new"><div><b>${icon('target')} Sonderziel</b><span>${L.objective.label}. Gelingt das, ist das Level sofort gewonnen – oder du besiegst alle Gegner.</span></div></div>`;
     if (L.newType)
       h += `<div class="new"><div class="icon"></div><div><b>Neu: ${TYPES[L.newType].name}</b><span>${TYPES[L.newType].desc}</span></div></div>`;
     if (L.feature === 'upgrade')
@@ -131,6 +133,10 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     if (L.feature === 'convert')
       h += `<div class="new"><div><b>Neu: Umbau</b><span>Im Knotenmenü kannst du eine andere Knotenart wählen. Der Knoten fällt dabei auf Stufe 1 zurück.</span></div></div>`;
     h += `<div class="actions"><button class="primary" id="go">Level starten</button><button data-go="${game.levelKind === 'campaign' ? 'campaign' : 'menu'}">Zurück</button></div>`;
+  } else if (kind === 'chapter') {
+    const c = CHAPTERS[L.ch];
+    h = `<p class="sub">Kapitel ${L.ch + 1}</p><h2>${c?.name ?? ''}</h2><p class="chapter-intro">${c?.intro ?? ''}</p>
+      <div class="actions"><button class="primary" id="go">Weiter</button><button data-go="campaign">Zurück</button></div>`;
   } else if (kind === 'win') {
     const r = game.result ?? { stars: 1, gained: 0, bestTime: game.levelTime, newBest: false };
     h = `<h2>${r.newBest ? 'Neue Bestzeit!' : 'Der Abgrund leuchtet golden'}</h2><p class="sub">${L.name} geschafft</p>

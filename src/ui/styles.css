@@ -982,3 +982,41 @@ input[type='range'] {
   width: 180px;
   accent-color: var(--gold);
 }
+
+.objective {
+  margin-top: 8px;
+  width: 220px;
+  max-width: 40vw;
+  font-size: 11px;
+  color: var(--mist);
+}
+.objective b {
+  color: var(--gold);
+  margin-left: 4px;
+}
+.objective .bar {
+  height: 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  margin-top: 3px;
+  overflow: hidden;
+}
+.objective .bar i {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+  transition: width 0.3s;
+}
+html.compact .objective {
+  margin-top: 0;
+  width: 150px;
+  font-size: 10px;
+}
+.chapter-intro {
+  font-family: var(--title);
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 6px 0 18px;
+}

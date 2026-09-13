@@ -117,6 +117,10 @@ export interface GameState {
   surrenderT: Record<number, number>;
   stats: { captured: number; sends: number };
   over: 'won' | 'lost' | null;
+  /** Seconds the objective node has been held continuously (hold objectives). */
+  objectiveT: number;
+  /** Node id the hold objective currently tracks (resolved at build; -1 = any node of the objective type). */
+  objectiveNode: number;
   /** Events produced since the last drain. */
   events: SimEvent[];
 }

@@ -10,7 +10,8 @@ import {
   type Perks,
 } from '@/data';
 import { buildAdjacency } from './graph';
-import { generateMapSafe } from './mapgen';
+import { generateMapSafe, type GeneratedMap } from './mapgen';
+import { Rng } from './rng';
 import type { Barrier, GameState, Mine, SimNode } from './state';
 import { stat } from './stats';
 
@@ -23,7 +24,7 @@ export interface BuildOptions {
 /** Builds a fresh, deterministic game state for a level definition. */
 export function buildLevel(def: LevelDef, opts: BuildOptions = {}): GameState {
   const demo = opts.demo ?? !!def.demo;
-  const gen = generateMapSafe(def);
+  const gen = def.map ? fromHandMap(def) : generateMapSafe(def);
   const nodes: SimNode[] = gen.points.map((p, id) => ({
     id,
     x: p.x,
@@ -63,39 +64,50 @@ export function buildLevel(def: LevelDef, opts: BuildOptions = {}): GameState {
     surrenderT: {},
     stats: { captured: 0, sends: 0 },
     over: null,
+    objectiveT: 0,
+    objectiveNode: def.objective?.node ?? -1,
     events: [],
   };
   const rng = gen.rng;
   const allowed = def.types;
   const wsum = allowed.reduce((s, t) => s + TYPE_WEIGHTS[t], 0);
+  const hand = def.map;
   for (const n of nodes) {
     if (gen.starts.includes(n.id)) continue;
-    let x = rng.next() * wsum;
-    for (const t of allowed) {
-      x -= TYPE_WEIGHTS[t];
-      if (x <= 0) {
-        n.type = t;
-        break;
+    const h = hand?.nodes[n.id];
+    if (h?.type) n.type = h.type;
+    else {
+      let x = rng.next() * wsum;
+      for (const t of allowed) {
+        x -= TYPE_WEIGHTS[t];
+        if (x <= 0) {
+          n.type = t;
+          break;
+        }
       }
     }
-    n.units = 2 + Math.floor(rng.next() * stat(n, 'cap') * 0.4);
+    if (h?.level) n.level = h.level;
+    n.units = h?.units ?? 2 + Math.floor(rng.next() * stat(n, 'cap') * 0.4);
   }
   gen.starts.forEach((id, k) => {
     const n = nodes[id] as SimNode;
-    n.type = allowed.includes('brut') ? 'brut' : 'nest';
-    n.owner = k + 1;
-    n.units = def.gar;
+    const h = hand?.nodes[id];
+    n.type = h?.type ?? (allowed.includes('brut') ? 'brut' : 'nest');
+    n.owner = h?.owner ?? k + 1;
+    n.units = h?.units ?? def.gar;
+    if (h?.level) n.level = h.level;
     if (k > 0 && def.boss) {
       n.level = 2;
       n.units = Math.round(def.gar * 1.3);
     }
     if (k === 0 && !demo) n.units += perks.start;
-    for (const j of state.adj[id] ?? []) {
-      if (!gen.starts.includes(j)) {
-        const m = nodes[j] as SimNode;
-        m.units = Math.min(m.units, 2 + Math.floor(rng.next() * def.gar * 0.35));
+    if (!hand)
+      for (const j of state.adj[id] ?? []) {
+        if (!gen.starts.includes(j)) {
+          const m = nodes[j] as SimNode;
+          m.units = Math.min(m.units, 2 + Math.floor(rng.next() * def.gar * 0.35));
+        }
       }
-    }
   });
   for (let f = demo ? 1 : 2; f <= def.enemies + 1; f++) state.aiTimers[f] = def.ai * (1.6 + rng.next() * 0.8);
   // Obstacles on edges that do not touch a start node; one obstacle per edge.
@@ -116,6 +128,21 @@ export function buildLevel(def: LevelDef, opts: BuildOptions = {}): GameState {
       nb = nodes[e[1]] as SimNode;
     return { x: na.x + (nb.x - na.x) * t, y: na.y + (nb.y - na.y) * t };
   };
+  for (const b of hand?.barriers ?? []) {
+    const t = b.t ?? 0.5;
+    state.barriers.push({
+      a: b.edge[0],
+      b: b.edge[1],
+      t,
+      ...at(b.edge, t),
+      hp: b.hp ?? BARRIER_HP,
+      maxHp: b.hp ?? BARRIER_HP,
+    });
+  }
+  for (const m of hand?.mines ?? []) {
+    const t = m.t ?? 0.5;
+    state.mines.push({ a: m.edge[0], b: m.edge[1], t, ...at(m.edge, t), units: m.units ?? MINE_UNITS });
+  }
   for (let i = 0; i < (def.barriers ?? 0); i++) {
     const e = pick();
     if (!e) break;
@@ -134,3 +161,20 @@ export function buildLevel(def: LevelDef, opts: BuildOptions = {}): GameState {
 }
 
 export const typeName = (t: NodeType): string => TYPES[t].name;
+
+/** Converts a hand-made map into the generator's output shape. Start nodes are those with an owner. */
+function fromHandMap(def: LevelDef): GeneratedMap {
+  const map = def.map as NonNullable<LevelDef['map']>;
+  const starts = map.nodes
+    .map((n, i) => (n.owner ? { i, owner: n.owner } : null))
+    .filter((x): x is { i: number; owner: number } => !!x);
+  starts.sort((a, b) => a.owner - b.owner);
+  return {
+    points: map.nodes.map((n) => ({ x: n.x, y: n.y })),
+    rocks: (map.rocks ?? []).map((r) => ({ ...r })),
+    edges: map.edges.map(([a, b]) => [a, b] as [number, number]),
+    blocked: [],
+    starts: starts.map((s) => s.i),
+    rng: Rng.fromSeed(((def.seed * 2654435761) >>> 0) ^ (map.nodes.length * 97)),
+  };
+}

@@ -89,13 +89,18 @@ describe('generation', () => {
     for (const def of CAMPAIGN) {
       const s = buildLevel(def),
         s2 = buildLevel(def);
-      expect(s.barriers.length).toBe(Math.min(def.barriers ?? 0, s.barriers.length));
-      expect(s.mines.length).toBeLessThanOrEqual(def.mines ?? 0);
+      const handB = def.map?.barriers?.length ?? 0,
+        handM = def.map?.mines?.length ?? 0;
+      expect(s.barriers.length).toBeGreaterThanOrEqual(handB);
+      expect(s.barriers.length).toBeLessThanOrEqual(handB + (def.barriers ?? 0));
+      expect(s.mines.length).toBeLessThanOrEqual(handM + (def.mines ?? 0));
       expect(JSON.stringify(s.barriers)).toBe(JSON.stringify(s2.barriers));
       expect(JSON.stringify(s.mines)).toBe(JSON.stringify(s2.mines));
       const starts = new Set(s.nodes.filter((n) => n.owner > 0).map((n) => n.id));
-      for (const b of s.barriers) expect(starts.has(b.a) || starts.has(b.b)).toBe(false);
-      for (const m of s.mines) expect(starts.has(m.a) || starts.has(m.b)).toBe(false);
+      if (!def.map) {
+        for (const b of s.barriers) expect(starts.has(b.a) || starts.has(b.b)).toBe(false);
+        for (const m of s.mines) expect(starts.has(m.a) || starts.has(m.b)).toBe(false);
+      }
       const edges = new Set(s.edges.map(([a, b]) => `${a}-${b}`));
       for (const o of [...s.barriers, ...s.mines]) expect(edges.has(`${o.a}-${o.b}`)).toBe(true);
     }

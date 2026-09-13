@@ -39,6 +39,7 @@ export async function startApp(): Promise<Game> {
     onFinish: (won) => showScreen(game, won ? 'win' : 'lose', actions),
   });
 
+  let chapterPending = false;
   const toMenu = (kind: ScreenKind) => {
     if (game.mode !== 'menu' || !game.demo) game.startDemo();
     setGameUi(false);
@@ -50,9 +51,20 @@ export async function startApp(): Promise<Game> {
       game.prepareLevel(kind, i);
       setGameUi(true);
       renderSendbar(game);
-      showScreen(game, 'intro', actions);
+      // First level of a chapter without any stars yet: narrative chapter intro first.
+      const def = game.def;
+      const firstOfChapter = kind === 'campaign' && CAMPAIGN.findIndex((l) => l.ch === def.ch) === i;
+      if (firstOfChapter && !game.save.stars[i]) {
+        chapterPending = true;
+        showScreen(game, 'chapter', actions);
+      } else showScreen(game, 'intro', actions);
     },
     resume: () => {
+      if (chapterPending) {
+        chapterPending = false;
+        showScreen(game, 'intro', actions);
+        return;
+      }
       hideScreen();
       game.resumePlay();
       setGameUi(true);

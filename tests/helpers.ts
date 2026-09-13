@@ -93,6 +93,8 @@ export function makeState(nodes: NodeSpec[], edges: Edge[], overrides: StateOver
     energy: 0,
     aiTimers: {},
     surrenderT: {},
+    objectiveT: 0,
+    objectiveNode: -1,
     stats: { captured: 0, sends: 0 },
     over: null,
     events: [],
