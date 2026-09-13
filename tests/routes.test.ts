@@ -160,23 +160,22 @@ describe('route flow accumulation', () => {
     expect(n.units - 10 + shipped(out)).toBeCloseTo(0.8 * T, 6);
   });
 
-  it('a full node forwards all of its production in packets of ROUTE_BATCH', () => {
+  it('a full node forwards all of its production as a stream of single units', () => {
     const s = routeState([[1]], { units: 40 });
     const n = node(s, 0);
     expect(capOf(s, n)).toBe(40);
-    expect(ROUTE_BATCH).toBe(3);
-    // 3.5 s: 2.8 units accumulated at the full rate, none shipped yet (every interval boundary so far
-    // saw fewer than ROUTE_BATCH whole units).
-    let out = shipments(s, 210);
+    expect(ROUTE_BATCH).toBe(1);
+    // 1.15 s: 0.92 units accumulated at the full rate, none shipped yet.
+    let out = shipments(s, 69);
     expect(out).toEqual([]);
     expect(n.units).toBe(40);
     expect(n.flowAcc).toBeCloseTo(0.8 * s.time, 6);
-    // The first boundary after 3.75 s (tick 226, ~3.77 s) ships exactly one packet of ROUTE_BATCH units.
-    out = shipments(s, 30);
-    expect(out.map((o) => o.n)).toEqual([ROUTE_BATCH]);
-    expect(out[0]?.t).toBeCloseTo(226 * DT, 6);
-    expect(n.units).toBeGreaterThanOrEqual(37);
-    expect(n.units).toBeLessThan(38);
+    // The first boundary after 1.25 s (tick 76) ships exactly one unit.
+    out = shipments(s, 10);
+    expect(out.map((o) => o.n)).toEqual([1]);
+    expect(out[0]?.t).toBeCloseTo(76 * DT, 6);
+    expect(n.units).toBeGreaterThanOrEqual(39);
+    expect(n.units).toBeLessThan(40);
     expect(n.flowAcc).toBeLessThan(1);
   });
 
@@ -253,18 +252,19 @@ describe('route shipments', () => {
     expect(out[0]?.n).toBe(5);
     expect(out[0]?.t).toBeCloseTo(DT);
     expect(minUnits).toBeGreaterThanOrEqual(20 - 1e-9);
-    // Afterwards the surplus above the reserve grows at 0.8/s and leaves as a packet of ROUTE_BATCH
-    // units as soon as that many are available (every 3.75 s) - never as single stragglers.
-    for (const o of out.slice(1)) expect(o.n).toBe(ROUTE_BATCH);
-    expect(out).toHaveLength(6);
-    const earliest = ROUTE_BATCH / 0.8;
+    // Afterwards the surplus above the reserve grows at 0.8/s and leaves one unit at a time as soon
+    // as a whole unit is available (every 1.25 s).
+    for (const o of out.slice(1)) expect(o.n).toBe(1);
+    expect(out.length).toBeGreaterThanOrEqual(14);
+    expect(out.length).toBeLessThanOrEqual(17);
+    const earliest = 1 / 0.8;
     for (let i = 1; i < out.length; i++) {
       const gap = (out[i] as Shipment).t - (out[i - 1] as Shipment).t;
       expect(gap).toBeGreaterThanOrEqual(earliest - 1e-9);
       expect(gap).toBeLessThanOrEqual(earliest + FLOW_INTERVAL + DT + 1e-9);
     }
-    // The node sits just above the reserve after every packet.
-    expect(n.units).toBeLessThan(23);
+    // The node sits just above the reserve after every shipment.
+    expect(n.units).toBeLessThan(21.5);
   });
 
   it('ships twice as often with the flow perk', () => {
@@ -365,35 +365,37 @@ describe('route shipments', () => {
     expect(totals).toEqual([8, 8, 8]);
   });
 
-  it('holds back packets smaller than ROUTE_BATCH', () => {
-    // Two units available and accumulated: below the batch size, so nothing leaves at any boundary.
+  it('ships as soon as a whole unit is accumulated, rotating routes when fewer units than routes', () => {
+    // Two units available with three routes: fewer units than routes, so one route per interval gets both.
     const s = routeState([[1], [2], [3]]);
     const n = node(s, 0);
     const out = shipments(s, 80, () => {
       n.units = 2;
       n.flowAcc = 2;
     });
-    expect(out).toEqual([]);
-    expect(n.rr).toBe(0);
-    // Just below the batch: the accumulator keeps growing untouched.
-    const s2 = routeState([[1]], { units: 20, flowAcc: 2.9 });
+    expect(out.map((o) => [o.to, o.n])).toEqual([
+      [1, 2],
+      [2, 2],
+      [3, 2],
+      [1, 2],
+    ]);
+    expect(n.rr).toBe(4);
+    // Just below one unit: the accumulator keeps growing untouched.
+    const s2 = routeState([[1]], { units: 20, flowAcc: 0.9 });
     step(s2, DT);
     expect(s2.groups).toHaveLength(0);
     expect(node(s2, 0).units).toBeCloseTo(20 + 0.8 * DT, 9);
-    expect(node(s2, 0).flowAcc).toBeCloseTo(2.9 + 0.8 * ROUTE_SHARE * DT, 9);
-    // Exactly the batch: it ships in one packet.
-    const s3 = routeState([[1]], { units: 20, flowAcc: 3 });
+    expect(node(s2, 0).flowAcc).toBeCloseTo(0.9 + 0.8 * ROUTE_SHARE * DT, 9);
+    // Exactly one unit: it ships.
+    const s3 = routeState([[1]], { units: 20, flowAcc: 1 });
     step(s3, DT);
     expect(s3.groups).toHaveLength(1);
-    expect((s3.groups[0] as Group).n).toBe(ROUTE_BATCH);
-    expect(node(s3, 0).units).toBeCloseTo(17 + 0.8 * DT, 9);
+    expect((s3.groups[0] as Group).n).toBe(1);
+    expect(node(s3, 0).units).toBeCloseTo(19 + 0.8 * DT, 9);
     expect(node(s3, 0).flowAcc).toBeCloseTo(0.8 * ROUTE_SHARE * DT, 9);
   });
 
-  it('a packet of exactly ROUTE_BATCH units over three routes gives every route one unit', () => {
-    // MAX_ROUTES = ROUTE_BATCH = 3: a shipment can never have fewer units than routes, so every route in
-    // the rotation gets at least one unit per interval.
-    expect(ROUTE_BATCH).toBeGreaterThanOrEqual(MAX_ROUTES);
+  it('three units over three routes gives every route one unit', () => {
     const s = routeState([[1], [2], [3]]);
     const n = node(s, 0);
     const out = shipments(s, 80, () => {

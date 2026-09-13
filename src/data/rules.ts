@@ -63,8 +63,8 @@ export const FLOW_INTERVAL_FAST = 0.2;
  */
 export const ROUTE_SHARE = 0.4;
 export const ROUTE_SHARE_FAST = 0.6;
-/** Routes ship in packets of at least this many units (readable groups instead of single stragglers). */
-export const ROUTE_BATCH = 3;
+/** Minimum units per route shipment. 1 = continuous stream of single units (Tower-War style). */
+export const ROUTE_BATCH = 1;
 export const ENERGY_MAX = 100;
 /**
  * Mop-up rule: an AI faction that has held at most SURRENDER_NODES nodes for SURRENDER_SECONDS while the

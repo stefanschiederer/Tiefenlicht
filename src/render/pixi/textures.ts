@@ -452,3 +452,82 @@ export function shaftTexture(): Texture {
     return c;
   });
 }
+
+/** Procedural coral / kelp silhouettes for the map border (white, tinted). */
+export function plantTexture(kind: 'fan' | 'kelp' | 'tube', seed: number): Texture {
+  return cached(`plant:${kind}:${seed}`, () => {
+    let rnd = seed | 1;
+    const rand = () => {
+      rnd = (rnd * 1103515245 + 12345) & 0x7fffffff;
+      return rnd / 0x7fffffff;
+    };
+    const w = 160,
+      h = 200;
+    const [c, g] = canvas(w, h);
+    g.strokeStyle = '#fff';
+    g.fillStyle = '#fff';
+    g.lineCap = 'round';
+    if (kind === 'fan') {
+      // sea fan: branching from the base
+      const branch = (x: number, y: number, a: number, len: number, depth: number) => {
+        if (depth === 0 || len < 4) return;
+        const nx = x + Math.cos(a) * len,
+          ny = y + Math.sin(a) * len;
+        g.lineWidth = depth * 1.1;
+        g.globalAlpha = 0.55 + depth * 0.08;
+        g.beginPath();
+        g.moveTo(x, y);
+        g.lineTo(nx, ny);
+        g.stroke();
+        const n = 2 + (rand() < 0.4 ? 1 : 0);
+        for (let i = 0; i < n; i++)
+          branch(nx, ny, a + (rand() - 0.5) * 1.3, len * (0.62 + rand() * 0.2), depth - 1);
+      };
+      branch(w / 2, h - 4, -Math.PI / 2, 46, 5);
+    } else if (kind === 'kelp') {
+      for (let k = 0; k < 3; k++) {
+        const x0 = w * (0.3 + k * 0.2);
+        g.lineWidth = 3 - k * 0.5;
+        g.globalAlpha = 0.7;
+        g.beginPath();
+        g.moveTo(x0, h);
+        let x = x0;
+        for (let y = h; y > 20 + k * 30; y -= 12) {
+          x += (rand() - 0.5) * 10;
+          g.lineTo(x, y);
+        }
+        g.stroke();
+        // leaves
+        g.globalAlpha = 0.5;
+        for (let y = h - 20; y > 40 + k * 30; y -= 22) {
+          const dir = rand() < 0.5 ? -1 : 1;
+          g.beginPath();
+          g.ellipse(x0 + dir * 10, y, 12, 4, dir * 0.6, 0, TAU);
+          g.fill();
+        }
+      }
+    } else {
+      // tube sponges
+      for (let k = 0; k < 4; k++) {
+        const x = 30 + k * 32 + rand() * 10,
+          th = 60 + rand() * 90,
+          r = 7 + rand() * 5;
+        g.globalAlpha = 0.65;
+        g.beginPath();
+        g.moveTo(x - r, h);
+        g.lineTo(x - r * 0.8, h - th);
+        g.arc(x, h - th, r * 0.8, Math.PI, 0);
+        g.lineTo(x + r, h);
+        g.closePath();
+        g.fill();
+        g.globalAlpha = 0.9;
+        g.fillStyle = '#000';
+        g.beginPath();
+        g.ellipse(x, h - th, r * 0.45, r * 0.25, 0, 0, TAU);
+        g.fill();
+        g.fillStyle = '#fff';
+      }
+    }
+    return c;
+  });
+}

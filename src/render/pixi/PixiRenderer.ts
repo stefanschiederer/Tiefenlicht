@@ -27,7 +27,9 @@ import {
   rotorTexture,
   shaftTexture,
   unitTexture,
+  plantTexture,
 } from './textures';
+import { CausticsFilter } from './caustics';
 
 const TAU = Math.PI * 2;
 const colorNum = (hex: string): number => parseInt(hex.slice(1), 16);
@@ -121,6 +123,10 @@ export class PixiRenderer implements Renderer {
   private zaps: Zap[] = [];
   private levelFor: GameState | null = null;
   private reducedMotion = false;
+  private caustics: CausticsFilter | null = null;
+  private plants: { s: Sprite; ph: number; base: number }[] = [];
+  private plantLayer = new Container();
+  private trailAcc = 0;
 
   static async create(canvas: HTMLCanvasElement, quality: GraphicsQuality): Promise<PixiRenderer> {
     const r = new PixiRenderer();
@@ -183,8 +189,20 @@ export class PixiRenderer implements Renderer {
     this.moteLayer.blendMode = 'add';
     this.bg.addChild(this.moteLayer);
     stage.addChild(this.bg);
+    if (this.quality === 'hoch' && this.app.renderer.type === 1) {
+      this.caustics = new CausticsFilter(0.1);
+      this.bg.filters = [this.caustics];
+    }
     // world
-    this.world.addChild(this.rocks, this.edges, this.routes, this.lights, this.nodesLayer, this.groupsLayer);
+    this.world.addChild(
+      this.plantLayer,
+      this.rocks,
+      this.edges,
+      this.routes,
+      this.lights,
+      this.nodesLayer,
+      this.groupsLayer,
+    );
     this.fx = new ParticleContainer({ dynamicProperties: { position: true, color: true } });
     this.fx.blendMode = 'add';
     this.lights.blendMode = 'add';
@@ -305,6 +323,34 @@ export class PixiRenderer implements Renderer {
       }
     }
     g.fill({ color: 0x8cc8eb, alpha: 0.38 });
+    // border flora: kelp and corals along the bottom, sea fans on the sides (world space, behind everything)
+    this.plantLayer.removeChildren().forEach((c) => c.destroy());
+    this.plants = [];
+    if (this.quality !== 'niedrig') {
+      let seed = state.def.seed * 17 + 5;
+      const rand = () => {
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+        return seed / 0x7fffffff;
+      };
+      const place = (x: number, y: number, kind: 'fan' | 'kelp' | 'tube', scale: number, flip: boolean) => {
+        const sp = new Sprite(plantTexture(kind, Math.floor(rand() * 1000)));
+        sp.anchor.set(0.5, 1);
+        sp.position.set(x, y);
+        sp.scale.set(scale * (flip ? -1 : 1), scale);
+        sp.tint = kind === 'kelp' ? 0x2f7a6a : kind === 'fan' ? 0x8a4a7a : 0x3a6a8a;
+        sp.alpha = 0.55;
+        this.plantLayer.addChild(sp);
+        this.plants.push({ s: sp, ph: rand() * TAU, base: sp.rotation });
+      };
+      for (let x = 40; x < WORLD_W; x += 90 + rand() * 120) {
+        const kind = rand() < 0.5 ? 'kelp' : rand() < 0.5 ? 'tube' : 'fan';
+        place(x, WORLD_H + 10 + rand() * 20, kind, 0.55 + rand() * 0.5, rand() < 0.5);
+      }
+      for (let y = 120; y < WORLD_H - 60; y += 140 + rand() * 120) {
+        place(-10 + rand() * 30, y, 'fan', 0.4 + rand() * 0.4, false);
+        place(WORLD_W + 10 - rand() * 30, y + 60, 'fan', 0.4 + rand() * 0.4, true);
+      }
+    }
     // nodes
     for (const n of state.nodes) this.nodeViews.set(n.id, this.makeNodeView(n));
   }
@@ -528,7 +574,7 @@ export class PixiRenderer implements Renderer {
         pulse = 0.5 + 0.5 * Math.sin(t * 2 + nv.phase),
         breathe = this.reducedMotion ? 1 : 1 + 0.02 * Math.sin(t * 1.6 + nv.phase);
       nv.flash = Math.max(0, nv.flash - dt * 1.4);
-      nv.root.scale.set(k * breathe);
+      nv.root.scale.set(k * breathe * (1 + nv.flash * nv.flash * 0.18));
       nv.detail.tint = C;
       nv.detail.alpha = own ? 1 : 0.55;
       nv.platform.alpha = own ? 1 : 0.85;
@@ -764,6 +810,27 @@ export class PixiRenderer implements Renderer {
     } else this.dragLabel.visible = false;
   }
 
+  /** Faint trail particles behind moving groups (high quality only). */
+  private updateTrails(state: GameState, dt: number): void {
+    if (this.quality !== 'hoch' || this.reducedMotion) return;
+    this.trailAcc += dt;
+    if (this.trailAcc < 0.06) return;
+    this.trailAcc = 0;
+    for (const g of state.groups) {
+      if (g.n < 1) continue;
+      const C = FACTION_COLORS[g.owner] ?? 0xffffff;
+      this.spawn(
+        g.x + (Math.random() - 0.5) * 4,
+        g.y + (Math.random() - 0.5) * 4,
+        (Math.random() - 0.5) * 6,
+        (Math.random() - 0.5) * 6,
+        0.35 + Math.random() * 0.25,
+        C,
+        0.8 + Math.min(g.n, 20) * 0.04,
+      );
+    }
+  }
+
   private updateEffects(dt: number): void {
     const damp = Math.pow(0.05, dt);
     const alive: FxParticle[] = [];
@@ -810,6 +877,10 @@ export class PixiRenderer implements Renderer {
     this.elapsed += dt;
     if (this.levelFor !== state) this.setLevel(state);
     this.syncCamera();
+    if (this.caustics) this.caustics.time = this.elapsed;
+    if (!this.reducedMotion)
+      for (const p of this.plants) p.s.rotation = p.base + Math.sin(this.elapsed * 0.6 + p.ph) * 0.06;
+    this.updateTrails(state, dt);
     this.updateBackground(dt);
     this.updateRoutes(state, ui);
     this.updateNodes(state, ui, dt);
