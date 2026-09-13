@@ -11,7 +11,7 @@ import {
   type LevelDef,
 } from '@/data';
 import { computePerks } from '@/data/skills';
-import { CanvasRenderer, type UiState } from '@/render/canvas2d/renderer';
+import type { Renderer, UiState } from '@/render/renderer';
 import { addRoute, cutRoutes, launch, sendAmount, useAbility } from '@/sim/actions';
 import { bfsPath } from '@/sim/graph';
 import { buildLevel } from '@/sim/level';
@@ -73,7 +73,7 @@ export class Game {
   };
   result: LevelResult | null = null;
   readonly audio = new Synth();
-  readonly renderer: CanvasRenderer;
+  readonly renderer: Renderer;
   listeners: GameListeners;
   private demoIdle = 0;
   private hudTimer = 0;
@@ -81,8 +81,8 @@ export class Game {
   private dragShift = false;
   private lastTap: { id: number; at: number } | null = null;
 
-  constructor(canvas: HTMLCanvasElement, listeners: GameListeners) {
-    this.renderer = new CanvasRenderer(canvas);
+  constructor(renderer: Renderer, listeners: GameListeners) {
+    this.renderer = renderer;
     this.listeners = listeners;
     this.save = readSave();
     this.audio.enabled = this.save.sound;
@@ -472,6 +472,19 @@ export class Game {
     this.listeners.onPanel();
   }
 
+  /** Camera: zoom around a screen point (wheel / pinch). */
+  zoomAt(px: number, py: number, factor: number): void {
+    this.renderer.view.zoomAt(px, py, factor);
+    this.listeners.onPanel();
+  }
+  panBy(dx: number, dy: number): void {
+    this.renderer.view.panBy(dx, dy);
+  }
+  /** Cancels any drag/cut in progress (e.g. when a second finger lands). */
+  cancelGesture(): void {
+    this.ui.drag = null;
+    this.ui.cut = null;
+  }
   clearRoutesAt(px: number, py: number): boolean {
     const hit = this.nodeAt(px, py);
     if (hit && hit.owner === PLAYER && hit.routes.length) {

@@ -3,4 +3,4 @@ import './ui/styles.css';
 import './app/errors';
 import { startApp } from './app/index';
 
-startApp();
+void startApp();

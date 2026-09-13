@@ -49,6 +49,7 @@ interface Mote {
 /** Canvas 2D renderer: reads the sim state, owns all purely visual state (particles, glows, motes). */
 export class CanvasRenderer {
   readonly view = new View();
+  readonly kind = 'canvas' as const;
   private ctx: CanvasRenderingContext2D;
   private dpr = 1;
   private staticLayer: HTMLCanvasElement | null = null;
@@ -605,6 +606,10 @@ export class CanvasRenderer {
       ctx.stroke();
       glow(ctx, z.x2, z.y2, 14 * S, z.color, a);
     }
+  }
+
+  destroy(): void {
+    /* nothing to release */
   }
 
   /** Draws one frame. `dt` is wall-clock seconds (effects keep animating while paused). */

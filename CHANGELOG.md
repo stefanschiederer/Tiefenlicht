@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 – Phase 2, Schritt 1: neuer Renderer (2026-09-13)
+
+- PixiJS-8-Renderer (WebGL, automatischer Canvas-Fallback): generierte Sprites je Knotenart mit rotierenden Details und Atmen, additive Glows mit Bloom (Stufe „Hoch“), Truppen als Sprites, Partikel, verästelte Wächter-Blitze, Lichtsäulen und treibendes Plankton mit Parallaxe, Felsen mit Tiefe.
+- Kamera: Zoom per Mausrad, Pinch-Zoom und Zwei-Finger-Verschieben auf Touch, mittlere Maustaste zum Verschieben.
+- Grafikstufe in den Einstellungen (Auto, Hoch, Mittel, Niedrig = Canvas 2D); `prefers-reduced-motion` wird respektiert.
+- Balance: Kampagnen-Seeds, Gegnerproduktion und Zielzeiten neu abgestimmt zu einer aufsteigenden Kurve (`BALANCE.md`).
+
 ## 0.3.0 – Gamedesign-Paket (2026-09-13)
 
 - Angriffsvorschau beim Ziehen: Einheiten, Verteidigung des Ziels und ✓/✗, grün oder rot.

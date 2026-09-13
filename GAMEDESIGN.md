@@ -24,6 +24,16 @@ Nach Wichtigkeit sortiert. „Sofort“ = in diesem Schritt umgesetzt, „Phase�
 9. **Handgebaute Karten mit Dramaturgie (Phase 4).** Zufallskarten sind für Endlos gut, die Kampagne braucht Karten mit Engstellen, Namen und Sonderzielen. Dazu Tutorial, Tages-Herausforderung mit Datums-Seed und Streak, Erfolge, Statistiken.
 10. **Onboarding (Phase 4).** Erste drei Level als geführtes Tutorial mit Hinweispfeilen, jedes neue System bekommt ein eigenes Level.
 
+## Leitbild: Tower War (SayGames)
+
+Vom Spieler als Referenz gewünscht. Was Tower War richtig macht und wie Tiefenlicht es übernimmt:
+
+- **Linien statt Befehle.** Verbindungen sind sichtbare, dauerhafte Ströme; man denkt in Versorgungslinien. Tiefenlicht: Ziehen legt eine Route an, Routen sind sichtbar, Wischen kappt sie.
+- **Kontinuierlicher Strom.** Truppen laufen als Kette, nicht als Salven. Tiefenlicht: Routen liefern einen stetigen Strom (Paketgröße 1, Darstellung als Kette kleiner Einheiten).
+- **Sichtbare Angriffslinien des Gegners.** Man sieht, woher der Druck kommt, und kann gegenhalten. Tiefenlicht: geplant, die KI soll ihre Angriffe ebenfalls als Routen führen (Phase 2, Schritt 2).
+- **Kurze, dichte Level** mit wenigen Türmen und klarer Lösung. Tiefenlicht: handgebaute Karten in Phase 4; Kampagne bleibt 18 Level, dazu Endlos und Tages-Herausforderung.
+- **Ausbau als sichtbarer Sprung** (Turm wächst). Tiefenlicht: Ausbaustufen mit Ringen und größerem Sprite; Umbau in andere Arten als zusätzliche Tiefe, die Tower War nicht hat.
+
 ## Regeln, die bewusst bleiben
 
 - Ziehen schickt sofort den Anteil und legt eine Route an; Routen leiten 40 % der Produktion in Paketen weiter, ein voller Knoten alles. Der Knoten wächst weiter und kann ausgebaut werden.

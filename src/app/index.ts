@@ -3,13 +3,18 @@ import { $ } from '@/ui/dom';
 import { buildLegend, renderAbilities, renderSendbar, setGameUi, tip, updateHud } from '@/ui/hud';
 import { renderPanel } from '@/ui/panel';
 import { hideScreen, showScreen, type ScreenActions, type ScreenKind } from '@/ui/screens';
-import { Game } from './game';
+import { Game, isTouch } from './game';
+import { createRenderer, type GraphicsQuality } from '@/render/renderer';
+import { readSave } from './save';
 import { bindInput } from './input';
 import { registerPwa } from './pwa';
 
-export function startApp(): Game {
+export async function startApp(): Promise<Game> {
   const canvas = $<HTMLCanvasElement>('#c');
-  const game = new Game(canvas, {
+  const pref = readSave().graphics;
+  const quality: GraphicsQuality = pref === 'auto' ? (isTouch() ? 'mittel' : 'hoch') : pref;
+  const renderer = await createRenderer(canvas, quality);
+  const game = new Game(renderer, {
     onHud: () => {
       updateHud(game);
       if (game.ui.selected.length) renderPanel(game);

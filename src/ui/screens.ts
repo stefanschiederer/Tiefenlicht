@@ -2,7 +2,14 @@ import { CAMPAIGN, CHAPTERS, DIFF, FACTIONS, SKILLS, TYPES } from '@/data';
 import { computePerks } from '@/data/skills';
 import { typeIcon } from '@/render/canvas2d/shapes';
 import { fmtTime, starStr, type Game } from '@/app/game';
-import { clearSave, defaultSave, exportCode, importCode, type Difficulty } from '@/app/save';
+import {
+  clearSave,
+  defaultSave,
+  exportCode,
+  importCode,
+  type Difficulty,
+  type GraphicsSetting,
+} from '@/app/save';
 import { enterFullscreen } from '@/app/pwa';
 import { $ } from './dom';
 import { tip } from './hud';
@@ -70,6 +77,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     h = `<h2>Einstellungen</h2>
       <div class="setrow"><span>Sound</span><button id="sSound" aria-pressed="${save.sound}">${save.sound ? 'An' : 'Aus'}</button></div>
       <div class="setrow"><span>Vollbild beim Levelstart (Touchgeräte)</span><button id="sFs" aria-pressed="${save.autoFs !== false}">${save.autoFs !== false ? 'An' : 'Aus'}</button></div>
+      <div class="setrow"><span>Grafik <small class="meta">(${game.renderer.kind === 'pixi' ? 'WebGL' : 'Canvas'})</small></span><span>${(['auto', 'hoch', 'mittel', 'niedrig'] as GraphicsSetting[]).map((k) => `<button data-gfx="${k}" aria-pressed="${save.graphics === k}">${{ auto: 'Auto', hoch: 'Hoch', mittel: 'Mittel', niedrig: 'Niedrig' }[k]}</button>`).join(' ')}</span></div>
       <div class="setrow"><span>Schwierigkeit</span><span>${(Object.keys(DIFF) as Difficulty[]).map((k) => `<button data-diff="${k}" aria-pressed="${save.difficulty === k}">${DIFF[k].label}</button>`).join(' ')}</span></div>
       <div class="setrow" style="display:block"><span>Spielstand-Code (zum Sichern oder Übertragen)</span><textarea id="sCode" spellcheck="false">${exportCode(save)}</textarea>
       <div class="actions"><button id="sImport">Code laden</button><button id="sReset">Fortschritt löschen</button></div></div>
@@ -173,6 +181,13 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
       showScreen(game, 'settings', act);
       game.audio.play('click');
     });
+    card.querySelectorAll<HTMLButtonElement>('[data-gfx]').forEach((b) =>
+      b.addEventListener('click', () => {
+        save.graphics = b.dataset.gfx as GraphicsSetting;
+        game.persist();
+        location.reload();
+      }),
+    );
     card.querySelectorAll<HTMLButtonElement>('[data-diff]').forEach((b) =>
       b.addEventListener('click', () => {
         save.difficulty = b.dataset.diff as Difficulty;

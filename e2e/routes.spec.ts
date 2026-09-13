@@ -6,21 +6,21 @@ type TL = {
   groups: { owner: number; n: number }[];
   view: { sx(x: number): number; sy(y: number): number };
 };
-const tl = (page: Page) =>
-  page.evaluate(() => {
+const tl = (page: Page, meId?: number) =>
+  page.evaluate((meId) => {
     const t = (window as unknown as { TL: TL }).TL;
-    const me = t.nodes.find((n) => n.owner === 1);
+    const me = meId === undefined ? t.nodes.find((n) => n.owner === 1) : t.nodes[meId];
     if (!me) throw new Error('no player node');
     const e = t.edges.find((e) => e[0] === me.id || e[1] === me.id);
     if (!e) throw new Error('no edge');
     const nb = t.nodes[e[0] === me.id ? e[1] : e[0]];
     if (!nb) throw new Error('no neighbour');
     return {
-      me: { x: t.view.sx(me.x), y: t.view.sy(me.y), units: me.units, routes: me.routes.length },
+      me: { id: me.id, x: t.view.sx(me.x), y: t.view.sy(me.y), units: me.units, routes: me.routes.length },
       nb: { x: t.view.sx(nb.x), y: t.view.sy(nb.y) },
       groups: t.groups.filter((g) => g.owner === 1).map((g) => g.n),
     };
-  });
+  }, meId);
 
 test('drawing a path sends the share and keeps a route; drawing again sends again', async ({ page }) => {
   test.skip(test.info().project.name === 'mobile', 'mouse drag only');
@@ -35,7 +35,7 @@ test('drawing a path sends the share and keeps a route; drawing again sends agai
   await page.mouse.move(before.nb.x, before.nb.y, { steps: 12 });
   await page.mouse.up();
   await page.waitForTimeout(100);
-  const after = await tl(page);
+  const after = await tl(page, before.me.id);
   expect(after.me.routes).toBe(1);
   expect(after.groups.length).toBeGreaterThanOrEqual(1);
   expect(after.groups[0] ?? 0).toBeGreaterThanOrEqual(Math.floor(before.me.units * 0.5) - 1);
@@ -45,9 +45,14 @@ test('drawing a path sends the share and keeps a route; drawing again sends agai
   await page.mouse.move(before.nb.x, before.nb.y, { steps: 12 });
   await page.mouse.up();
   await page.waitForTimeout(100);
-  const again = await tl(page);
+  const again = await tl(page, before.me.id);
   expect(again.me.routes).toBe(1);
-  expect(again.groups.length).toBeGreaterThanOrEqual(2);
+  const sends = await page.evaluate(
+    () =>
+      (window as unknown as { TL: { game: { state: { stats: { sends: number } } } } }).TL.game.state.stats
+        .sends,
+  );
+  expect(sends).toBe(2);
 });
 
 test('touch drag works underneath the HUD info block', async ({ page }) => {
@@ -78,7 +83,7 @@ test('swiping across a route cuts it', async ({ page }) => {
   await page.mouse.move(t.nb.x, t.nb.y, { steps: 12 });
   await page.mouse.up();
   await page.waitForTimeout(100);
-  expect((await tl(page)).me.routes).toBe(1);
+  expect((await tl(page, t.me.id)).me.routes).toBe(1);
   // Swipe perpendicular across the middle of the edge, starting on empty space.
   const mx = (t.me.x + t.nb.x) / 2,
     my = (t.me.y + t.nb.y) / 2;
@@ -92,7 +97,7 @@ test('swiping across a route cuts it', async ({ page }) => {
   await page.mouse.move(ex, ey, { steps: 10 });
   await page.mouse.up();
   await page.waitForTimeout(100);
-  expect((await tl(page)).me.routes).toBe(0);
+  expect((await tl(page, t.me.id)).me.routes).toBe(0);
 });
 
 test('multi-select: tapping two own nodes and dragging sends from both', async ({ page }) => {

@@ -28,7 +28,13 @@ export interface SaveV2 {
   bestTimes: Record<string, number>;
   /** Best completion time in seconds per endless wave. */
   endlessBestTimes: Record<string, number>;
+  /** Renderer quality: auto picks by device. */
+  graphics: GraphicsSetting;
 }
+export type GraphicsSetting = 'auto' | 'hoch' | 'mittel' | 'niedrig';
+const GRAPHICS: readonly GraphicsSetting[] = ['auto', 'hoch', 'mittel', 'niedrig'];
+const isGraphics = (v: unknown): v is GraphicsSetting =>
+  typeof v === 'string' && (GRAPHICS as readonly string[]).includes(v);
 
 export type SaveGame = SaveV2;
 
@@ -48,6 +54,7 @@ export function defaultSave(now = Date.now()): SaveGame {
     updatedAt: now,
     bestTimes: {},
     endlessBestTimes: {},
+    graphics: 'auto',
   };
 }
 
@@ -106,6 +113,7 @@ export function migrate(raw: unknown, now = Date.now()): SaveGame {
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : now,
     bestTimes: version >= 2 ? timeMap(raw.bestTimes) : {},
     endlessBestTimes: version >= 2 ? timeMap(raw.endlessBestTimes) : {},
+    graphics: isGraphics(raw.graphics) ? raw.graphics : 'auto',
   };
 }
 
