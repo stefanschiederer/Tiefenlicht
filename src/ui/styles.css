@@ -709,11 +709,11 @@ button[aria-pressed='true'] {
 .sk {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   width: 100%;
   text-align: left;
-  padding: 8px 10px;
-  margin-bottom: 14px;
+  padding: 7px 10px;
+  margin-bottom: 12px;
   position: relative;
   align-items: flex-start;
 }

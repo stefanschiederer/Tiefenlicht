@@ -8,12 +8,12 @@ describe('computePerks', () => {
   });
 
   it('sums numeric effects across skills', () => {
-    const p = computePerks(['prod1', 'prod2', 'cap', 'str1', 'str2', 'def', 'flow']);
+    const p = computePerks(['prod1', 'prod2', 'cap', 'str1', 'str2', 'def', 'stream1']);
     expect(p.prod).toBeCloseTo(0.2);
     expect(p.cap).toBeCloseTo(0.2);
     expect(p.str).toBeCloseTo(0.2);
     expect(p.def).toBeCloseTo(0.15);
-    expect(p.flow).toBe(1);
+    expect(p.stream).toBeCloseTo(0.25);
     expect(p.start).toBe(0);
     expect(p.speed).toBe(0);
   });
@@ -36,17 +36,28 @@ describe('computePerks', () => {
 
   it('applies every skill in the tree', () => {
     const p = computePerks(SKILLS.map((s) => s.id));
-    expect(p.prod).toBeCloseTo(0.2);
+    expect(p.prod).toBeCloseTo(0.35);
     expect(p.cap).toBeCloseTo(0.2);
     expect(p.start).toBe(8);
+    expect(p.startLevel).toBe(1);
     expect(p.speed).toBeCloseTo(0.15);
+    expect(p.stream).toBeCloseTo(0.5);
     expect(p.str).toBeCloseTo(0.2);
-    expect(p.flow).toBe(1);
-    expect(p.def).toBeCloseTo(0.15);
+    expect(p.routes).toBe(1);
+    expect(p.def).toBeCloseTo(0.3);
     expect(p.cheap).toBeCloseTo(0.25);
     expect(p.range).toBeCloseTo(0.25);
     expect(p.energy).toBeCloseTo(0.5);
     expect(p.abcost).toBeCloseTo(0.2);
+    expect(p.energyRegen).toBeCloseTo(0.6);
     expect(p.abilities).toEqual(['stoss', 'frost', 'schild']);
+    expect(SKILLS).toHaveLength(32);
+    expect(SKILLS.reduce((a, s) => a + s.cost, 0)).toBeGreaterThanOrEqual(60);
+    // every prerequisite exists and sits in the same branch
+    for (const sk of SKILLS) {
+      if (!sk.req) continue;
+      const req = SKILLS.find((x) => x.id === sk.req);
+      expect(req?.branch).toBe(sk.branch);
+    }
   });
 });

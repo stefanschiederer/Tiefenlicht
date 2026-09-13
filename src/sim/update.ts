@@ -34,7 +34,8 @@ function arrive(s: GameState, g: Group): void {
     def = defOf(s, h),
     effDef = h.units * def;
   if (pw > effDef) {
-    const remaining = (pw - effDef) / strOf(s, g);
+    const remaining =
+      ((pw - effDef) / strOf(s, g)) * (g.owner === PLAYER && !s.demo ? 1 + s.perks.capture : 1);
     gainEnergy(s, h.units + (g.n - remaining));
     const prev = h.owner;
     h.owner = g.owner;
@@ -61,6 +62,7 @@ export function step(s: GameState, dt: number): void {
   s.time += dt;
   const flowInterval = s.perks.flow ? FLOW_INTERVAL_FAST : FLOW_INTERVAL;
   const streamRate = STREAM_RATE * (s.perks.flow ? STREAM_RATE_FAST : 1);
+  if (!s.demo && s.perks.energyRegen > 0) s.energy = Math.min(100, s.energy + s.perks.energyRegen * dt);
   for (const n of s.nodes) {
     n.frozen = Math.max(0, n.frozen - dt);
     n.shield = Math.max(0, n.shield - dt);
@@ -71,7 +73,8 @@ export function step(s: GameState, dt: number): void {
     // Tower-War stream: each route pulls units out at a constant rate, one unit at a time, until the
     // node is empty (or down to its reserve). Frozen nodes do not stream.
     if (n.routes.length && n.frozen <= 0) {
-      n.flowAcc += streamRate * n.routes.length * dt;
+      n.flowAcc +=
+        streamRate * (n.owner === PLAYER && !s.demo ? 1 + s.perks.stream : 1) * n.routes.length * dt;
       n.flowT -= dt;
       if (n.flowT <= 0) {
         n.flowT = flowInterval;
@@ -104,10 +107,11 @@ export function step(s: GameState, dt: number): void {
         bar.a === g.from && bar.b === g.to ? bar.t : bar.b === g.from && bar.a === g.to ? 1 - bar.t : -1;
       if (tb < 0 || !(t0 < tb && t1 >= tb)) continue;
       // The group throws itself at the barrier: power spent on hit points, units consumed accordingly.
-      const pw = power(s, g),
+      const breaker = g.owner === PLAYER && !s.demo ? 1 + s.perks.barrier : 1;
+      const pw = power(s, g) * breaker,
         dmg = Math.min(pw, bar.hp);
       bar.hp -= dmg;
-      g.n -= dmg / strOf(s, g);
+      g.n -= dmg / strOf(s, g) / breaker;
       s.events.push({ type: 'barrier', x: bar.x, y: bar.y, hp: bar.hp, broken: bar.hp <= 0, owner: g.owner });
       if (g.n <= 0.05) {
         g.n = 0;
@@ -118,7 +122,7 @@ export function step(s: GameState, dt: number): void {
       if (m.units <= 0) continue;
       const tm = m.a === g.from && m.b === g.to ? m.t : m.b === g.from && m.a === g.to ? 1 - m.t : -1;
       if (tm < 0 || !(t0 < tm && t1 >= tm)) continue;
-      const killed = Math.min(g.n, m.units);
+      const killed = Math.min(g.n, m.units * (g.owner === PLAYER && !s.demo ? 1 - s.perks.mine : 1));
       g.n -= killed;
       m.units = 0;
       gainEnergy(s, killed * 0.5);
@@ -161,7 +165,10 @@ export function step(s: GameState, dt: number): void {
   // Towers
   for (const n of s.nodes) {
     if (n.type !== 'waechter' || n.frozen > 0) continue;
-    n.zapAcc = Math.min(3, n.zapAcc + stat(n, 'zapRate') * dt);
+    n.zapAcc = Math.min(
+      3,
+      n.zapAcc + stat(n, 'zapRate') * (n.owner === PLAYER && !s.demo ? 1 + s.perks.towerRate : 1) * dt,
+    );
     if (n.zapAcc < 1) continue;
     let best: Group | null = null,
       bd = rangeOf(s, n);
@@ -213,7 +220,7 @@ export function step(s: GameState, dt: number): void {
     if (owned > 0 && owned <= SURRENDER_NODES && playerNodes >= s.nodes.length * SURRENDER_SHARE) {
       const t = (s.surrenderT[F] ?? 0) + dt;
       s.surrenderT[F] = t;
-      if (t >= SURRENDER_SECONDS) {
+      if (t >= Math.max(3, SURRENDER_SECONDS - s.perks.surrender)) {
         for (const n of s.nodes) if (n.owner === F) n.owner = 0;
         s.groups = s.groups.filter((g) => g.owner !== F);
         s.events.push({ type: 'surrender', faction: F });

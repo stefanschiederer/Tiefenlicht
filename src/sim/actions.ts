@@ -75,12 +75,12 @@ export function useAbility(s: GameState, id: AbilityId, n: SimNode): boolean {
   if (A.target === 'own' && n.owner !== PLAYER) return false;
   if (A.target === 'enemy' && n.owner === PLAYER) return false;
   s.energy -= cost;
-  if (id === 'stoss') n.units += 12;
+  if (id === 'stoss') n.units += 12 + s.perks.stossUnits;
   if (id === 'frost') {
-    n.frozen = 10;
+    n.frozen = 10 + s.perks.frostDur;
     n.units *= 0.7;
   }
-  if (id === 'schild') n.shield = 8;
+  if (id === 'schild') n.shield = 8 + s.perks.schildDur;
   s.events.push({ type: 'ability', id, node: n.id });
   return true;
 }

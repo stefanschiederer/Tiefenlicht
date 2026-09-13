@@ -92,7 +92,7 @@ export function renderPanel(game: Game): void {
     });
   panel.innerHTML =
     items.map((it) => btn(it.cls, it.html, it.title, it.cost, it.disabled, it.extra)).join('') +
-    `<div class="info"><b>${TYPES[n.type].name}</b> · Stufe ${n.level} · ${Math.floor(n.units)}/${Math.floor(capOf(s, n))} ${UNITS[TYPES[n.type].unit].name}${` · Routen ${n.routes.length}/${routeLimit(n)}`}${n.level < 3 ? ` · Ausbau: ${upgradePreview(n)}` : ''}</div>`;
+    `<div class="info"><b>${TYPES[n.type].name}</b> · Stufe ${n.level} · ${Math.floor(n.units)}/${Math.floor(capOf(s, n))} ${UNITS[TYPES[n.type].unit].name}${` · Routen ${n.routes.length}/${routeLimit(n, s)}`}${n.level < 3 ? ` · Ausbau: ${upgradePreview(n)}` : ''}</div>`;
   panel
     .querySelectorAll<HTMLElement>('[data-icon]')
     .forEach((el) => el.replaceWith(nodeIcon(el.dataset.icon as NodeType, 1, '#ffc45a', 30)));
@@ -173,7 +173,7 @@ export function updatePanel(game: Game): void {
   const s = game.state;
   const info = panel.querySelector<HTMLElement>('.info');
   if (info)
-    info.innerHTML = `<b>${TYPES[n.type].name}</b> · Stufe ${n.level} · ${Math.floor(n.units)}/${Math.floor(capOf(s, n))} ${UNITS[TYPES[n.type].unit].name}${` · Routen ${n.routes.length}/${routeLimit(n)}`}${n.level < 3 ? ` · Ausbau: ${upgradePreview(n)}` : ''}`;
+    info.innerHTML = `<b>${TYPES[n.type].name}</b> · Stufe ${n.level} · ${Math.floor(n.units)}/${Math.floor(capOf(s, n))} ${UNITS[TYPES[n.type].unit].name}${` · Routen ${n.routes.length}/${routeLimit(n, s)}`}${n.level < 3 ? ` · Ausbau: ${upgradePreview(n)}` : ''}`;
   const up = panel.querySelector<HTMLButtonElement>('#pUp');
   if (up) up.disabled = n.level >= 3 || n.units < upgradeCost(s, n);
   const cl = panel.querySelector<HTMLButtonElement>('#pClear');

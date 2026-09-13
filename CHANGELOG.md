@@ -8,6 +8,7 @@
 - Truppen als Meerestiere: Fisch, Qualle, Panzerkrebs, Manta, Kugelfisch, Perle.
 - Fraktionsfarben: Gold, Koralle, Alge, Tinte; Neutral Perlmutt.
 - Neues Hauptmenü: großer „Weiter spielen“-Knopf, Kacheln für Kampagne, Tages-Karte, Endlos und Fähigkeiten, kleine Leiste für Erfolge, Einstellungen, Anleitung, Editor, Vollbild.
+- Skill-Baum auf 32 Fähigkeiten in vier Zweigen erweitert (Brut: Wirtschaft, Sturm: Angriff und Strom, Fels: Verteidigung, Licht: Fähigkeiten) mit neuen Effekten: stärkerer Strom, zusätzliche Linie, Startgebäude Stufe 2, Riffbrecher, Minentaucher, schnelleres Turmfeuer, längere Fähigkeiten, Energieregeneration, schnellere Kapitulation.
 - Kampagnen-Karte als heller Inselpfad: große Bojen (60 px) als Level, gemeisterter Weg in Gold, Kapitel als Buchten, Namen und Sterne neben den Bojen, Tippfläche ohne Überlagerung.
 
 ## 0.8.1 – Phase 5: Feinschliff (2026-09-14)

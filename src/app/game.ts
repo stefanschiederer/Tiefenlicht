@@ -293,7 +293,7 @@ export class Game {
       d.path.length >= 2 ? (this.state.nodes[d.path[d.path.length - 1] as number] as SimNode) : null;
     const src = this.state.nodes[d.src] as SimNode;
     if (!target) {
-      this.ui.dragLabel = `${src.routes.length}/${routeLimit(src)} Linien`;
+      this.ui.dragLabel = `${src.routes.length}/${routeLimit(src, this.state)} Linien`;
       this.ui.dragOk = null;
       return;
     }
@@ -507,19 +507,19 @@ export class Game {
   private sendAlong(src: SimNode, path: number[]): void {
     const route = path.slice(1);
     if (!route.length) return;
-    const isNew = addRoute(src, route, routeLimit(src));
+    const isNew = addRoute(src, route, routeLimit(src, this.state));
     this.handleEvents(drainEvents(this.state));
     if (isNew) this.audio.play('route', 0.2);
     this.state.stats.sends++;
     const sends = this.state.stats.sends;
     if (sends <= 2)
       this.listeners.onTip(
-        `Linie gesetzt: Deine Einheiten strömen jetzt laufend hinüber. Quer über die Linie wischen kappt sie. Stufe ${src.level} hält ${routeLimit(src)} Linie${routeLimit(src) > 1 ? 'n' : ''}.`,
+        `Linie gesetzt: Deine Einheiten strömen jetzt laufend hinüber. Quer über die Linie wischen kappt sie. Stufe ${src.level} hält ${routeLimit(src, this.state)} Linie${routeLimit(src, this.state) > 1 ? 'n' : ''}.`,
         3800,
       );
     else if (isNew && src.routes.length > 1)
       this.listeners.onTip(
-        `Linie ${src.routes.length} von ${routeLimit(src)} – der Strom teilt sich auf.`,
+        `Linie ${src.routes.length} von ${routeLimit(src, this.state)} – der Strom teilt sich auf.`,
         2500,
       );
     this.listeners.onPanel();

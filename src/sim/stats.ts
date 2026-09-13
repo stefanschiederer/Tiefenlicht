@@ -33,7 +33,12 @@ export function rateOf(s: GameState, n: SimNode): number {
   if (r <= 0 || n.frozen > 0) return 0;
   const q = (s.adj[n.id] ?? []).reduce((acc, j) => {
     const m = s.nodes[j] as SimNode;
-    return acc + (m.type === 'quelle' && m.owner === n.owner ? stat(m, 'boost') : 0);
+    return (
+      acc +
+      (m.type === 'quelle' && m.owner === n.owner
+        ? stat(m, 'boost') * (isPlayer(s, m) ? 1 + s.perks.boost : 1)
+        : 0)
+    );
   }, 0);
   r *= 1 + Math.min(1.5, q);
   if (isPlayer(s, n)) r *= 1 + s.perks.prod;
@@ -79,8 +84,13 @@ export const nodeDist = (a: SimNode, b: SimNode): number => Math.hypot(a.x - b.x
 export const nodeRadius = (n: SimNode): number => TYPES[n.type].r * SIM_SCALE * (1 + (n.level - 1) * 0.12);
 
 /** How many routes this node may hold (grows with its level; nests get one extra). */
-export const routeLimit = (n: SimNode): number =>
-  Math.min(3, (ROUTES_PER_LEVEL[n.level - 1] ?? 1) + (n.type === 'nest' && n.level > 1 ? 1 : 0));
+export const routeLimit = (n: SimNode, s?: GameState): number =>
+  Math.min(
+    4,
+    (ROUTES_PER_LEVEL[n.level - 1] ?? 1) +
+      (n.type === 'nest' && n.level > 1 ? 1 : 0) +
+      (s && isPlayer(s, n) ? s.perks.routes : 0),
+  );
 
 /** Text shown for the next upgrade of a node ("+60 % Produktion, 2 Routen"). */
 export function upgradePreview(n: SimNode): string {

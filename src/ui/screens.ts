@@ -103,7 +103,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
   } else if (kind === 'skills') {
     card.className = 'card wide';
     const branches = [...new Set(SKILLS.map((s) => s.branch))];
-    h = `<h2>Fähigkeiten</h2><p class="sub">${pts} Punkte verfügbar. Jeder Stern in der Kampagne und jede neue Endlos-Welle bringt einen Punkt. Alles wirkt dauerhaft.</p><div class="tree">`;
+    h = `<h2>Fähigkeiten</h2><p class="sub">${pts} Punkte verfügbar · ${save.spent.length} von ${SKILLS.length} freigeschaltet. Sterne, Endlos-Wellen und Tages-Karten bringen Punkte. Jeder Zweig baut aufeinander auf.</p><div class="tree">`;
     for (const b of branches) {
       h += `<div class="branch" data-branch="${b}"><svg class="links"></svg><h3>${b}</h3>`;
       for (const sk of SKILLS.filter((s) => s.branch === b)) {

@@ -59,7 +59,7 @@ export function buildLevel(def: LevelDef, opts: BuildOptions = {}): GameState {
     groups: [],
     nextGroupId: 1,
     time: 0,
-    energy: 0,
+    energy: demo ? 0 : perks.energyStart,
     aiTimers: {},
     surrenderT: {},
     stats: { captured: 0, sends: 0 },
@@ -100,7 +100,10 @@ export function buildLevel(def: LevelDef, opts: BuildOptions = {}): GameState {
       n.level = 2;
       n.units = Math.round(def.gar * 1.3);
     }
-    if (k === 0 && !demo) n.units += perks.start;
+    if (k === 0 && !demo) {
+      n.units += perks.start;
+      if (perks.startLevel > 0) n.level = Math.min(3, n.level + perks.startLevel) as 1 | 2 | 3;
+    }
     if (!hand)
       for (const j of state.adj[id] ?? []) {
         if (!gen.starts.includes(j)) {
