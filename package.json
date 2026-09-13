@@ -1,6 +1,6 @@
 {
   "name": "tiefenlicht",
-  "version": "0.4.0",
+  "version": "0.8.1",
   "private": true,
   "type": "module",
   "description": "Tiefenlicht – Echtzeit-Strategie um leuchtende Knoten in der Tiefsee (PWA)",
