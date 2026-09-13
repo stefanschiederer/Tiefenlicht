@@ -1,6 +1,6 @@
 import { PLAYER, TYPES, UNITS, type NodeType } from '@/data';
 import { clearRoutes, cycleReserve, doConvert, doUpgrade } from '@/sim/actions';
-import { capOf, convertCost, nodeRadius, upgradeCost } from '@/sim/stats';
+import { capOf, convertCost, nodeRadius, routeLimit, upgradeCost, upgradePreview } from '@/sim/stats';
 import { typeIcon } from '@/render/canvas2d/shapes';
 import type { Game } from '@/app/game';
 import { $ } from './dom';
@@ -92,7 +92,7 @@ export function renderPanel(game: Game): void {
     });
   panel.innerHTML =
     items.map((it) => btn(it.cls, it.html, it.title, it.cost, it.disabled, it.extra)).join('') +
-    `<div class="info"><b>${TYPES[n.type].name}</b> · Stufe ${n.level} · ${Math.floor(n.units)}/${Math.floor(capOf(s, n))} ${UNITS[TYPES[n.type].unit].name}${n.routes.length ? ` · ${n.routes.length} Route${n.routes.length > 1 ? 'n' : ''}` : ''}</div>`;
+    `<div class="info"><b>${TYPES[n.type].name}</b> · Stufe ${n.level} · ${Math.floor(n.units)}/${Math.floor(capOf(s, n))} ${UNITS[TYPES[n.type].unit].name}${` · Routen ${n.routes.length}/${routeLimit(n)}`}${n.level < 3 ? ` · Ausbau: ${upgradePreview(n)}` : ''}</div>`;
   panel
     .querySelectorAll<HTMLElement>('[data-icon]')
     .forEach((el) => el.replaceWith(typeIcon(el.dataset.icon as NodeType, 30)));
@@ -178,7 +178,7 @@ export function updatePanel(game: Game): void {
   const s = game.state;
   const info = panel.querySelector<HTMLElement>('.info');
   if (info)
-    info.innerHTML = `<b>${TYPES[n.type].name}</b> · Stufe ${n.level} · ${Math.floor(n.units)}/${Math.floor(capOf(s, n))} ${UNITS[TYPES[n.type].unit].name}${n.routes.length ? ` · ${n.routes.length} Route${n.routes.length > 1 ? 'n' : ''}` : ''}`;
+    info.innerHTML = `<b>${TYPES[n.type].name}</b> · Stufe ${n.level} · ${Math.floor(n.units)}/${Math.floor(capOf(s, n))} ${UNITS[TYPES[n.type].unit].name}${` · Routen ${n.routes.length}/${routeLimit(n)}`}${n.level < 3 ? ` · Ausbau: ${upgradePreview(n)}` : ''}`;
   const up = panel.querySelector<HTMLButtonElement>('#pUp');
   if (up) up.disabled = n.level >= 3 || n.units < upgradeCost(s, n);
   const cl = panel.querySelector<HTMLButtonElement>('#pClear');

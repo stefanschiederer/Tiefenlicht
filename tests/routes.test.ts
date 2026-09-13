@@ -195,17 +195,11 @@ describe('route flow accumulation', () => {
     expect(s.groups).toHaveLength(0);
   });
 
-  it('resets the accumulator when the routes are gone or the owner changes', () => {
+  it('resets the accumulator when the routes are gone', () => {
     const s = routeState([[1]], { units: 20, flowAcc: 5.5 });
     clearRoutes(node(s, 0));
     step(s, DT);
     expect(node(s, 0).flowAcc).toBe(0);
-    const s2 = routeState([[1], [2]], { units: 20, flowAcc: 5.5 });
-    node(s2, 0).owner = 2;
-    step(s2, DT);
-    expect(node(s2, 0).routes).toEqual([]);
-    expect(node(s2, 0).flowAcc).toBe(0);
-    expect(s2.groups).toHaveLength(0);
   });
 
   it('caps the accumulator at the capacity when nothing can leave', () => {
@@ -475,18 +469,18 @@ describe('route shipments', () => {
 });
 
 describe('route ownership', () => {
-  it('clears routes on a node that is no longer the player’s', () => {
-    const s = routeState([[1], [2]], { units: 40, flowAcc: 40 });
-    node(s, 0).owner = 2;
-    step(s, DT);
-    expect(node(s, 0).routes).toEqual([]);
-    expect(s.groups).toHaveLength(0);
-  });
-
-  it('enemy nodes never ship along routes', () => {
+  it('enemy nodes ship along their routes too (visible supply lines)', () => {
     const s = routeState([[1]], { units: 40, flowAcc: 40 });
     node(s, 0).owner = 2;
     node(s, 1).owner = 2;
+    run(s, 30);
+    expect(s.groups.length).toBeGreaterThan(0);
+    expect(s.groups.every((g) => g.owner === 2)).toBe(true);
+  });
+
+  it('neutral nodes never ship along routes', () => {
+    const s = routeState([[1]], { units: 40, flowAcc: 40 });
+    node(s, 0).owner = 0;
     run(s, 30);
     expect(s.groups).toHaveLength(0);
   });

@@ -70,7 +70,7 @@ export function step(s: GameState, dt: number): void {
     if (r > 0 && n.units < cap) n.units = Math.min(cap, n.units + r * dt);
     // Routes forward a share of production as a slow stream in packets of ROUTE_BATCH units; a full node
     // forwards everything it makes. Nothing below the reserve ever leaves through a route.
-    if (n.routes.length && n.owner === PLAYER) {
+    if (n.routes.length) {
       n.flowAcc += r * (n.units >= cap - 0.5 ? 1 : routeShare) * dt;
       n.flowT -= dt;
       if (n.flowT <= 0) {
@@ -89,10 +89,7 @@ export function step(s: GameState, dt: number): void {
           n.rr++;
         } else if (n.flowAcc > cap) n.flowAcc = cap;
       }
-    } else {
-      n.flowAcc = 0;
-      if (n.routes.length) n.routes = [];
-    }
+    } else n.flowAcc = 0;
   }
   for (const g of s.groups) {
     const a = s.nodes[g.from] as SimNode,
@@ -132,7 +129,7 @@ export function step(s: GameState, dt: number): void {
   }
   // Towers
   for (const n of s.nodes) {
-    if (n.type !== 'waechter' || n.owner === 0 || n.frozen > 0) continue;
+    if (n.type !== 'waechter' || n.frozen > 0) continue;
     n.zapAcc = Math.min(3, n.zapAcc + stat(n, 'zapRate') * dt);
     if (n.zapAcc < 1) continue;
     let best: Group | null = null,

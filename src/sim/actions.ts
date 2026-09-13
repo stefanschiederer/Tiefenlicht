@@ -91,14 +91,14 @@ export function sendAmount(s: GameState, n: SimNode, frac: number): number {
   return Math.max(avail >= 1 ? 1 : 0, Math.floor(avail * frac));
 }
 
-/** Adds (or replaces, by target) a persistent route. Returns true if it is a new route. */
-export function addRoute(src: SimNode, route: readonly number[]): boolean {
+/** Adds (or replaces, by target) a persistent route; the oldest is dropped beyond `max`. Returns true if new. */
+export function addRoute(src: SimNode, route: readonly number[], max: number = MAX_ROUTES): boolean {
   const target = route[route.length - 1];
   const i = src.routes.findIndex((r) => r[r.length - 1] === target);
   const isNew = i < 0;
   if (i >= 0) src.routes[i] = [...route];
   else {
-    if (src.routes.length >= MAX_ROUTES) src.routes.shift();
+    while (src.routes.length >= Math.max(1, max)) src.routes.shift();
     src.routes.push([...route]);
   }
   src.flowT = 0;

@@ -52,8 +52,10 @@ export const WORLD_H = 800;
 /** Equivalent of the prototype's screen scale factor at the reference resolution. */
 export const SIM_SCALE = 1;
 export const BASE_SPEED = 82;
-/** Max simultaneous routes per node. */
+/** Max simultaneous routes per node (absolute cap; the allowed number grows with the node level). */
 export const MAX_ROUTES = 3;
+/** Routes a node may hold per upgrade level (Tower-War style: more lines with a higher tower). */
+export const ROUTES_PER_LEVEL: readonly number[] = [1, 2, 3];
 /** Seconds between route shipments (halved with the "flow" perk). */
 export const FLOW_INTERVAL = 0.4;
 export const FLOW_INTERVAL_FAST = 0.2;

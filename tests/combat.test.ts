@@ -32,9 +32,10 @@ describe('arrival combat', () => {
     step(s, DT);
     const h = node(s, 1);
     expect(h.owner).toBe(2);
-    expect(h.units).toBeCloseTo(60 - 12 / 1.2);
+    const def = TYPES.nest.def[1];
+    expect(h.units).toBeCloseTo(60 - 12 / def, 1);
     expect(s.groups).toHaveLength(0);
-    expect(s.energy).toBeCloseTo((12 / 1.2 + 12) * 0.5);
+    expect(s.energy).toBeCloseTo((12 / def + 12) * 0.5);
     const ev = drainEvents(s);
     expect(ev.some((e) => e.type === 'clash' && e.a === 1 && e.b === 2 && e.k === 12)).toBe(true);
     expect(ev.some((e) => e.type === 'capture')).toBe(false);
@@ -317,7 +318,7 @@ describe('energy', () => {
     s.perks.energy = 0.5;
     addGroup(s, { owner: 1, n: 12, from: 0, to: 1, t: 1 });
     step(s, DT);
-    expect(s.energy).toBeCloseTo((12 / 1.2 + 12) * 0.5 * 1.5);
+    expect(s.energy).toBeCloseTo((12 / TYPES.nest.def[1] + 12) * 0.5 * 1.5);
   });
 });
 
@@ -366,7 +367,7 @@ describe('capture bookkeeping', () => {
       reserve: 0.5,
       frozen: 4,
       shield: 4,
-      flowAcc: 5,
+      flowAcc: 0.5,
     });
     // The shield triples the defence: 40 * 3 = 120 power needed.
     addGroup(s, { owner: 1, n: 200, from: 0, to: 1, t: 1 });

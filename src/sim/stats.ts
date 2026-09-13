@@ -3,6 +3,7 @@ import {
   BASE_SPEED,
   DIFF,
   PLAYER,
+  ROUTES_PER_LEVEL,
   SIM_SCALE,
   TYPES,
   UNITS,
@@ -76,3 +77,30 @@ export function speedFrom(s: GameState, n: SimNode, owner: number, unit: UnitTyp
 export const nodeDist = (a: SimNode, b: SimNode): number => Math.hypot(a.x - b.x, a.y - b.y);
 /** Drawn radius of a node in world units. */
 export const nodeRadius = (n: SimNode): number => TYPES[n.type].r * SIM_SCALE * (1 + (n.level - 1) * 0.12);
+
+/** How many routes this node may hold (grows with its level; nests get one extra). */
+export const routeLimit = (n: SimNode): number =>
+  Math.min(3, (ROUTES_PER_LEVEL[n.level - 1] ?? 1) + (n.type === 'nest' && n.level > 1 ? 1 : 0));
+
+/** Text shown for the next upgrade of a node ("+60 % Produktion, 2 Routen"). */
+export function upgradePreview(n: SimNode): string {
+  if (n.level >= 3) return 'Voll ausgebaut';
+  const cur = n.level - 1,
+    nxt = n.level;
+  const next = { ...n, level: (n.level + 1) as 2 | 3 };
+  const parts: string[] = [];
+  const at = (t: Triple | undefined, i: number): number => t?.[i] ?? 0;
+  const pct = (a: number, b: number) => `+${Math.round((b / a - 1) * 100)} %`;
+  const T = TYPES[n.type];
+  if (at(T.rate, nxt) > at(T.rate, cur) * 1.15)
+    parts.push(`${pct(at(T.rate, cur), at(T.rate, nxt))} Produktion`);
+  if (at(T.def, nxt) > at(T.def, cur) * 1.15)
+    parts.push(`${pct(at(T.def, cur), at(T.def, nxt))} Verteidigung`);
+  if (at(T.cap, nxt) > at(T.cap, cur) * 1.15) parts.push(`${pct(at(T.cap, cur), at(T.cap, nxt))} Vorrat`);
+  if (T.speedMul) parts.push(`Tempo ×${at(T.speedMul, nxt)}`);
+  if (T.zapRange) parts.push(`Reichweite ${at(T.zapRange, nxt)}, Feuerrate ${at(T.zapRate, nxt)}`);
+  if (T.boost) parts.push(`Nachbarn +${Math.round(at(T.boost, nxt) * 100)} %`);
+  const rl = routeLimit(next);
+  if (rl > routeLimit(n)) parts.push(`${rl} Routen`);
+  return parts.join(', ');
+}

@@ -737,9 +737,8 @@ export class PixiRenderer implements Renderer {
 
   private updateRoutes(state: GameState, ui: UiState): void {
     const g = this.routes.clear();
-    const C = FACTION_COLORS[PLAYER] ?? 0xffffff;
     const off = -this.elapsed * 46;
-    const drawPath = (ids: readonly number[], alpha: number, offset: number) => {
+    const drawPath = (ids: readonly number[], alpha: number, offset: number, C: number) => {
       if (ids.length < 2) return;
       for (let i = 0; i < ids.length - 1; i++) {
         const a = state.nodes[ids[i] as number] as SimNode,
@@ -777,15 +776,20 @@ export class PixiRenderer implements Renderer {
           .fill({ color: C, alpha });
       }
     };
-    if (!state.demo)
-      for (const n of state.nodes)
-        if (n.owner === PLAYER) n.routes.forEach((r, i) => drawPath([n.id, ...r], 1, i * 6));
+    const PC = FACTION_COLORS[PLAYER] ?? 0xffffff;
+    for (const n of state.nodes) {
+      if (n.owner === 0) continue;
+      const mine = n.owner === PLAYER && !state.demo;
+      n.routes.forEach((r, i) =>
+        drawPath([n.id, ...r], mine ? 1 : 0.55, i * 6, FACTION_COLORS[n.owner] ?? 0xffffff),
+      );
+    }
     if (ui.drag) {
-      drawPath(ui.drag.path, 0.75, 0);
+      drawPath(ui.drag.path, 0.75, 0, PC);
       const lastN = state.nodes[ui.drag.path[ui.drag.path.length - 1] as number] as SimNode;
       if (ui.hover === null) {
         dashed(g, lastN.x, lastN.y, this.view.wx(ui.pointer.x), this.view.wy(ui.pointer.y), 4, 6, 0);
-        g.stroke({ width: 1.5, color: C, alpha: 0.45 });
+        g.stroke({ width: 1.5, color: PC, alpha: 0.45 });
       }
     }
   }

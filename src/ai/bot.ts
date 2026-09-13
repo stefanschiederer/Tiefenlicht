@@ -1,6 +1,6 @@
 import { TYPES, UNITS } from '@/data';
 import { bfsPath } from '@/sim/graph';
-import { doConvert, doUpgrade, launch } from '@/sim/actions';
+import { addRoute, doConvert, doUpgrade, launch } from '@/sim/actions';
 import type { GameState, SimNode } from '@/sim/state';
 import { capOf, convertCost, defOf, incoming, rateOf, upgradeCost } from '@/sim/stats';
 
@@ -35,6 +35,14 @@ export function aiAct(s: GameState, F: number): void {
   const mine = s.nodes.filter((n) => n.owner === F);
   if (!mine.length) return;
   const aiUpg = s.demo || (s.def.aiUpgrades ?? true);
+  // Supply lines: drop routes whose target is ours and no longer at the front.
+  for (const n of mine) {
+    if (!n.routes.length) continue;
+    n.routes = n.routes.filter((r) => {
+      const t = s.nodes[r[r.length - 1] as number] as SimNode;
+      return t.owner !== F || (s.adj[t.id] ?? []).some((j) => (s.nodes[j] as SimNode).owner !== F);
+    });
+  }
   // Reinforce threatened nodes
   for (const n of mine) {
     const threat = incoming(s, n.id, (g) => g.owner !== F);
@@ -118,6 +126,8 @@ export function aiAct(s: GameState, F: number): void {
   }
   if (best) {
     launch(s, best.src, best.path, best.avail);
+    // Keep the attack as one visible supply line (Tower-War style bots draw a single line).
+    if (aiUpg) addRoute(best.src, best.path, 1);
     return;
   }
   // Otherwise shift surplus from a full node to the weakest frontline node

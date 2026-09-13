@@ -16,7 +16,7 @@ import { addRoute, cutRoutes, launch, sendAmount, useAbility } from '@/sim/actio
 import { bfsPath } from '@/sim/graph';
 import { buildLevel } from '@/sim/level';
 import type { GameState, SimEvent, SimNode } from '@/sim/state';
-import { abilityCost, defOf, strOf } from '@/sim/stats';
+import { abilityCost, defOf, routeLimit, strOf } from '@/sim/stats';
 import { aliveFactions, drainEvents, step } from '@/sim/update';
 import { readSave, writeSave, type SaveGame } from './save';
 import { enterFullscreen } from './pwa';
@@ -460,7 +460,7 @@ export class Game {
       const k = sendAmount(this.state, n, frac);
       const g = launch(this.state, n, route, k, { manual: true });
       if (g) sentUnits += g.n;
-      if (addRoute(n, route)) newRoutes++;
+      if (addRoute(n, route, routeLimit(n))) newRoutes++;
       if (n.routes.length > 1) multiRoute = true;
     }
     this.handleEvents(drainEvents(this.state));
