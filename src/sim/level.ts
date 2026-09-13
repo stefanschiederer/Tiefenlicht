@@ -48,6 +48,7 @@ export function buildLevel(def: LevelDef, opts: BuildOptions = {}): GameState {
     time: 0,
     energy: 0,
     aiTimers: {},
+    surrenderT: {},
     stats: { captured: 0, sends: 0 },
     over: null,
     events: [],

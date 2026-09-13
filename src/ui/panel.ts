@@ -1,13 +1,12 @@
 import { PLAYER, TYPES, UNITS, type NodeType } from '@/data';
 import { clearRoutes, cycleReserve, doConvert, doUpgrade, removeRoute } from '@/sim/actions';
-import { capOf, convertCost, nodeRadius, upgradeCost } from '@/sim/stats';
+import { capOf, convertCost, upgradeCost } from '@/sim/stats';
 import type { SimNode } from '@/sim/state';
 import type { Game } from '@/app/game';
 import { $ } from './dom';
 import { buildLegend, tip } from './hud';
 
 let panelConv = false;
-const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 export function renderPanel(game: Game): void {
   const panel = $('#nodePanel');
@@ -17,8 +16,7 @@ export function renderPanel(game: Game): void {
     panelConv = false;
     return;
   }
-  const s = game.state,
-    v = game.renderer.view;
+  const s = game.state;
   panel.hidden = false;
   const conv = s.def.types.filter((t) => t !== n.type);
   const up = upgradeCost(s, n),
@@ -34,11 +32,6 @@ export function renderPanel(game: Game): void {
         return `<div><span>Route ${i + 1}: ${TYPES[target.type].name}, ${r.length} ${r.length === 1 ? 'Schritt' : 'Schritte'}</span><button data-rm="${i}" title="Route entfernen">×</button></div>`;
       })
       .join('')}</div>`;
-  const px = v.sx(n.x),
-    py = v.sy(n.y),
-    r = nodeRadius(n) * v.scale;
-  panel.style.left = clamp(px + r + 14, 8, v.width - 244) + 'px';
-  panel.style.top = clamp(py - 40, 60, v.height - 250) + 'px';
   $('#pUp').addEventListener('click', () => {
     if (game.act((st) => doUpgrade(st, n))) {
       tip(`${TYPES[n.type].name} auf Stufe ${n.level} ausgebaut.`, 2000);

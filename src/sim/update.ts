@@ -7,6 +7,9 @@ import {
   ROUTE_SHARE,
   ROUTE_SHARE_FAST,
   SIM_SCALE,
+  SURRENDER_NODES,
+  SURRENDER_SECONDS,
+  SURRENDER_SHARE,
 } from '@/data';
 import { aiAct } from '@/ai/bot';
 import { gainEnergy, launch } from './actions';
@@ -174,6 +177,21 @@ export function step(s: GameState, dt: number): void {
   }
 
   if (s.demo) return;
+  // Mop-up: a beaten AI gives up instead of forcing the player to hunt its last node.
+  const playerNodes = s.nodes.filter((n) => n.owner === PLAYER).length;
+  for (const f of Object.keys(s.aiTimers)) {
+    const F = +f;
+    const owned = s.nodes.filter((n) => n.owner === F).length;
+    if (owned > 0 && owned <= SURRENDER_NODES && playerNodes >= s.nodes.length * SURRENDER_SHARE) {
+      const t = (s.surrenderT[F] ?? 0) + dt;
+      s.surrenderT[F] = t;
+      if (t >= SURRENDER_SECONDS) {
+        for (const n of s.nodes) if (n.owner === F) n.owner = 0;
+        s.groups = s.groups.filter((g) => g.owner !== F);
+        s.events.push({ type: 'surrender', faction: F });
+      }
+    } else s.surrenderT[F] = 0;
+  }
   const pAlive = s.nodes.some((n) => n.owner === PLAYER) || s.groups.some((g) => g.owner === PLAYER);
   const eAlive = s.nodes.some((n) => n.owner > 1) || s.groups.some((g) => g.owner > 1);
   if (!eAlive) finish(s, true);

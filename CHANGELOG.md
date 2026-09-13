@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 – Gamedesign-Paket (2026-09-13)
+
+- Angriffsvorschau beim Ziehen: Einheiten, Verteidigung des Ziels und ✓/✗, grün oder rot.
+- Mehrfachauswahl: eigene Knoten antippen sammelt sie, Doppeltipp wählt alle; Ziehen schickt von allen über ihre kürzesten Wege und legt Routen an.
+- Kapitulation: Ein Gegner mit nur noch einem Knoten gibt nach 10 s auf, wenn der Spieler mindestens 60 % der Knoten hält. Kein zähes Aufräumen mehr.
+- Bestzeiten pro Level (Spielstand v2), „Neue Bestzeit!“ im Siegbildschirm, Bestzeit in der Levelliste.
+- Haptik bei Eroberung, Verlust, Sieg und Niederlage (Android).
+- Knotenmenü ist rechts angedockt statt neben dem Knoten, damit es keine Nachbarknoten verdeckt.
+- Schwierigkeitskurve der Kampagne neu abgestimmt (siehe `BALANCE.md`).
+- Designbefund in `GAMEDESIGN.md`.
+
 ## 0.2.1 (2026-09-13)
 
 - Routen löschen per Wisch-Geste: quer über eine Route wischen kappt sie (zusätzlich zum Knotenmenü und Rechtsklick).

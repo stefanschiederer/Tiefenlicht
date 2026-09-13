@@ -4,14 +4,15 @@
  * Version history:
  *   0 – prototype (no `version` field): { stars, endlessBest, points, spent, sound, difficulty, autoFs? }
  *   1 – adds `version`, `music`/`sfx` volumes, `createdAt`/`updatedAt`
+ *   2 – adds `bestTimes` (seconds per campaign level) and `endlessBestTimes`
  */
 export const SAVE_KEY = 'tiefenlicht:save';
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export type Difficulty = 'leicht' | 'normal' | 'schwer';
 
-export interface SaveV1 {
-  version: 1;
+export interface SaveV2 {
+  version: 2;
   stars: Record<string, number>;
   endlessBest: number;
   points: number;
@@ -23,9 +24,13 @@ export interface SaveV1 {
   autoFs: boolean;
   createdAt: number;
   updatedAt: number;
+  /** Best completion time in seconds per campaign level index. */
+  bestTimes: Record<string, number>;
+  /** Best completion time in seconds per endless wave. */
+  endlessBestTimes: Record<string, number>;
 }
 
-export type SaveGame = SaveV1;
+export type SaveGame = SaveV2;
 
 export function defaultSave(now = Date.now()): SaveGame {
   return {
@@ -41,7 +46,19 @@ export function defaultSave(now = Date.now()): SaveGame {
     autoFs: true,
     createdAt: now,
     updatedAt: now,
+    bestTimes: {},
+    endlessBestTimes: {},
   };
+}
+
+function timeMap(v: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!isObject(v)) return out;
+  for (const [k, t] of Object.entries(v)) {
+    const n = Number(t);
+    if (Number.isFinite(n) && n > 0) out[k] = n;
+  }
+  return out;
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
@@ -77,21 +94,19 @@ export function migrate(raw: unknown, now = Date.now()): SaveGame {
   if (!isObject(raw)) return defaultSave(now);
   const version = typeof raw.version === 'number' ? raw.version : 0;
   if (version === 0) return migrateV0(raw, now);
-  if (version === 1) {
-    // Re-run the v0 mapper for field sanitising, then keep v1-only fields.
-    const v1 = migrateV0(raw, now);
-    const music = Number(raw.music),
-      sfx = Number(raw.sfx);
-    return {
-      ...v1,
-      music: Number.isFinite(music) ? Math.min(1, Math.max(0, music)) : v1.music,
-      sfx: Number.isFinite(sfx) ? Math.min(1, Math.max(0, sfx)) : v1.sfx,
-      createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : now,
-      updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : now,
-    };
-  }
-  // Newer than we know: keep what we understand.
-  return migrateV0(raw, now);
+  // v1 and later (and anything newer than we know): re-run the v0 mapper for sanitising, then keep known fields.
+  const base = migrateV0(raw, now);
+  const music = Number(raw.music),
+    sfx = Number(raw.sfx);
+  return {
+    ...base,
+    music: Number.isFinite(music) ? Math.min(1, Math.max(0, music)) : base.music,
+    sfx: Number.isFinite(sfx) ? Math.min(1, Math.max(0, sfx)) : base.sfx,
+    createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : now,
+    updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : now,
+    bestTimes: version >= 2 ? timeMap(raw.bestTimes) : {},
+    endlessBestTimes: version >= 2 ? timeMap(raw.endlessBestTimes) : {},
+  };
 }
 
 export interface StorageLike {

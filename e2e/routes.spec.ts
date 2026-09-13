@@ -94,3 +94,76 @@ test('swiping across a route cuts it', async ({ page }) => {
   await page.waitForTimeout(100);
   expect((await tl(page)).me.routes).toBe(0);
 });
+
+test('multi-select: tapping two own nodes and dragging sends from both', async ({ page }) => {
+  test.skip(test.info().project.name === 'mobile', 'mouse only');
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Kampagne' }).click();
+  await page
+    .getByRole('button', { name: /6\. Zwei Fronten|1\. Erstes Leuchten/ })
+    .first()
+    .click();
+  await page.getByRole('button', { name: 'Level starten' }).click();
+  await page.waitForTimeout(300);
+  // Capture a neighbour first so we own two nodes: send everything (shift) twice.
+  const t = await tl(page);
+  await page.keyboard.down('Shift');
+  await page.mouse.move(t.me.x, t.me.y);
+  await page.mouse.down();
+  await page.mouse.move(t.nb.x, t.nb.y, { steps: 10 });
+  await page.mouse.up();
+  await page.keyboard.up('Shift');
+  await page.waitForFunction(
+    () => (window as unknown as { TL: TL }).TL.nodes.filter((n) => n.owner === 1).length >= 2,
+    null,
+    { timeout: 30_000 },
+  );
+  const own = await page.evaluate(() => {
+    const t = (window as unknown as { TL: TL }).TL;
+    return t.nodes
+      .filter((n) => n.owner === 1)
+      .map((n) => ({ id: n.id, x: t.view.sx(n.x), y: t.view.sy(n.y) }));
+  });
+  expect(own.length).toBeGreaterThanOrEqual(2);
+  const a = own[0] as { id: number; x: number; y: number },
+    b = own[1] as { id: number; x: number; y: number };
+  await page.mouse.click(a.x, a.y);
+  await page.waitForTimeout(400);
+  await page.mouse.click(b.x, b.y);
+  await page.waitForTimeout(100);
+  const selected = await page.evaluate(
+    () => (window as unknown as { TL: { game: { ui: { selected: number[] } } } }).TL.game.ui.selected,
+  );
+  expect(selected.sort()).toEqual([a.id, b.id].sort());
+  // Drag from b to a neighbour of b that is not a: both should launch groups / set routes.
+  const target = await page.evaluate(
+    ({ bid, aid }) => {
+      const t = (window as unknown as { TL: TL }).TL;
+      const e = t.edges.find((e) => (e[0] === bid && e[1] !== aid) || (e[1] === bid && e[0] !== aid));
+      if (!e) return null;
+      const n = t.nodes[e[0] === bid ? e[1] : e[0]];
+      return n ? { x: t.view.sx(n.x), y: t.view.sy(n.y) } : null;
+    },
+    { bid: b.id, aid: a.id },
+  );
+  test.skip(!target, 'no free neighbour');
+  const before = await page.evaluate(
+    () => (window as unknown as { TL: TL }).TL.groups.filter((g) => g.owner === 1).length,
+  );
+  await page.mouse.move(b.x, b.y);
+  await page.mouse.down();
+  await page.mouse.move((target as { x: number; y: number }).x, (target as { x: number; y: number }).y, {
+    steps: 10,
+  });
+  await page.mouse.up();
+  await page.waitForTimeout(100);
+  const routes = await page.evaluate(
+    () =>
+      (window as unknown as { TL: TL }).TL.nodes.filter((n) => n.owner === 1 && n.routes.length > 0).length,
+  );
+  const after = await page.evaluate(
+    () => (window as unknown as { TL: TL }).TL.groups.filter((g) => g.owner === 1).length,
+  );
+  expect(routes).toBe(2);
+  expect(after).toBeGreaterThanOrEqual(before + 1);
+});

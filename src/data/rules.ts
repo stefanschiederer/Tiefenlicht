@@ -66,3 +66,10 @@ export const ROUTE_SHARE_FAST = 0.6;
 /** Routes ship in packets of at least this many units (readable groups instead of single stragglers). */
 export const ROUTE_BATCH = 3;
 export const ENERGY_MAX = 100;
+/**
+ * Mop-up rule: an AI faction that has held at most SURRENDER_NODES nodes for SURRENDER_SECONDS while the
+ * player holds at least SURRENDER_SHARE of all nodes gives up (its nodes turn neutral).
+ */
+export const SURRENDER_NODES = 1;
+export const SURRENDER_SECONDS = 10;
+export const SURRENDER_SHARE = 0.6;

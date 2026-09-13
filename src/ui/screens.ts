@@ -35,7 +35,8 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     if (!lv) return '';
     const locked = i > unlocked;
     const st = save.stars[i];
-    return `<button class="lv ${locked ? 'locked' : ''}" data-play="${i}" ${locked ? 'disabled' : ''}><b>${i + 1}. ${lv.name}</b><small>${st ? `<span class="stars">${starStr(st)}</span>` : locked ? 'Gesperrt' : 'Offen'} · ${lv.enemies} Gegner</small></button>`;
+    const bt = save.bestTimes[i];
+    return `<button class="lv ${locked ? 'locked' : ''}" data-play="${i}" ${locked ? 'disabled' : ''}><b>${i + 1}. ${lv.name}</b><small>${st ? `<span class="stars">${starStr(st)}</span>` : locked ? 'Gesperrt' : 'Offen'} · ${lv.enemies} Gegner${bt ? ` · ${fmtTime(bt)}` : ''}</small></button>`;
   };
   let h = '';
   if (kind === 'menu') {
@@ -77,7 +78,9 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     h = `<h2>Anleitung</h2>
       <ul><li><b>Senden:</b> Ziehe von einem eigenen Knoten über verbundene Knoten. Sofort geht die Hälfte der verfügbaren Einheiten los, und die Route bleibt bestehen: Der Knoten schickt danach laufend einen Teil seiner Produktion nach und wächst trotzdem weiter. Ziehe erneut, um sofort wieder die Hälfte zu schicken. Unten links (oder <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd>) wählst du 25 bis 100 %, <kbd>Shift</kbd> + Ziehen schickt alles.</li>
       <li><b>Routen:</b> Eine Route schickt laufend einen Teil der Produktion nach (in kleinen Paketen), der Knoten wächst trotzdem weiter; ein voller Knoten schickt alles. Bis zu drei Routen je Knoten teilen den Nachschub. <b>Löschen:</b> Quer über die Linie wischen, im Knotenmenü einzeln entfernen, oder Rechtsklick auf den Knoten für alle.</li>
-      <li><b>Knotenmenü:</b> Eigenen Knoten antippen: Ausbau bis Stufe 3, Reserve, Umbau in eine andere Art, Routen verwalten.</li>
+      <li><b>Vorschau:</b> Beim Ziehen steht am Zeiger, wie viele Einheiten losgehen und ob sie die Verteidigung des Ziels schlagen (✓ oder ✗).</li>
+      <li><b>Mehrfachauswahl:</b> Eigene Knoten antippen, um sie zu sammeln; Doppeltipp wählt alle eigenen. Ziehen von einem gewählten Knoten schickt von allen. Tipp ins Leere hebt die Auswahl auf.</li>
+      <li><b>Knotenmenü:</b> Einen einzelnen eigenen Knoten antippen: Ausbau bis Stufe 3, Reserve, Umbau in eine andere Art, Routen verwalten.</li>
       <li><b>Kampf:</b> Angriffsstärke der Truppen gegen Einheiten × Verteidigung des Knotens. Bleibt etwas übrig, wechselt der Knoten die Seite.</li>
       <li><b>Truppen:</b> Jede Knotenart erzeugt eigene Truppen: Drohnen sind schnell und schwach, Panzer stark und langsam, Pfeile am schnellsten.</li>
       <li><b>Energie</b> entsteht, wenn Einheiten fallen. Damit zündest du Fähigkeiten (Tasten <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>).</li>
@@ -98,9 +101,9 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
       h += `<div class="new"><div><b>Neu: Umbau</b><span>Im Knotenmenü kannst du eine andere Knotenart wählen. Der Knoten fällt dabei auf Stufe 1 zurück.</span></div></div>`;
     h += `<div class="actions"><button class="primary" id="go">Level starten</button><button data-go="${game.levelKind === 'campaign' ? 'campaign' : 'menu'}">Zurück</button></div>`;
   } else if (kind === 'win') {
-    const r = game.result ?? { stars: 1, gained: 0 };
-    h = `<h2>Der Abgrund leuchtet golden</h2><p class="sub">${L.name} geschafft</p>
-      <div class="stats"><div><b class="stars">${starStr(r.stars)}</b>${r.stars === 3 ? 'unter Zielzeit' : r.stars === 2 ? 'nah an der Zielzeit' : 'geschafft'}</div><div><b>${fmtTime(game.levelTime)}</b>Zeit (Ziel ${fmtTime(L.par)})</div><div><b>${game.state.stats.captured}</b>erobert</div><div><b>+${r.gained}</b>Punkte</div></div>
+    const r = game.result ?? { stars: 1, gained: 0, bestTime: game.levelTime, newBest: false };
+    h = `<h2>${r.newBest ? 'Neue Bestzeit!' : 'Der Abgrund leuchtet golden'}</h2><p class="sub">${L.name} geschafft</p>
+      <div class="stats"><div><b class="stars">${starStr(r.stars)}</b>${r.stars === 3 ? 'unter Zielzeit' : r.stars === 2 ? 'nah an der Zielzeit' : 'geschafft'}</div><div><b>${fmtTime(game.levelTime)}</b>Zeit (Ziel ${fmtTime(L.par)})</div><div><b>${fmtTime(r.bestTime)}</b>${r.newBest ? 'neuer Rekord' : 'Bestzeit'}</div><div><b>${game.state.stats.captured}</b>erobert</div><div><b>+${r.gained}</b>Punkte</div></div>
       <div class="actions"><button class="primary" id="next">${game.levelKind === 'campaign' ? (game.levelIndex + 1 < CAMPAIGN.length ? 'Nächstes Level' : 'Kampagne geschafft – zur Übersicht') : 'Nächste Welle'}</button><button id="again">Nochmal</button>${save.points ? '<button data-go="skills">Fähigkeiten</button>' : ''}<button data-go="menu">Menü</button></div>`;
   } else if (kind === 'lose') {
     const winner = FACTIONS[game.state.nodes.find((n) => n.owner > 1)?.owner ?? 2] ?? FACTIONS[2];

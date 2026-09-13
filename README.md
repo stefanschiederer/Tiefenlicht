@@ -26,7 +26,7 @@ Struktur:
 - `src/ui` – HUD, Knotenmenü, Bildschirme. `src/app` – Spielsitzung, Eingabe, Spielstand, PWA.
 - `src/audio` – synthetische Sounds. `tests/` – Vitest. `e2e/` – Playwright. `scripts/` – Icons, Balance.
 
-Der ursprüngliche Prototyp liegt als Referenz in `tiefenlicht.html`.
+Der ursprüngliche Prototyp liegt als Referenz in `tiefenlicht.html`. Designentscheidungen und offene Punkte stehen in `GAMEDESIGN.md`, der Phasenplan in `PLAN.md`.
 
 ## Installation auf dem iPhone
 

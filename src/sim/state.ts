@@ -69,6 +69,7 @@ export type SimEvent =
   | { type: 'upgrade'; node: number; owner: number }
   | { type: 'convert'; node: number; owner: number }
   | { type: 'cut'; sources: number[]; x: number; y: number }
+  | { type: 'surrender'; faction: number }
   | { type: 'ability'; id: AbilityId; node: number }
   | { type: 'finished'; won: boolean };
 
@@ -87,6 +88,8 @@ export interface GameState {
   time: number;
   energy: number;
   aiTimers: Record<number, number>;
+  /** Seconds each AI faction has been in a surrender-eligible position. */
+  surrenderT: Record<number, number>;
   stats: { captured: number; sends: number };
   over: 'won' | 'lost' | null;
   /** Events produced since the last drain. */

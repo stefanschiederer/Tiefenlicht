@@ -113,3 +113,40 @@ describe('export / import code', () => {
     expect(importCode(btoa('{"points":1}'))).toBeNull();
   });
 });
+
+describe('save v2 (best times)', () => {
+  it('migrates v1 to v2 with empty best times', () => {
+    const s = migrate(
+      {
+        version: 1,
+        stars: { 0: 2 },
+        points: 1,
+        spent: [],
+        endlessBest: 0,
+        sound: true,
+        difficulty: 'normal',
+      },
+      7,
+    );
+    expect(s.version).toBe(SAVE_VERSION);
+    expect(s.bestTimes).toEqual({});
+    expect(s.endlessBestTimes).toEqual({});
+    expect(s.stars).toEqual({ '0': 2 });
+  });
+
+  it('keeps and sanitises best times of a v2 save', () => {
+    const s = migrate({
+      ...defaultSave(1),
+      version: 2,
+      bestTimes: { 0: 61.5, 1: -3, 2: 'x' },
+      endlessBestTimes: { 3: 120 },
+    });
+    expect(s.bestTimes).toEqual({ '0': 61.5 });
+    expect(s.endlessBestTimes).toEqual({ '3': 120 });
+  });
+
+  it('round-trips best times through the export code', () => {
+    const s = { ...defaultSave(1), bestTimes: { '4': 99 } };
+    expect(importCode(exportCode(s))?.bestTimes).toEqual({ '4': 99 });
+  });
+});

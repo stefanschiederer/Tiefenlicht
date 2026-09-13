@@ -12,7 +12,7 @@ export function startApp(): Game {
   const game = new Game(canvas, {
     onHud: () => {
       updateHud(game);
-      if (game.ui.selected !== null) renderPanel(game);
+      if (game.ui.selected.length) renderPanel(game);
     },
     onPanel: () => renderPanel(game),
     onTip: tip,
@@ -84,7 +84,7 @@ export function startApp(): Game {
 
   const resize = () => {
     game.renderer.resize(innerWidth, innerHeight);
-    if (game.ui.selected !== null) renderPanel(game);
+    if (game.ui.selected.length) renderPanel(game);
   };
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', () => setTimeout(resize, 200));

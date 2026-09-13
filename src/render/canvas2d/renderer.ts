@@ -7,12 +7,14 @@ import { TAU, drawTower, drawUnit, glow, pill, poly, rgba } from './shapes';
 /** Transient UI state the renderer needs (owned by the app). */
 export interface UiState {
   drag: { src: number; path: number[] } | null;
-  selected: number | null;
+  selected: number[];
   hover: number | null;
   pointer: { x: number; y: number };
   abilityMode: AbilityId | null;
   /** Label shown at the pointer while dragging. */
   dragLabel: string;
+  /** Attack preview verdict while dragging onto a foreign node (null = no verdict). */
+  dragOk: boolean | null;
   /** Swipe trail (screen coords) while cutting routes. */
   cut: { x: number; y: number }[] | null;
 }
@@ -408,7 +410,14 @@ export class CanvasRenderer {
         ctx.stroke();
         ctx.restore();
       }
-      pill(ctx, ui.dragLabel, ui.pointer.x, ui.pointer.y - 26 * S, Math.round(12 * S), C);
+      pill(
+        ctx,
+        ui.dragLabel,
+        ui.pointer.x,
+        ui.pointer.y - 26 * S,
+        Math.round(12 * S),
+        ui.dragOk === null ? C : ui.dragOk ? '#8ff0a4' : '#ff7b8f',
+      );
     }
     if (ui.cut && ui.cut.length > 1) {
       ctx.save();
@@ -484,7 +493,7 @@ export class CanvasRenderer {
       ctx.globalAlpha = 1;
     }
     const dragEnd = ui.drag ? (ui.drag.path[ui.drag.path.length - 1] as number) : null;
-    if (ui.selected === n.id || (ui.drag && ui.drag.src === n.id)) {
+    if (ui.selected.includes(n.id) || (ui.drag && ui.drag.src === n.id)) {
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 1.6 * S;
       ctx.setLineDash([6 * S, 5 * S]);

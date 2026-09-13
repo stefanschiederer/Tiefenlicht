@@ -213,8 +213,13 @@ button[aria-pressed='true'] {
   }
 }
 #nodePanel {
+  /* Docked under the tool buttons so it never covers the player's own nodes (which start on the left). */
   position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  top: 60px;
   width: 236px;
+  max-height: calc(100% - 90px);
+  overflow: auto;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 12px;
