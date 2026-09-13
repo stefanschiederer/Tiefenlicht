@@ -1,7 +1,8 @@
-import { ABILITIES, ALL_TYPES, CHAPTERS, FACTIONS, PLAYER, TYPES, UNITS } from '@/data';
+import { ABILITIES, ALL_TYPES, CHAPTERS, FACTIONS, PLAYER, TYPES, UNITS, type AbilityId } from '@/data';
 import { typeIcon } from '@/render/canvas2d/shapes';
 import { SEND_MODES, type Game } from '@/app/game';
 import { $ } from './dom';
+import { ICONS, icon } from './icons';
 
 let tipTimer: ReturnType<typeof setTimeout> | undefined;
 export function tip(text: string, ms = 4000): void {
@@ -10,6 +11,21 @@ export function tip(text: string, ms = 4000): void {
   e.classList.add('on');
   clearTimeout(tipTimer);
   tipTimer = setTimeout(() => e.classList.remove('on'), ms);
+}
+
+const ABILITY_ICON: Record<AbilityId, keyof typeof ICONS> = {
+  stoss: 'stoss',
+  frost: 'frost',
+  schild: 'schild',
+};
+
+/** One-time setup of the static HUD buttons (icons). */
+export function initHud(): void {
+  $('#legendBtn').innerHTML = ICONS.legend;
+  $('#speedBtn').innerHTML = ICONS.speed;
+  $('#pauseBtn').innerHTML = ICONS.pause;
+  $('#fsBtn').innerHTML = ICONS.fullscreen;
+  for (const id of ['legendBtn', 'speedBtn', 'pauseBtn', 'fsBtn']) $('#' + id).classList.add('iconbtn');
 }
 
 export function updateHud(game: Game): void {
@@ -31,7 +47,7 @@ export function updateHud(game: Game): void {
   $('#energyVal').textContent = String(Math.floor(s.energy));
   $('#energyBar').style.width = s.energy + '%';
   for (const b of document.querySelectorAll<HTMLButtonElement>('#abilities button')) {
-    const id = b.dataset.ab as keyof typeof ABILITIES;
+    const id = b.dataset.ab as AbilityId;
     b.disabled = s.energy < game.abilityCost(id);
     b.setAttribute('aria-pressed', String(game.ui.abilityMode === id));
   }
@@ -47,7 +63,8 @@ export function renderAbilities(game: Game): void {
       b = document.createElement('button');
     b.dataset.ab = id;
     b.title = `${A.name}: ${A.desc} (Taste ${i})`;
-    b.innerHTML = `<b>${A.icon}</b>${A.name}<small>${game.abilityCost(id)} Energie</small>`;
+    b.setAttribute('aria-label', A.name);
+    b.innerHTML = `<b>${ICONS[ABILITY_ICON[id]]}</b>${A.name}<small>${game.abilityCost(id)} Energie</small>`;
     b.addEventListener('click', () => game.toggleAbility(id));
     box.appendChild(b);
     i++;
@@ -86,6 +103,13 @@ export function buildLegend(game: Game): void {
   }
 }
 
+export function setSpeedButton(speed: number): void {
+  const b = $('#speedBtn');
+  b.innerHTML = ICONS.speed + (speed === 2 ? '<span style="font-size:11px">2×</span>' : '');
+  b.setAttribute('aria-pressed', String(speed === 2));
+  b.setAttribute('aria-label', `Tempo ${speed}×`);
+}
+
 export function setGameUi(on: boolean): void {
   $('#hud').hidden = !on;
   $('#abilities').hidden = !on;
@@ -96,3 +120,5 @@ export function setGameUi(on: boolean): void {
     $('#legendBtn').setAttribute('aria-pressed', 'false');
   }
 }
+
+export { icon };

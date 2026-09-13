@@ -1,7 +1,7 @@
 import { CAMPAIGN, CHAPTERS, DIFF, FACTIONS, SKILLS, TYPES } from '@/data';
 import { computePerks } from '@/data/skills';
 import { typeIcon } from '@/render/canvas2d/shapes';
-import { fmtTime, starStr, type Game } from '@/app/game';
+import { fmtTime, type Game } from '@/app/game';
 import {
   clearSave,
   defaultSave,
@@ -13,6 +13,7 @@ import {
 import { enterFullscreen } from '@/app/pwa';
 import { $ } from './dom';
 import { tip } from './hud';
+import { icon, stars as starIcons } from './icons';
 
 export type ScreenKind =
   'menu' | 'campaign' | 'skills' | 'settings' | 'howto' | 'intro' | 'win' | 'lose' | 'pause';
@@ -43,26 +44,28 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     const locked = i > unlocked;
     const st = save.stars[i];
     const bt = save.bestTimes[i];
-    return `<button class="lv ${locked ? 'locked' : ''}" data-play="${i}" ${locked ? 'disabled' : ''}><b>${i + 1}. ${lv.name}</b><small>${st ? `<span class="stars">${starStr(st)}</span>` : locked ? 'Gesperrt' : 'Offen'} · ${lv.enemies} Gegner${bt ? ` · ${fmtTime(bt)}` : ''}</small></button>`;
+    const cls = locked ? 'locked' : st ? 'done' : 'next';
+    return `<button class="lv ${cls}" data-play="${i}" ${locked ? 'disabled' : ''} aria-label="${i + 1}. ${lv.name}"><span class="num">${locked ? icon('lock') : i + 1}</span><b>${lv.name}</b>${st ? starIcons(st) : `<small>${locked ? 'Gesperrt' : 'Offen'}</small>`}<small>${lv.enemies} Gegner${bt ? ` · ${fmtTime(bt)}` : ''}</small></button>`;
   };
   let h = '';
   if (kind === 'menu') {
     h = `<h1>Tiefenlicht</h1><p class="sub">Ein Strategiespiel um leuchtende Knoten im Abgrund</p>
-      <div class="menu"><button class="primary" data-go="campaign">Kampagne</button><button data-go="endless">Endlos</button><button data-go="skills">Fähigkeiten ${pts ? `(${pts} Punkte frei)` : ''}</button><button data-go="settings">Einstellungen</button><button data-go="howto">Anleitung</button><button id="mFs">Vollbild</button></div>
+      <div class="menu"><button class="primary" data-go="campaign">${icon('campaign')}Kampagne</button><button data-go="endless">${icon('endless')}Endlos</button><button data-go="skills">${icon('skills')}Fähigkeiten ${pts ? `(${pts} Punkte frei)` : ''}</button><button data-go="settings">${icon('settings')}Einstellungen</button><button data-go="howto">${icon('help')}Anleitung</button><button id="mFs">${icon('fullscreen')}Vollbild</button></div>
       <div class="meta">${stars} von ${CAMPAIGN.length * 3} Sternen, beste Endlos-Welle ${save.endlessBest}, Schwierigkeit ${DIFF[save.difficulty].label} · v${__APP_VERSION__}</div>`;
   } else if (kind === 'campaign') {
     card.className = 'card wide';
-    h = `<h2>Kampagne</h2><p class="sub">${stars} Sterne gesammelt. Schneller als die Zielzeit bringt drei Sterne, Sterne werden zu Fähigkeitspunkten.</p>`;
+    h = `<h2>Kampagne</h2><p class="sub">${stars} Sterne gesammelt. Schneller als die Zielzeit bringt drei Sterne, Sterne werden zu Fähigkeitspunkten.</p><div class="lvmap">`;
     CHAPTERS.forEach((c, ci) => {
-      h += `<div class="chapter"><h3>Kapitel ${ci + 1}: ${c.name} <span class="meta">${c.desc}</span></h3><div class="lvgrid">${CAMPAIGN.map((l, i) => (l.ch === ci ? levelBtn(i) : '')).join('')}</div></div>`;
+      const ids = CAMPAIGN.map((l, i) => (l.ch === ci ? i : -1)).filter((i) => i >= 0);
+      h += `<div class="chapter"><h3>Kapitel ${ci + 1}: ${c.name}<span class="meta">${c.desc}</span></h3><div class="lvrow" data-ch="${ci}">${ids.map((i) => levelBtn(i)).join('')}</div></div>`;
     });
-    h += `<div class="actions"><button data-go="menu">Zurück</button></div>`;
+    h += `</div><div class="actions"><button data-go="menu">${icon('back')}Zurück</button></div>`;
   } else if (kind === 'skills') {
     card.className = 'card wide';
     const branches = [...new Set(SKILLS.map((s) => s.branch))];
     h = `<h2>Fähigkeiten</h2><p class="sub">${pts} Punkte verfügbar. Jeder Stern in der Kampagne und jede neue Endlos-Welle bringt einen Punkt. Alles wirkt dauerhaft.</p><div class="tree">`;
     for (const b of branches) {
-      h += `<div class="branch"><h3>${b}</h3>`;
+      h += `<div class="branch" data-branch="${b}"><svg class="links"></svg><h3>${b}</h3>`;
       for (const sk of SKILLS.filter((s) => s.branch === b)) {
         const owned = save.spent.includes(sk.id),
           open = !sk.req || save.spent.includes(sk.req),
@@ -72,7 +75,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
       }
       h += '</div>';
     }
-    h += `</div><div class="actions"><button data-go="menu">Zurück</button></div>`;
+    h += `</div><div class="actions"><button data-go="menu">${icon('back')}Zurück</button></div>`;
   } else if (kind === 'settings') {
     h = `<h2>Einstellungen</h2>
       <div class="setrow"><span>Sound</span><button id="sSound" aria-pressed="${save.sound}">${save.sound ? 'An' : 'Aus'}</button></div>
@@ -111,7 +114,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
   } else if (kind === 'win') {
     const r = game.result ?? { stars: 1, gained: 0, bestTime: game.levelTime, newBest: false };
     h = `<h2>${r.newBest ? 'Neue Bestzeit!' : 'Der Abgrund leuchtet golden'}</h2><p class="sub">${L.name} geschafft</p>
-      <div class="stats"><div><b class="stars">${starStr(r.stars)}</b>${r.stars === 3 ? 'unter Zielzeit' : r.stars === 2 ? 'nah an der Zielzeit' : 'geschafft'}</div><div><b>${fmtTime(game.levelTime)}</b>Zeit (Ziel ${fmtTime(L.par)})</div><div><b>${fmtTime(r.bestTime)}</b>${r.newBest ? 'neuer Rekord' : 'Bestzeit'}</div><div><b>${game.state.stats.captured}</b>erobert</div><div><b>+${r.gained}</b>Punkte</div></div>
+      <div class="stats"><div><b>${starIcons(r.stars)}</b>${r.stars === 3 ? 'unter Zielzeit' : r.stars === 2 ? 'nah an der Zielzeit' : 'geschafft'}</div><div><b>${fmtTime(game.levelTime)}</b>Zeit (Ziel ${fmtTime(L.par)})</div><div><b class="${r.newBest ? 'newbest' : ''}">${fmtTime(r.bestTime)}</b>${r.newBest ? 'neuer Rekord' : 'Bestzeit'}</div><div><b>${game.state.stats.captured}</b>erobert</div><div><b>+${r.gained}</b>Punkte</div></div>
       <div class="actions"><button class="primary" id="next">${game.levelKind === 'campaign' ? (game.levelIndex + 1 < CAMPAIGN.length ? 'Nächstes Level' : 'Kampagne geschafft – zur Übersicht') : 'Nächste Welle'}</button><button id="again">Nochmal</button>${save.points ? '<button data-go="skills">Fähigkeiten</button>' : ''}<button data-go="menu">Menü</button></div>`;
   } else if (kind === 'lose') {
     const winner = FACTIONS[game.state.nodes.find((n) => n.owner > 1)?.owner ?? 2] ?? FACTIONS[2];
@@ -122,6 +125,8 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     h = `<h2>Pause</h2><p class="sub">${L.name}, ${fmtTime(game.levelTime)} gespielt</p><div class="actions"><button class="primary" id="go">Weiter</button><button id="again">Neu starten</button><button data-go="menu">Aufgeben</button></div>`;
   }
   card.innerHTML = h;
+  if (kind === 'campaign') requestAnimationFrame(() => drawLevelPaths(card, unlocked));
+  if (kind === 'skills') requestAnimationFrame(() => drawSkillLinks(card, save.spent));
   if (kind === 'intro') {
     card
       .querySelectorAll<HTMLElement>('.icon')
@@ -222,4 +227,69 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
   $('#screen').hidden = false;
   const first = card.querySelector<HTMLElement>('.primary');
   if (first) first.focus();
+}
+
+/** Connects the level buttons of each chapter with a dotted path (gold up to the last cleared level). */
+function drawLevelPaths(card: HTMLElement, unlocked: number): void {
+  card.querySelectorAll<HTMLElement>('.lvrow').forEach((row) => {
+    row.querySelector('svg.path')?.remove();
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'path');
+    const rr = row.getBoundingClientRect();
+    svg.setAttribute('viewBox', `0 0 ${rr.width} ${rr.height}`);
+    svg.style.position = 'absolute';
+    svg.style.inset = '0';
+    svg.style.width = '100%';
+    svg.style.height = '100%';
+    svg.style.pointerEvents = 'none';
+    const pts = [...row.querySelectorAll<HTMLElement>('.lv .num')].map((el, i) => {
+      const r = el.getBoundingClientRect();
+      const idx = +((el.parentElement as HTMLElement).dataset.play ?? i);
+      return { x: r.left + r.width / 2 - rr.left, y: r.top + r.height / 2 - rr.top, idx };
+    });
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i] as { x: number; y: number; idx: number },
+        b = pts[i + 1] as { x: number; y: number; idx: number };
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const mx = (a.x + b.x) / 2;
+      path.setAttribute('d', `M${a.x},${a.y} C${mx},${a.y - 10} ${mx},${b.y + 10} ${b.x},${b.y}`);
+      if (b.idx <= unlocked) path.setAttribute('class', 'done');
+      svg.appendChild(path);
+    }
+    row.appendChild(svg);
+  });
+}
+
+/** Draws prerequisite lines between skills of a branch. */
+function drawSkillLinks(card: HTMLElement, spent: readonly string[]): void {
+  card.querySelectorAll<HTMLElement>('.branch').forEach((branch) => {
+    const svg = branch.querySelector<SVGSVGElement>('svg.links');
+    if (!svg) return;
+    svg.innerHTML = '';
+    const br = branch.getBoundingClientRect();
+    svg.setAttribute('viewBox', `0 0 ${br.width} ${br.height}`);
+    const pos = new Map<string, { x: number; y: number; bottom: number; top: number }>();
+    branch.querySelectorAll<HTMLElement>('.sk').forEach((el) => {
+      const r = el.getBoundingClientRect();
+      pos.set(el.dataset.skill ?? '', {
+        x: r.left + r.width / 2 - br.left,
+        y: r.top + r.height / 2 - br.top,
+        top: r.top - br.top,
+        bottom: r.bottom - br.top,
+      });
+    });
+    for (const sk of SKILLS) {
+      if (!sk.req) continue;
+      const a = pos.get(sk.req),
+        b = pos.get(sk.id);
+      if (!a || !b) continue;
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', String(a.x));
+      line.setAttribute('y1', String(a.bottom));
+      line.setAttribute('x2', String(b.x));
+      line.setAttribute('y2', String(b.top));
+      if (spent.includes(sk.id)) line.setAttribute('class', 'owned');
+      svg.appendChild(line);
+    }
+  });
 }

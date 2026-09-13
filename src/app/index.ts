@@ -1,7 +1,16 @@
 import { CAMPAIGN } from '@/data';
 import { $ } from '@/ui/dom';
-import { buildLegend, renderAbilities, renderSendbar, setGameUi, tip, updateHud } from '@/ui/hud';
-import { renderPanel } from '@/ui/panel';
+import {
+  buildLegend,
+  initHud,
+  renderAbilities,
+  renderSendbar,
+  setGameUi,
+  setSpeedButton,
+  tip,
+  updateHud,
+} from '@/ui/hud';
+import { positionPanel, renderPanel, updatePanel } from '@/ui/panel';
 import { hideScreen, showScreen, type ScreenActions, type ScreenKind } from '@/ui/screens';
 import { Game, isTouch } from './game';
 import { createRenderer, type GraphicsQuality } from '@/render/renderer';
@@ -17,9 +26,10 @@ export async function startApp(): Promise<Game> {
   const game = new Game(renderer, {
     onHud: () => {
       updateHud(game);
-      if (game.ui.selected.length) renderPanel(game);
+      if (game.ui.selected.length) updatePanel(game);
     },
     onPanel: () => renderPanel(game),
+    onFrame: () => positionPanel(game),
     onTip: tip,
     onLegend: () => buildLegend(game),
     onAbilities: () => renderAbilities(game),
@@ -59,11 +69,9 @@ export async function startApp(): Promise<Game> {
       showScreen(game, 'pause', actions);
     }
   };
-  const toggleSpeed = () => {
-    const sp = game.toggleSpeed();
-    $('#speedBtn').textContent = `Tempo ${sp}×`;
-    $('#speedBtn').setAttribute('aria-pressed', String(sp === 2));
-  };
+  const toggleSpeed = () => setSpeedButton(game.toggleSpeed());
+  initHud();
+  setSpeedButton(1);
   bindInput(canvas, game, { togglePause, toggleSpeed, onSendMode: () => renderSendbar(game) });
 
   $('#legendBtn').addEventListener('click', () => {

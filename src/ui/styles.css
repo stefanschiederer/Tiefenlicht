@@ -1,11 +1,19 @@
+/* Tiefenlicht UI – glass panels over the deep sea. */
 :root {
-  --ink: #e3edf5;
-  --mist: rgba(227, 237, 245, 0.62);
+  --ink: #e6eef6;
+  --mist: rgba(230, 238, 246, 0.62);
   --gold: #ffc45a;
+  --gold-soft: rgba(255, 196, 90, 0.18);
   --line: rgba(160, 200, 230, 0.22);
-  --panel: rgba(8, 20, 34, 0.9);
+  --line-strong: rgba(160, 200, 230, 0.5);
+  --panel: rgba(8, 20, 34, 0.86);
+  --panel-2: rgba(12, 28, 46, 0.92);
+  --ok: #8ff0a4;
+  --bad: #ff7b8f;
   --ui: 'Avenir Next', 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --title: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+  --r: 12px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 * {
   box-sizing: border-box;
@@ -35,12 +43,22 @@ button {
   background: rgba(8, 20, 34, 0.72);
   border: 1px solid var(--line);
   padding: 7px 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
+  transition:
+    transform 0.12s var(--ease),
+    border-color 0.15s,
+    background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 button:hover {
-  border-color: rgba(160, 200, 230, 0.55);
+  border-color: var(--line-strong);
+}
+button:active {
+  transform: scale(0.96);
 }
 button:focus-visible {
   outline: 2px solid var(--gold);
@@ -49,25 +67,47 @@ button:focus-visible {
 button:disabled {
   opacity: 0.45;
   cursor: default;
+  transform: none;
 }
 button[aria-pressed='true'] {
-  background: rgba(255, 196, 90, 0.18);
+  background: var(--gold-soft);
   border-color: var(--gold);
 }
 .primary {
-  background: var(--gold);
+  background: linear-gradient(180deg, #ffd27a, #ffb83a);
   color: #1a1205;
-  border-color: var(--gold);
+  border-color: #ffd27a;
   font-weight: 600;
   font-size: 15px;
   padding: 10px 18px;
+  box-shadow: 0 6px 24px rgba(255, 196, 90, 0.25);
 }
 .primary:hover {
-  background: #ffd27a;
+  background: linear-gradient(180deg, #ffdb90, #ffc45a);
+}
+.ic {
+  display: inline-flex;
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+}
+.ic svg {
+  width: 100%;
+  height: 100%;
+}
+.iconbtn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  justify-content: center;
+  font-size: 18px;
+  border-radius: 12px;
 }
 [hidden] {
   display: none !important;
 }
+
+/* ---- HUD ---- */
 #hud {
   position: fixed;
   inset: 0 0 auto 0;
@@ -79,7 +119,6 @@ button[aria-pressed='true'] {
   gap: 12px;
   pointer-events: none;
 }
-/* Only the buttons take input; the level/energy block must not block drags underneath it. */
 #hud .tools > * {
   pointer-events: auto;
 }
@@ -133,6 +172,7 @@ button[aria-pressed='true'] {
   height: 100%;
   width: 0;
   background: linear-gradient(90deg, #7fd9ff, #e6f7ff);
+  box-shadow: 0 0 8px rgba(127, 217, 255, 0.6);
   transition: width 0.3s;
 }
 .tools {
@@ -141,6 +181,8 @@ button[aria-pressed='true'] {
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+
+/* ---- abilities + send bar ---- */
 #abilities {
   position: fixed;
   left: 50%;
@@ -152,7 +194,7 @@ button[aria-pressed='true'] {
 #abilities button {
   width: 66px;
   height: 66px;
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 4px;
   display: flex;
   flex-direction: column;
@@ -165,13 +207,17 @@ button[aria-pressed='true'] {
   line-height: 1.2;
 }
 #abilities button b {
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
   font-weight: normal;
+  color: #9fe4ff;
 }
 #abilities button small {
   color: var(--mist);
   font-size: 10px;
+}
+#abilities button:not(:disabled) b {
+  filter: drop-shadow(0 0 6px rgba(159, 228, 255, 0.7));
 }
 #sendbar {
   position: fixed;
@@ -181,17 +227,18 @@ button[aria-pressed='true'] {
   gap: 4px;
   background: rgba(8, 20, 34, 0.7);
   padding: 4px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid var(--line);
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
 }
 #sendbar button {
   padding: 8px 10px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
   font-size: 12px;
   min-width: 44px;
+  justify-content: center;
 }
 #sendbar button[aria-pressed='true'] {
   background: rgba(255, 196, 90, 0.22);
@@ -212,61 +259,93 @@ button[aria-pressed='true'] {
     transform: none;
   }
 }
+
+/* ---- radial node menu ---- */
 #nodePanel {
-  /* Docked under the tool buttons so it never covers the player's own nodes (which start on the left). */
   position: fixed;
-  right: max(16px, env(safe-area-inset-right));
-  top: 60px;
-  width: 236px;
-  max-height: calc(100% - 90px);
-  overflow: auto;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+#nodePanel .rb {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  padding: 0;
+  justify-content: center;
+  font-size: 18px;
+  background: var(--panel-2);
+  border-color: var(--line-strong);
+  pointer-events: auto;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  animation: rb-in 0.18s var(--ease) both;
+}
+#nodePanel .rb small {
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: var(--mist);
+  white-space: nowrap;
+  pointer-events: none;
+}
+#nodePanel .rb.cost::after {
+  content: attr(data-cost);
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  font-size: 10px;
+  background: var(--gold);
+  color: #1a1205;
+  border-radius: 999px;
+  padding: 1px 5px;
+  font-weight: 600;
+}
+#nodePanel .rb.conv {
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+#nodePanel .rb.conv canvas {
+  width: 30px;
+  height: 30px;
+}
+#nodePanel .info {
+  position: absolute;
+  transform: translate(-50%, 0);
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--mist);
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 10px 12px;
-  backdrop-filter: blur(8px);
-  font-size: 12px;
-  z-index: 5;
+  border-radius: 999px;
+  padding: 3px 10px;
+  pointer-events: none;
 }
-#nodePanel h4 {
-  margin: 0 0 2px;
-  font-size: 14px;
+#nodePanel .info b {
+  color: var(--ink);
   font-weight: 600;
-  display: flex;
-  justify-content: space-between;
 }
-#nodePanel h4 span {
-  color: var(--gold);
-  font-weight: normal;
-  font-size: 12px;
+@keyframes rb-in {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
-#nodePanel .m {
-  color: var(--mist);
-  margin-bottom: 8px;
-}
-#nodePanel .row {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-#nodePanel button {
-  padding: 5px 9px;
-  font-size: 12px;
-}
-#nodePanel .routes div {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 3px 0;
-  border-top: 1px solid rgba(160, 200, 230, 0.12);
-}
-#nodePanel .conv {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  margin: 2px 0 6px;
-}
+
+/* ---- legend ---- */
 #legend {
   position: fixed;
   right: 16px;
@@ -276,7 +355,7 @@ button[aria-pressed='true'] {
   overflow: auto;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--r);
   padding: 6px 14px;
   backdrop-filter: blur(8px);
 }
@@ -306,25 +385,32 @@ button[aria-pressed='true'] {
   color: var(--mist);
   line-height: 1.4;
 }
+
+/* ---- tip ---- */
 #tip {
   position: fixed;
   left: 50%;
   bottom: 94px;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(6px);
   font-size: 13px;
-  background: rgba(8, 20, 34, 0.78);
+  background: rgba(8, 20, 34, 0.82);
   border: 1px solid var(--line);
   padding: 8px 14px;
   border-radius: 999px;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.4s;
+  transition:
+    opacity 0.3s,
+    transform 0.3s var(--ease);
   max-width: 92vw;
   text-align: center;
 }
 #tip.on {
   opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
+
+/* ---- screens ---- */
 .screen {
   position: fixed;
   inset: 0;
@@ -342,14 +428,25 @@ button[aria-pressed='true'] {
   overflow: auto;
   background: linear-gradient(180deg, rgba(14, 32, 52, 0.97), rgba(8, 20, 34, 0.97));
   border: 1px solid rgba(160, 200, 230, 0.28);
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 26px 30px;
   box-shadow:
     0 30px 80px rgba(0, 0, 0, 0.6),
     0 0 60px rgba(60, 140, 200, 0.12);
+  animation: card-in 0.28s var(--ease) both;
+}
+@keyframes card-in {
+  from {
+    transform: translateY(14px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
 }
 .card.wide {
-  width: min(900px, 100%);
+  width: min(960px, 100%);
 }
 .card h2 {
   font-family: var(--title);
@@ -402,12 +499,20 @@ button[aria-pressed='true'] {
   flex-direction: column;
   gap: 8px;
   margin: 22px 0 14px;
-  max-width: 280px;
+  max-width: 300px;
 }
 .menu button {
   font-size: 16px;
   padding: 12px 16px;
   text-align: left;
+  gap: 10px;
+}
+.menu button .ic {
+  color: var(--gold);
+  font-size: 18px;
+}
+.menu .primary .ic {
+  color: #1a1205;
 }
 .meta {
   font-size: 12px;
@@ -444,6 +549,7 @@ button[aria-pressed='true'] {
   margin: 0 0 16px;
   font-size: 13px;
   color: var(--mist);
+  flex-wrap: wrap;
 }
 .stats b {
   display: block;
@@ -453,44 +559,134 @@ button[aria-pressed='true'] {
 }
 .stars {
   color: var(--gold);
-  letter-spacing: 2px;
+  display: inline-flex;
+  gap: 1px;
+}
+.stars .ic.off {
+  opacity: 0.35;
+}
+.stats .stars .ic {
+  font-size: 22px;
+}
+.newbest {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+/* ---- level map ---- */
+.lvmap {
+  position: relative;
+  margin: 8px 0 12px;
+}
+.lvmap svg.path {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.lvmap svg.path path {
+  fill: none;
+  stroke: rgba(160, 200, 230, 0.35);
+  stroke-width: 2;
+  stroke-dasharray: 4 8;
+  stroke-linecap: round;
+}
+.lvmap svg.path path.done {
+  stroke: var(--gold);
+  stroke-dasharray: none;
+  opacity: 0.7;
+}
+.lvrow {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+  position: relative;
 }
 .chapter h3 {
   margin: 10px 0 8px;
 }
-.lvgrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(126px, 1fr));
-  gap: 8px;
+.chapter h3 .meta {
+  font-weight: normal;
+  margin-left: 8px;
 }
 .lv {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  padding: 9px 10px;
-  text-align: left;
-  min-height: 66px;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  text-align: center;
+  min-height: 84px;
+  border-radius: 14px;
+  position: relative;
+}
+.lv .num {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+}
+.lv.done .num {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 14px rgba(255, 196, 90, 0.35);
+}
+.lv.next .num {
+  border-color: #fff;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.35);
 }
 .lv b {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  line-height: 1.2;
 }
 .lv small {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--mist);
 }
 .lv.locked {
   opacity: 0.4;
 }
+.lv .stars .ic {
+  font-size: 11px;
+}
+
+/* ---- skill tree ---- */
 .tree {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
+  position: relative;
+}
+.branch {
+  position: relative;
 }
 .branch h3 {
   margin: 0 0 8px;
   text-align: center;
+}
+.branch svg.links {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.branch svg.links line {
+  stroke: rgba(160, 200, 230, 0.3);
+  stroke-width: 2;
+}
+.branch svg.links line.owned {
+  stroke: var(--gold);
+  stroke-width: 2.5;
 }
 .sk {
   display: flex;
@@ -499,8 +695,9 @@ button[aria-pressed='true'] {
   width: 100%;
   text-align: left;
   padding: 8px 10px;
-  margin-bottom: 8px;
+  margin-bottom: 14px;
   position: relative;
+  align-items: flex-start;
 }
 .sk b {
   font-size: 12px;
@@ -565,6 +762,9 @@ kbd {
   .tree {
     grid-template-columns: 1fr 1fr;
   }
+  .lvrow {
+    grid-template-columns: repeat(3, 1fr);
+  }
   .brand .t {
     font-size: 20px;
   }
@@ -588,7 +788,13 @@ kbd {
 }
 @media (prefers-reduced-motion: reduce) {
   .share i,
-  .energy .bar i {
+  .energy .bar i,
+  button,
+  #tip {
     transition: none;
+  }
+  .card,
+  #nodePanel .rb {
+    animation: none;
   }
 }

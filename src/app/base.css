@@ -115,7 +115,6 @@ html.compact #abilities button {
   height: 52px;
   font-size: 9px;
 }
-html.compact #nodePanel,
 html.compact #legend {
   top: 48px;
 }

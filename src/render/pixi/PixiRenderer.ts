@@ -343,7 +343,7 @@ export class PixiRenderer implements Renderer {
         this.plants.push({ s: sp, ph: rand() * TAU, base: sp.rotation });
       };
       for (let x = 40; x < WORLD_W; x += 90 + rand() * 120) {
-        const kind = rand() < 0.5 ? 'kelp' : rand() < 0.5 ? 'tube' : 'fan';
+        const kind = rand() < 0.6 ? 'kelp' : 'fan';
         place(x, WORLD_H + 10 + rand() * 20, kind, 0.55 + rand() * 0.5, rand() < 0.5);
       }
       for (let y = 120; y < WORLD_H - 60; y += 140 + rand() * 120) {

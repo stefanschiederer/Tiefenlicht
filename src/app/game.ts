@@ -41,6 +41,8 @@ export interface LevelResult {
 export interface GameListeners {
   onHud(): void;
   onPanel(): void;
+  /** Called every rendered frame (cheap DOM follow-ups such as the radial menu position). */
+  onFrame?(): void;
   onTip(text: string, ms?: number): void;
   onLegend(): void;
   onAbilities(): void;
@@ -230,6 +232,7 @@ export class Game {
         : null;
     if (this.ui.drag) this.updateDragPreview();
     this.renderer.render(this.state, this.ui, dt);
+    this.listeners.onFrame?.();
     if ((this.hudTimer += dt) > 0.25) {
       this.hudTimer = 0;
       if (this.mode === 'game') this.listeners.onHud();
