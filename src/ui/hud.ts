@@ -1,5 +1,5 @@
 import { ABILITIES, ALL_TYPES, CHAPTERS, FACTIONS, PLAYER, TYPES, UNITS, type AbilityId } from '@/data';
-import { typeIcon } from '@/render/canvas2d/shapes';
+import { nodeIcon } from '@/render/pixi/textures';
 import { SEND_MODES, type Game } from '@/app/game';
 import { $ } from './dom';
 import { ICONS, icon } from './icons';
@@ -94,7 +94,7 @@ export function buildLegend(game: Game): void {
   for (const t of ALL_TYPES.filter((t) => game.state.nodes.some((n) => n.type === t))) {
     const row = document.createElement('div');
     row.className = 'lg';
-    row.appendChild(typeIcon(t, 40, 1, FACTIONS[PLAYER]?.color));
+    row.appendChild(nodeIcon(t, 1, FACTIONS[PLAYER]?.color, 40));
     const txt = document.createElement('div');
     const u = UNITS[TYPES[t].unit];
     txt.innerHTML = `<b>${TYPES[t].name}</b><span>${TYPES[t].desc} Truppen: ${u.name} (Stärke ${u.str}, Tempo ${u.speed}).</span>`;

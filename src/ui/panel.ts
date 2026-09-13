@@ -1,7 +1,7 @@
 import { PLAYER, TYPES, UNITS, type NodeType } from '@/data';
 import { clearRoutes, cycleReserve, doConvert, doUpgrade } from '@/sim/actions';
 import { capOf, convertCost, nodeRadius, routeLimit, upgradeCost, upgradePreview } from '@/sim/stats';
-import { typeIcon } from '@/render/canvas2d/shapes';
+import { nodeIcon } from '@/render/pixi/textures';
 import type { Game } from '@/app/game';
 import { $ } from './dom';
 import { buildLegend, tip } from './hud';
@@ -95,7 +95,7 @@ export function renderPanel(game: Game): void {
     `<div class="info"><b>${TYPES[n.type].name}</b> · Stufe ${n.level} · ${Math.floor(n.units)}/${Math.floor(capOf(s, n))} ${UNITS[TYPES[n.type].unit].name}${` · Routen ${n.routes.length}/${routeLimit(n)}`}${n.level < 3 ? ` · Ausbau: ${upgradePreview(n)}` : ''}</div>`;
   panel
     .querySelectorAll<HTMLElement>('[data-icon]')
-    .forEach((el) => el.replaceWith(typeIcon(el.dataset.icon as NodeType, 30)));
+    .forEach((el) => el.replaceWith(nodeIcon(el.dataset.icon as NodeType, 1, '#ffc45a', 30)));
   positionPanel(game);
   panel.querySelector('#pUp')?.addEventListener('click', () => {
     if (game.act((st) => doUpgrade(st, n))) {

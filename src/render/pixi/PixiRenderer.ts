@@ -378,11 +378,11 @@ export class PixiRenderer implements Renderer {
     aura.anchor.set(0.5);
     aura.blendMode = 'add';
     aura.visible = false;
-    const platform = new Sprite(platformTexture(n.type));
+    const platform = new Sprite(platformTexture(n.type, n.level));
     platform.anchor.set(0.5);
-    const detail = new Sprite(detailTexture(n.type));
+    const detail = new Sprite(detailTexture(n.type, n.level));
     detail.anchor.set(0.5);
-    const rt = rotorTexture(n.type);
+    const rt = rotorTexture(n.type, n.level);
     const rotor = rt ? new Sprite(rt) : null;
     if (rotor) rotor.anchor.set(0.5);
     const rings = [0, 1].map(() => {
@@ -453,7 +453,9 @@ export class PixiRenderer implements Renderer {
         const nv = this.nodeViews.get(e.node);
         if (nv) {
           nv.flash = 0.7;
-          if (e.type === 'convert') this.rebuildNode(n);
+          this.rebuildNode(n);
+          const nv2 = this.nodeViews.get(e.node);
+          if (nv2) nv2.flash = 0.7;
         }
         this.burst(n.x, n.y, FACTION_COLORS[n.owner] ?? 0xffffff, 16);
         break;

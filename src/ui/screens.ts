@@ -1,6 +1,6 @@
 import { CAMPAIGN, CHAPTERS, DIFF, FACTIONS, SKILLS, TYPES } from '@/data';
 import { computePerks } from '@/data/skills';
-import { typeIcon } from '@/render/canvas2d/shapes';
+import { nodeIcon } from '@/render/pixi/textures';
 import { fmtTime, type Game } from '@/app/game';
 import {
   clearSave,
@@ -142,7 +142,16 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
   if (kind === 'intro') {
     card
       .querySelectorAll<HTMLElement>('.icon')
-      .forEach((e) => e.replaceWith(typeIcon(L.newType ?? 'nest', 56, +(e.dataset.lv ?? 1))));
+      .forEach((e) =>
+        e.replaceWith(
+          nodeIcon(
+            L.newType ?? 'nest',
+            Math.min(3, Math.max(1, +(e.dataset.lv ?? 1))) as 1 | 2 | 3,
+            '#ffc45a',
+            56,
+          ),
+        ),
+      );
   }
   card.querySelector('#go')?.addEventListener('click', () => act.resume());
   card.querySelector('#next')?.addEventListener('click', () => act.next());
