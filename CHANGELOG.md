@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 – Phase 3: Audio (2026-09-13)
+
+- Adaptive Musik, komplett prozedural (WebAudio): Tiefsee-Drone, atmender Pad-Akkord, Kampf-Puls und Spannungs-Schimmer werden je nach Bedrohung ein- und ausgeblendet; Sieg- und Niederlagen-Motiv am Levelende.
+- Effekte werden nach Position im Stereobild gepannt.
+- Einstellungen: getrennte Regler für Musik und Effekte, Schalter für Vibration.
+
 ## 0.4.0 – Phase 2, Schritt 1: neuer Renderer (2026-09-13)
 
 - PixiJS-8-Renderer (WebGL, automatischer Canvas-Fallback): generierte Sprites je Knotenart mit rotierenden Details und Atmen, additive Glows mit Bloom (Stufe „Hoch“), Truppen als Sprites, Partikel, verästelte Wächter-Blitze, Lichtsäulen und treibendes Plankton mit Parallaxe, Felsen mit Tiefe.

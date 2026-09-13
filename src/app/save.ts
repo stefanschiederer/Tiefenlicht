@@ -30,6 +30,8 @@ export interface SaveV2 {
   endlessBestTimes: Record<string, number>;
   /** Renderer quality: auto picks by device. */
   graphics: GraphicsSetting;
+  /** Vibration feedback on supported devices. */
+  haptics: boolean;
 }
 export type GraphicsSetting = 'auto' | 'hoch' | 'mittel' | 'niedrig';
 const GRAPHICS: readonly GraphicsSetting[] = ['auto', 'hoch', 'mittel', 'niedrig'];
@@ -55,6 +57,7 @@ export function defaultSave(now = Date.now()): SaveGame {
     bestTimes: {},
     endlessBestTimes: {},
     graphics: 'auto',
+    haptics: true,
   };
 }
 
@@ -114,6 +117,7 @@ export function migrate(raw: unknown, now = Date.now()): SaveGame {
     bestTimes: version >= 2 ? timeMap(raw.bestTimes) : {},
     endlessBestTimes: version >= 2 ? timeMap(raw.endlessBestTimes) : {},
     graphics: isGraphics(raw.graphics) ? raw.graphics : 'auto',
+    haptics: raw.haptics !== false,
   };
 }
 

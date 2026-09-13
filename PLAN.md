@@ -34,7 +34,7 @@ Umgesetzt wie unten; Weltgröße 1600 × 800 (2:1, passt zu Handy-Querformat). A
 - Tests (Vitest): Kampfrechnung (Eroberung, Restwert, Verteidigungsfaktor, Schild), Routenfluss (Reserve, Aufteilung auf 1–3 Routen, Rundung), Kartengenerator (Zusammenhang, Mindestabstand, Hop-Distanz der Startknoten, Startknoten mit ≥ 2 Kanten, Determinismus pro Seed), KI (Verstärkung bedrohter Knoten, Angriffswahl), Spielstand-Migration (v0 → v1, Export/Import-Roundtrip), Determinismus (zwei Läufe gleicher Seed → identischer Zustand).
 - Balance-Harness: `npm run balance` spielt alle 18 Level plus Endlos 1–6 mit einem Heuristik-Bot (spielt die Spielerseite mit derselben KI plus Routen-Nutzung) bei Tempo ohne Rendering durch; Ausgabe `BALANCE.md` (Level, Ausgang, Zeit, Sterne, Knotenanteil nach 60 s). Dient als Regressionsreferenz für alle späteren Phasen.
 
-## Phase 2 – Grafik auf Studio-Niveau
+## Phase 2 – Grafik auf Studio-Niveau (erledigt 2026-09-13)
 
 - PixiJS 8 (WebGL, Canvas-Fallback), Bloom über `pixi-filters`, Kamera (Zoom/Pan mit Pinch und Wheel, Grenzen, sanftes Nachführen).
 - Spritesheets zur Laufzeit aus Canvas/SVG generiert: sechs Knotenarten × drei Stufen × Frames (Atmen, Geschützrotation, Brutkapseln, Wirbel); Besitzerfarbe über Tint-Maske (Graustufen-Layer + Farb-Layer). Animationen für Eroberung, Ausbau, Frost, Schild.
@@ -43,7 +43,7 @@ Umgesetzt wie unten; Weltgröße 1600 × 800 (2:1, passt zu Handy-Querformat). A
 - UI: SVG-Icon-Set, neue HUD, radiales Knotenmenü, Sendeleiste, Fähigkeiten-Leiste, Levelkarte als Pfad, Skill-Baum mit Linien, Übergänge.
 - Grafikstufen niedrig/mittel/hoch, `prefers-reduced-motion`, 60 fps-Ziel mit Frame-Budget-Messung.
 
-## Phase 3 – Audio
+## Phase 3 – Audio (erledigt 2026-09-13)
 
 - Adaptive Musik aus prozeduralen WebAudio-Layern (Drone, Puls, Kampf-Layer, Sieg-Motiv), Übergänge nach Bedrohungsgrad. SFX pro Ereignis mit Stereo-Panning nach Position, getrennte Lautstärkeregler, Vibration API für Eroberung/Verlust.
 

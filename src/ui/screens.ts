@@ -90,7 +90,10 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     h += `</div><div class="actions"><button data-go="menu">${icon('back')}Zurück</button></div>`;
   } else if (kind === 'settings') {
     h = `<h2>Einstellungen</h2>
-      <div class="setrow"><span>Sound</span><button id="sSound" aria-pressed="${save.sound}">${save.sound ? 'An' : 'Aus'}</button></div>
+      <div class="setrow"><span>${icon('sound')} Sound</span><button id="sSound" aria-pressed="${save.sound}">${save.sound ? 'An' : 'Aus'}</button></div>
+      <div class="setrow"><label for="sMusic">Musik</label><input id="sMusic" type="range" min="0" max="1" step="0.05" value="${save.music}" aria-label="Musiklautstärke" /></div>
+      <div class="setrow"><label for="sSfx">Effekte</label><input id="sSfx" type="range" min="0" max="1" step="0.05" value="${save.sfx}" aria-label="Effektlautstärke" /></div>
+      <div class="setrow"><span>Vibration (Android)</span><button id="sHaptics" aria-pressed="${save.haptics}">${save.haptics ? 'An' : 'Aus'}</button></div>
       <div class="setrow"><span>Vollbild beim Levelstart (Touchgeräte)</span><button id="sFs" aria-pressed="${save.autoFs !== false}">${save.autoFs !== false ? 'An' : 'Aus'}</button></div>
       <div class="setrow"><span>Grafik <small class="meta">(${game.renderer.kind === 'pixi' ? 'WebGL' : 'Canvas'})</small></span><span>${(['auto', 'hoch', 'mittel', 'niedrig'] as GraphicsSetting[]).map((k) => `<button data-gfx="${k}" aria-pressed="${save.graphics === k}">${{ auto: 'Auto', hoch: 'Hoch', mittel: 'Mittel', niedrig: 'Niedrig' }[k]}</button>`).join(' ')}</span></div>
       <div class="setrow"><span>Schwierigkeit</span><span>${(Object.keys(DIFF) as Difficulty[]).map((k) => `<button data-diff="${k}" aria-pressed="${save.difficulty === k}">${DIFF[k].label}</button>`).join(' ')}</span></div>
@@ -195,6 +198,25 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
   if (kind === 'settings') {
     card.querySelector('#sFs')?.addEventListener('click', () => {
       save.autoFs = save.autoFs === false;
+      game.persist();
+      showScreen(game, 'settings', act);
+      game.audio.play('click');
+    });
+    card.querySelector<HTMLInputElement>('#sMusic')?.addEventListener('input', (ev) => {
+      save.music = +(ev.target as HTMLInputElement).value;
+      game.audio.init();
+      game.audio.music.setVolume(save.music);
+      game.persist();
+    });
+    card.querySelector<HTMLInputElement>('#sSfx')?.addEventListener('change', (ev) => {
+      save.sfx = +(ev.target as HTMLInputElement).value;
+      game.audio.init();
+      game.audio.setSfxVolume(save.sfx);
+      game.persist();
+      game.audio.play('capture');
+    });
+    card.querySelector('#sHaptics')?.addEventListener('click', () => {
+      save.haptics = !save.haptics;
       game.persist();
       showScreen(game, 'settings', act);
       game.audio.play('click');

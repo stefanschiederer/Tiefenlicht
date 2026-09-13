@@ -88,6 +88,8 @@ export class Game {
     this.listeners = listeners;
     this.save = readSave();
     this.audio.enabled = this.save.sound;
+    this.audio.volume = this.save.sfx;
+    this.audio.music.volume = this.save.music;
     this.state = this.buildDemo();
   }
 
@@ -234,10 +236,26 @@ export class Game {
     if (this.ui.drag) this.updateDragPreview();
     this.renderer.render(this.state, this.ui, dt);
     this.listeners.onFrame?.();
+    this.audio.music.update(dt);
     if ((this.hudTimer += dt) > 0.25) {
       this.hudTimer = 0;
       if (this.mode === 'game') this.listeners.onHud();
+      this.audio.music.setIntensity(this.threatLevel());
     }
+  }
+
+  /** 0..1: how much fighting is going on around the player (drives the adaptive music). */
+  private threatLevel(): number {
+    if (this.mode !== 'game' || this.demo || !this.running || this.paused) return 0.12;
+    const s = this.state;
+    let incoming = 0,
+      own = 0;
+    for (const g of s.groups) {
+      if (g.owner === PLAYER) own += g.n;
+      else if ((s.nodes[g.to] as SimNode).owner === PLAYER) incoming += g.n;
+    }
+    const share = s.nodes.filter((n) => n.owner === PLAYER).length / Math.max(1, s.nodes.length);
+    return Math.min(1, 0.15 + incoming / 30 + own / 60 + (share < 0.25 ? 0.25 : 0));
   }
 
   /** Nodes a drag from `src` would send from: the whole selection if src belongs to it. */
@@ -289,10 +307,10 @@ export class Game {
           this.listeners.onPanel();
         }
         if (e.by === PLAYER) {
-          vibrate(25);
+          if (this.save.haptics) vibrate(25);
           if (this.state.stats.captured === 1)
             this.listeners.onTip('Erobert! Der Knoten produziert jetzt für dich.', 3000);
-        } else if (e.prev === PLAYER) vibrate([40, 40, 40]);
+        } else if (e.prev === PLAYER && this.save.haptics) vibrate([40, 40, 40]);
       } else if (e.type === 'surrender') {
         this.listeners.onTip('Ein Gegner gibt auf.', 2500);
       } else if (e.type === 'finished') this.finish(e.won);
@@ -326,8 +344,8 @@ export class Game {
       this.save.points += gained;
       result = { stars: st, gained, bestTime: times[this.levelIndex] ?? this.levelTime, newBest };
       this.persist();
-      vibrate([60, 60, 120]);
-    } else vibrate(200);
+      if (this.save.haptics) vibrate([60, 60, 120]);
+    } else if (this.save.haptics) vibrate(200);
     this.result = result;
     this.listeners.onFinish(won, result);
   }

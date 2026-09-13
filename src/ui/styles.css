@@ -978,3 +978,7 @@ kbd {
     animation: none;
   }
 }
+input[type='range'] {
+  width: 180px;
+  accent-color: var(--gold);
+}

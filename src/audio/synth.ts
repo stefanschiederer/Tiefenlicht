@@ -1,5 +1,6 @@
-import { PLAYER } from '@/data';
+import { PLAYER, WORLD_W } from '@/data';
 import type { GameState, SimEvent } from '@/sim/state';
+import { Music } from './music';
 
 export type SoundName =
   | 'click'
@@ -21,9 +22,13 @@ export type SoundName =
 export class Synth {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  private sfx: GainNode | null = null;
   private last: Partial<Record<SoundName, number>> = {};
+  readonly music = new Music();
   enabled = true;
   volume = 0.5;
+  /** Stereo position (-1..1) applied to the next tone/noise; reset after each play(). */
+  private pan = 0;
 
   init(): void {
     if (this.ctx) return;
@@ -34,8 +39,13 @@ export class Synth {
       if (!AC) return;
       this.ctx = new AC();
       this.master = this.ctx.createGain();
-      this.master.gain.value = this.enabled ? this.volume : 0;
+      this.master.gain.value = this.enabled ? 1 : 0;
       this.master.connect(this.ctx.destination);
+      this.sfx = this.ctx.createGain();
+      this.sfx.gain.value = this.volume;
+      this.sfx.connect(this.master);
+      this.music.attach(this.ctx, this.master);
+      this.music.start();
       this.ambient();
     } catch {
       /* no audio */
@@ -46,12 +56,30 @@ export class Synth {
   }
   setEnabled(on: boolean): void {
     this.enabled = on;
-    if (this.master && this.ctx)
-      this.master.gain.setTargetAtTime(on ? this.volume : 0, this.ctx.currentTime, 0.05);
+    if (this.master && this.ctx) this.master.gain.setTargetAtTime(on ? 1 : 0, this.ctx.currentTime, 0.05);
+  }
+  setSfxVolume(v: number): void {
+    this.volume = v;
+    if (this.sfx && this.ctx) this.sfx.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
+  }
+  /** Routes a source through a stereo panner at the current pan position. */
+  private dest(): AudioNode {
+    const c = this.ctx,
+      bus = this.sfx;
+    if (!c || !bus) throw new Error('audio not initialised');
+    if (Math.abs(this.pan) < 0.02 || typeof c.createStereoPanner !== 'function') return bus;
+    const p = c.createStereoPanner();
+    p.pan.value = this.pan;
+    p.connect(bus);
+    return p;
+  }
+  /** Stereo position for a world x coordinate. */
+  static panFor(x: number): number {
+    return Math.max(-0.8, Math.min(0.8, (x / WORLD_W - 0.5) * 1.6));
   }
   private tone(freq: number, dur: number, type: OscillatorType, vol: number, slide?: number): void {
     const c = this.ctx;
-    if (!c || !this.master) return;
+    if (!c || !this.sfx) return;
     const o = c.createOscillator(),
       g = c.createGain();
     o.type = type;
@@ -61,13 +89,13 @@ export class Synth {
     g.gain.exponentialRampToValueAtTime(vol, c.currentTime + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
     o.connect(g);
-    g.connect(this.master);
+    g.connect(this.dest());
     o.start();
     o.stop(c.currentTime + dur + 0.02);
   }
   private noise(dur: number, vol: number, freq: number): void {
     const c = this.ctx;
-    if (!c || !this.master) return;
+    if (!c || !this.sfx) return;
     const len = Math.floor(c.sampleRate * dur),
       buf = c.createBuffer(1, len, c.sampleRate),
       d = buf.getChannelData(0);
@@ -82,15 +110,16 @@ export class Synth {
     g.gain.value = vol;
     src.connect(f);
     f.connect(g);
-    g.connect(this.master);
+    g.connect(this.dest());
     src.start();
   }
-  play(name: SoundName, minGap?: number): void {
+  play(name: SoundName, minGap?: number, pan = 0): void {
     if (!this.ctx || !this.enabled) return;
     const t = this.ctx.currentTime;
     const last = this.last[name];
     if (minGap && last !== undefined && t - last < minGap) return;
     this.last[name] = t;
+    this.pan = pan;
     const later = (fn: () => void, ms: number) => setTimeout(fn, ms);
     switch (name) {
       case 'click':
@@ -145,6 +174,7 @@ export class Synth {
         this.tone(200, 0.15, 'square', 0.06);
         break;
     }
+    this.pan = 0;
   }
   private ambient(): void {
     const c = this.ctx;
@@ -192,20 +222,20 @@ export class Synth {
     if (state.demo) return;
     switch (e.type) {
       case 'launch':
-        if (e.manual) this.play('send', 0.15);
+        if (e.manual) this.play('send', 0.15, Synth.panFor(e.group.x));
         break;
       case 'capture':
-        if (e.by === PLAYER) this.play('capture', 0.2);
-        else if (e.prev === PLAYER) this.play('lost', 0.3);
+        if (e.by === PLAYER) this.play('capture', 0.2, Synth.panFor(e.x));
+        else if (e.prev === PLAYER) this.play('lost', 0.3, Synth.panFor(e.x));
         break;
       case 'clash':
-        this.play('clash', 0.25);
+        this.play('clash', 0.25, Synth.panFor(e.x));
         break;
       case 'zap':
-        this.play('zap', 0.1);
+        this.play('zap', 0.1, Synth.panFor(e.x2));
         break;
       case 'cut':
-        this.play('cut', 0.1);
+        this.play('cut', 0.1, Synth.panFor(e.x));
         break;
       case 'upgrade':
       case 'convert':
@@ -216,6 +246,7 @@ export class Synth {
         break;
       case 'finished':
         this.play(e.won ? 'win' : 'lose');
+        this.music.motif(e.won);
         break;
     }
   }
