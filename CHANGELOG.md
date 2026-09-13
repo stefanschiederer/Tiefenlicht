@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.1 – Phase 5: Feinschliff (2026-09-14)
+
+- Lighthouse: Best Practices 100, SEO 91, Barrierefreiheit-Korrekturen (Viewport erlaubt Zoom wieder, Pinch bleibt auf dem Spielfeld; `robots.txt`).
+- README mit Screenshots, Spielprinzip, Steuerung und Installationsanleitung; Plan und Designdokument auf Stand.
+
 ## 0.8.0 – Phase 4c: Erfolge, Statistik, Tages-Herausforderung, Tutorial (2026-09-14)
 
 - 16 Erfolge (Eroberungen, Kapitel, Sterne, makelloser Sieg, Sonderziel, gekappte Routen, Endlos, Tages-Serie) mit Freischalt-Hinweis im Siegbildschirm und eigener Übersicht mit Statistik (Level, Siege, Eroberungen, Verluste, Spielzeit).

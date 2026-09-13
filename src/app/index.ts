@@ -163,6 +163,8 @@ export async function startApp(): Promise<Game> {
   window.addEventListener('orientationchange', () => setTimeout(resize, 200));
   window.visualViewport?.addEventListener('resize', resize);
   resize();
+  // iOS Safari (browser tab): block pinch zoom of the page; the canvas handles pinch itself.
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
 
   game.startDemo();
   showScreen(game, 'menu', actions);

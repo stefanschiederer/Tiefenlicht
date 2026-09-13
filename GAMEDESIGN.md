@@ -30,8 +30,10 @@ Vom Spieler als Referenz gewünscht. Was Tower War richtig macht und wie Tiefenl
 
 - **Linien statt Befehle.** Verbindungen sind sichtbare, dauerhafte Ströme; man denkt in Versorgungslinien. Tiefenlicht: Ziehen legt eine Route an, Routen sind sichtbar, Wischen kappt sie.
 - **Kontinuierlicher Strom.** Truppen laufen als Kette, nicht als Salven. Tiefenlicht: Routen liefern einen stetigen Strom (Paketgröße 1, Darstellung als Kette kleiner Einheiten).
-- **Sichtbare Angriffslinien des Gegners.** Man sieht, woher der Druck kommt, und kann gegenhalten. Tiefenlicht: geplant, die KI soll ihre Angriffe ebenfalls als Routen führen (Phase 2, Schritt 2).
-- **Kurze, dichte Level** mit wenigen Türmen und klarer Lösung. Tiefenlicht: handgebaute Karten in Phase 4; Kampagne bleibt 18 Level, dazu Endlos und Tages-Herausforderung.
+- **Sichtbare Angriffslinien des Gegners.** Man sieht, woher der Druck kommt, und kann gegenhalten. Tiefenlicht: umgesetzt, die KI führt ihren Angriff als sichtbare Versorgungslinie (ab Level 3).
+- **Kurze, dichte Level** mit wenigen Türmen und klarer Lösung. Tiefenlicht: Handkarten-Format und Editor vorhanden, Level 1 und 7 handgebaut; weitere Level können nach und nach aus dem Editor übernommen werden. Kampagne 18 Level, Endlos, Tages-Herausforderung.
+- **Linien pro Turmstufe und Hindernisse.** Tower War gibt mit höherer Stufe mehr Linien und stellt Barrieren, Minen und Sperren in den Weg. Tiefenlicht: 1/2/3 Routen je Ausbaustufe, Riffbarrieren und Minen ab Kapitel 2, Felsen als feste Sperren.
+- **Typspezifischer Ausbau.** Brutnest → Produktion, Bastion → Verteidigung, Wächter → Reichweite/Feuerrate, Strömung → Tempo, Quelle → Verstärkung, Nest → Vorrat und Routen.
 - **Ausbau als sichtbarer Sprung** (Turm wächst). Tiefenlicht: Ausbaustufen mit Ringen und größerem Sprite; Umbau in andere Arten als zusätzliche Tiefe, die Tower War nicht hat.
 
 ## Regeln, die bewusst bleiben

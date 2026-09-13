@@ -1,6 +1,16 @@
 # Tiefenlicht
 
-Echtzeit-Strategie um leuchtende Knoten in der Tiefsee. Browser- und Mobile-Spiel als PWA.
+Echtzeit-Strategie um leuchtende Knoten in der Tiefsee. Browser- und Mobile-Spiel als PWA, spielbar unter **https://stefanschiederer.github.io/Tiefenlicht/**.
+
+![Spielszene](docs/game-desktop.png)
+
+| Kampagnen-Karte                    | Handy (Querformat)             | Editor                     |
+| ---------------------------------- | ------------------------------ | -------------------------- |
+| ![Kampagne](docs/campaign-map.png) | ![Handy](docs/game-mobile.png) | ![Editor](docs/editor.png) |
+
+## Spielprinzip
+
+Ziehe von einem eigenen Knoten zu einem Ziel: Die Hälfte der Einheiten bricht sofort auf, die Verbindung bleibt als Route und schickt laufend Nachschub. Wische quer über eine Route, um sie zu kappen. Sechs Knotenarten (Nest, Brutnest, Bastion, Strömung, Wächter, Quelle) mit eigenen Truppen und typspezifischem Ausbau, Riffbarrieren und Minen auf den Wegen, Gegner mit sichtbaren Versorgungslinien. 18 Kampagnenlevel in drei Kapiteln mit Sternen, Endlosmodus, Tages-Herausforderung, Skill-Baum, Erfolge und ein Karten-Editor.
 
 ## Entwicklung
 

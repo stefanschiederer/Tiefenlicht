@@ -47,13 +47,17 @@ Umgesetzt wie unten; Weltgröße 1600 × 800 (2:1, passt zu Handy-Querformat). A
 
 - Adaptive Musik aus prozeduralen WebAudio-Layern (Drone, Puls, Kampf-Layer, Sieg-Motiv), Übergänge nach Bedrohungsgrad. SFX pro Ereignis mit Stereo-Panning nach Position, getrennte Lautstärkeregler, Vibration API für Eroberung/Verlust.
 
-## Phase 4 – Inhalt und Systeme
+## Phase 4 – Inhalt und Systeme (erledigt 2026-09-14)
+
+Umgesetzt: Riffbarrieren und Minen (Tower-War-Hindernisse), Handkarten-Format mit Editor (Level 1 und 7 handgebaut), Sonderziele, Kapitel-Intros, Erfolge, Statistik, Tages-Herausforderung mit Serie, Tutorial-Pfeile.
 
 - Karten-Editor (Knoten, Kanten, Felsen, Start, Typen, JSON-Export), handgebaute Kampagnenkarten, Vorstellungstexte, Sonderziele, Kapitel-Intros.
 - Erfolge, Statistiken, Bestzeiten, Tages-Herausforderung (Datums-Seed).
 - Tutorial mit Hinweispfeilen in den ersten Leveln.
 
-## Phase 5 – Feinschliff und Release
+## Phase 5 – Feinschliff und Release (2026-09-14)
+
+Lighthouse auf diesem Rechner: Barrierefreiheit 87 → Korrekturen (Viewport-Zoom, robots.txt), Best Practices 100, SEO 91; Performance ist hier nicht messbar (kein WebGL, Trace-Engine bricht ab) und muss auf dem Zielgerät geprüft werden.
 
 - Lighthouse > 90 (PWA, Performance, Barrierefreiheit), iOS-Safari- und Android-Chrome-Test, README mit Installationsfluss, Fehleranzeige über `window.onerror`, Versionsnummer, Changelog.
 
