@@ -20,7 +20,7 @@ export function bindInput(canvas: HTMLCanvasElement, game: Game, hooks: InputHoo
   canvas.addEventListener('pointerdown', (e) => {
     if (e.button === 2) return;
     const r = game.pointerDown(e.clientX, e.clientY, e.shiftKey);
-    if (r === 'drag') {
+    if (r === 'drag' || r === 'cut') {
       try {
         canvas.setPointerCapture(e.pointerId);
       } catch {
@@ -32,6 +32,7 @@ export function bindInput(canvas: HTMLCanvasElement, game: Game, hooks: InputHoo
   canvas.addEventListener('pointerup', (e) => game.pointerUp(e.clientX, e.clientY));
   canvas.addEventListener('pointercancel', () => {
     game.ui.drag = null;
+    game.ui.cut = null;
   });
   canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();

@@ -64,3 +64,33 @@ test('touch drag works underneath the HUD info block', async ({ page }) => {
   });
   expect(blocked).toBe(false);
 });
+
+test('swiping across a route cuts it', async ({ page }) => {
+  test.skip(test.info().project.name === 'mobile', 'mouse drag only');
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Kampagne' }).click();
+  await page.getByRole('button', { name: /1\. Erstes Leuchten/ }).click();
+  await page.getByRole('button', { name: 'Level starten' }).click();
+  await page.waitForTimeout(300);
+  const t = await tl(page);
+  await page.mouse.move(t.me.x, t.me.y);
+  await page.mouse.down();
+  await page.mouse.move(t.nb.x, t.nb.y, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(100);
+  expect((await tl(page)).me.routes).toBe(1);
+  // Swipe perpendicular across the middle of the edge, starting on empty space.
+  const mx = (t.me.x + t.nb.x) / 2,
+    my = (t.me.y + t.nb.y) / 2;
+  const ang = Math.atan2(t.nb.y - t.me.y, t.nb.x - t.me.x) + Math.PI / 2;
+  const sx = mx + Math.cos(ang) * 60,
+    sy = my + Math.sin(ang) * 60,
+    ex = mx - Math.cos(ang) * 60,
+    ey = my - Math.sin(ang) * 60;
+  await page.mouse.move(sx, sy);
+  await page.mouse.down();
+  await page.mouse.move(ex, ey, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForTimeout(100);
+  expect((await tl(page)).me.routes).toBe(0);
+});

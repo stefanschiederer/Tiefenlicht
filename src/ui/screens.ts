@@ -76,7 +76,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
   } else if (kind === 'howto') {
     h = `<h2>Anleitung</h2>
       <ul><li><b>Senden:</b> Ziehe von einem eigenen Knoten über verbundene Knoten. Sofort geht die Hälfte der verfügbaren Einheiten los, und die Route bleibt bestehen: Der Knoten schickt danach laufend einen Teil seiner Produktion nach und wächst trotzdem weiter. Ziehe erneut, um sofort wieder die Hälfte zu schicken. Unten links (oder <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd>) wählst du 25 bis 100 %, <kbd>Shift</kbd> + Ziehen schickt alles.</li>
-      <li><b>Routen:</b> Bis zu drei Routen je Knoten teilen den Nachschub. Im Knotenmenü legst du die Reserve fest und entfernst Routen; Rechtsklick löscht alle.</li>
+      <li><b>Routen:</b> Eine Route schickt laufend einen Teil der Produktion nach (in kleinen Paketen), der Knoten wächst trotzdem weiter; ein voller Knoten schickt alles. Bis zu drei Routen je Knoten teilen den Nachschub. <b>Löschen:</b> Quer über die Linie wischen, im Knotenmenü einzeln entfernen, oder Rechtsklick auf den Knoten für alle.</li>
       <li><b>Knotenmenü:</b> Eigenen Knoten antippen: Ausbau bis Stufe 3, Reserve, Umbau in eine andere Art, Routen verwalten.</li>
       <li><b>Kampf:</b> Angriffsstärke der Truppen gegen Einheiten × Verteidigung des Knotens. Bleibt etwas übrig, wechselt der Knoten die Seite.</li>
       <li><b>Truppen:</b> Jede Knotenart erzeugt eigene Truppen: Drohnen sind schnell und schwach, Panzer stark und langsam, Pfeile am schnellsten.</li>

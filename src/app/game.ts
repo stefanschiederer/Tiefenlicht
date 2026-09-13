@@ -11,7 +11,7 @@ import {
 } from '@/data';
 import { computePerks } from '@/data/skills';
 import { CanvasRenderer, type UiState } from '@/render/canvas2d/renderer';
-import { addRoute, launch, sendAmount, useAbility } from '@/sim/actions';
+import { addRoute, cutRoutes, launch, sendAmount, useAbility } from '@/sim/actions';
 import { bfsPath } from '@/sim/graph';
 import { buildLevel } from '@/sim/level';
 import type { GameState, SimEvent, SimNode } from '@/sim/state';
@@ -62,6 +62,7 @@ export class Game {
     pointer: { x: 0, y: 0 },
     abilityMode: null,
     dragLabel: '',
+    cut: null,
   };
   result: LevelResult | null = null;
   readonly audio = new Synth();
@@ -129,6 +130,7 @@ export class Game {
   }
   private resetUi(): void {
     this.ui.drag = null;
+    this.ui.cut = null;
     this.ui.selected = null;
     this.ui.abilityMode = null;
     this.ui.hover = null;
@@ -270,7 +272,7 @@ export class Game {
   nodeAt(px: number, py: number): SimNode | null {
     return this.renderer.nodeAt(this.state, px, py);
   }
-  pointerDown(px: number, py: number, shift: boolean): 'drag' | 'ability' | 'none' {
+  pointerDown(px: number, py: number, shift: boolean): 'drag' | 'ability' | 'cut' | 'none' {
     this.ui.pointer = { x: px, y: py };
     if (this.mode !== 'game' || !this.running || this.paused) return 'none';
     const hit = this.nodeAt(px, py);
@@ -292,10 +294,29 @@ export class Game {
     }
     this.ui.selected = null;
     this.listeners.onPanel();
-    return 'none';
+    if (hit) return 'none';
+    // Swiping across a route from empty space cuts it (Tentacle-Wars style).
+    this.ui.cut = [{ x: px, y: py }];
+    return 'cut';
   }
   pointerMove(px: number, py: number): void {
     this.ui.pointer = { x: px, y: py };
+    if (this.ui.cut) {
+      const trail = this.ui.cut,
+        last = trail[trail.length - 1] as { x: number; y: number };
+      if (Math.hypot(px - last.x, py - last.y) < 3) return;
+      trail.push({ x: px, y: py });
+      if (trail.length > 60) trail.shift();
+      const v = this.renderer.view;
+      const sources = cutRoutes(this.state, v.wx(last.x), v.wy(last.y), v.wx(px), v.wy(py));
+      if (sources.length) {
+        this.state.events.push({ type: 'cut', sources, x: v.wx(px), y: v.wy(py) });
+        this.handleEvents(drainEvents(this.state));
+        this.listeners.onTip('Route gekappt.', 1200);
+        this.listeners.onPanel();
+      }
+      return;
+    }
     const d = this.ui.drag;
     if (!d) return;
     const hit = this.nodeAt(px, py);
@@ -313,6 +334,7 @@ export class Game {
   }
   pointerUp(px: number, py: number): void {
     this.ui.pointer = { x: px, y: py };
+    this.ui.cut = null;
     const d = this.ui.drag;
     if (!d) return;
     this.ui.drag = null;
@@ -359,6 +381,7 @@ export class Game {
   }
   cancel(): void {
     this.ui.drag = null;
+    this.ui.cut = null;
     this.ui.abilityMode = null;
     if (this.ui.selected !== null) {
       this.ui.selected = null;

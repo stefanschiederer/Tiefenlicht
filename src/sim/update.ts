@@ -3,6 +3,7 @@ import {
   FLOW_INTERVAL,
   FLOW_INTERVAL_FAST,
   PLAYER,
+  ROUTE_BATCH,
   ROUTE_SHARE,
   ROUTE_SHARE_FAST,
   SIM_SCALE,
@@ -64,8 +65,8 @@ export function step(s: GameState, dt: number): void {
     const cap = capOf(s, n),
       r = rateOf(s, n);
     if (r > 0 && n.units < cap) n.units = Math.min(cap, n.units + r * dt);
-    // Routes forward a share of production as a slow stream; a full node forwards everything it makes.
-    // Nothing below the reserve ever leaves through a route.
+    // Routes forward a share of production as a slow stream in packets of ROUTE_BATCH units; a full node
+    // forwards everything it makes. Nothing below the reserve ever leaves through a route.
     if (n.routes.length && n.owner === PLAYER) {
       n.flowAcc += r * (n.units >= cap - 0.5 ? 1 : routeShare) * dt;
       n.flowT -= dt;
@@ -73,7 +74,7 @@ export function step(s: GameState, dt: number): void {
         n.flowT = flowInterval;
         const avail = Math.min(Math.floor(n.flowAcc), Math.floor(n.units - n.reserve * cap)),
           k = n.routes.length;
-        if (avail >= 1) {
+        if (avail >= ROUTE_BATCH) {
           n.flowAcc -= avail;
           if (avail < k) launch(s, n, n.routes[n.rr % k] as number[], avail);
           else {

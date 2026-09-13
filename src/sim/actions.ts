@@ -117,3 +117,53 @@ export function cycleReserve(src: SimNode): number {
   src.reserve = (src.reserve + 0.25) % 1;
   return src.reserve;
 }
+
+/** True if segments AB and CD intersect (proper or touching). */
+export function segmentsIntersect(
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  cx: number,
+  cy: number,
+  dx: number,
+  dy: number,
+): boolean {
+  const o = (px: number, py: number, qx: number, qy: number, rx: number, ry: number) =>
+    (qy - py) * (rx - qx) - (qx - px) * (ry - qy);
+  const on = (px: number, py: number, qx: number, qy: number, rx: number, ry: number) =>
+    Math.min(px, rx) <= qx && qx <= Math.max(px, rx) && Math.min(py, ry) <= qy && qy <= Math.max(py, ry);
+  const o1 = o(ax, ay, bx, by, cx, cy),
+    o2 = o(ax, ay, bx, by, dx, dy),
+    o3 = o(cx, cy, dx, dy, ax, ay),
+    o4 = o(cx, cy, dx, dy, bx, by);
+  if (o1 * o2 < 0 && o3 * o4 < 0) return true;
+  if (o1 === 0 && on(ax, ay, cx, cy, bx, by)) return true;
+  if (o2 === 0 && on(ax, ay, dx, dy, bx, by)) return true;
+  if (o3 === 0 && on(cx, cy, ax, ay, dx, dy)) return true;
+  if (o4 === 0 && on(cx, cy, bx, by, dx, dy)) return true;
+  return false;
+}
+
+/**
+ * Removes every player route that has a leg crossing the world-space segment AB (the "cut" gesture).
+ * Returns the ids of the source nodes whose routes were cut.
+ */
+export function cutRoutes(s: GameState, ax: number, ay: number, bx: number, by: number): number[] {
+  const cut: number[] = [];
+  for (const n of s.nodes) {
+    if (n.owner !== PLAYER || !n.routes.length) continue;
+    const before = n.routes.length;
+    n.routes = n.routes.filter((route) => {
+      let prev = n;
+      for (const id of route) {
+        const next = s.nodes[id] as SimNode;
+        if (segmentsIntersect(ax, ay, bx, by, prev.x, prev.y, next.x, next.y)) return false;
+        prev = next;
+      }
+      return true;
+    });
+    if (n.routes.length < before) cut.push(n.id);
+  }
+  return cut;
+}

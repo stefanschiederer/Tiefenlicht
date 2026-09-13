@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 (2026-09-13)
+
+- Routen löschen per Wisch-Geste: quer über eine Route wischen kappt sie (zusätzlich zum Knotenmenü und Rechtsklick).
+- Routen-Nachschub kommt in Paketen von mindestens drei Einheiten statt als einzelne Nachzügler.
+- Updates werden automatisch übernommen, kein „Neu laden“-Hinweis mehr nötig.
+
 ## 0.2.0 – Phase 1 (2026-09-13)
 
 - Prototyp in Module zerlegt: `src/data` (Spieldaten), `src/sim` (Simulation ohne DOM), `src/ai` (Gegner-KI, Spieler-Bot), `src/render/canvas2d`, `src/ui`, `src/app`, `src/audio`.

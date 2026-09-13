@@ -13,6 +13,8 @@ export interface UiState {
   abilityMode: AbilityId | null;
   /** Label shown at the pointer while dragging. */
   dragLabel: string;
+  /** Swipe trail (screen coords) while cutting routes. */
+  cut: { x: number; y: number }[] | null;
 }
 
 interface Particle {
@@ -123,6 +125,9 @@ export class CanvasRenderer {
         this.burst(v.sx(n.x), v.sy(n.y), FACTIONS[n.owner]?.color ?? '#fff', 14);
         break;
       }
+      case 'cut':
+        this.sparks(v.sx(e.x), v.sy(e.y), '#ffffff', FACTIONS[PLAYER]?.color ?? null, 8);
+        break;
       case 'ability': {
         const n = state.nodes[e.node] as SimNode;
         if (e.id === 'stoss') this.burst(v.sx(n.x), v.sy(n.y), '#ffffff', 26);
@@ -404,6 +409,17 @@ export class CanvasRenderer {
         ctx.restore();
       }
       pill(ctx, ui.dragLabel, ui.pointer.x, ui.pointer.y - 26 * S, Math.round(12 * S), C);
+    }
+    if (ui.cut && ui.cut.length > 1) {
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(255,255,255,.7)';
+      ctx.lineWidth = 2 * S;
+      ctx.beginPath();
+      ui.cut.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)));
+      ctx.stroke();
+      ctx.restore();
     }
   }
   private drawNode(state: GameState, n: SimNode, ui: UiState): void {

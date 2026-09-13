@@ -4,6 +4,7 @@ import {
   FLOW_INTERVAL,
   FLOW_INTERVAL_FAST,
   MAX_ROUTES,
+  ROUTE_BATCH,
   ROUTE_SHARE,
   ROUTE_SHARE_FAST,
   TYPES,
@@ -159,20 +160,24 @@ describe('route flow accumulation', () => {
     expect(n.units - 10 + shipped(out)).toBeCloseTo(0.8 * T, 6);
   });
 
-  it('a full node forwards all of its production', () => {
+  it('a full node forwards all of its production in packets of ROUTE_BATCH', () => {
     const s = routeState([[1]], { units: 40 });
     const n = node(s, 0);
     expect(capOf(s, n)).toBe(40);
-    // 1 s: 0.8 units accumulated, none shipped yet (every interval boundary so far saw < 1).
-    let out = shipments(s, 60);
+    expect(ROUTE_BATCH).toBe(3);
+    // 3.5 s: 2.8 units accumulated at the full rate, none shipped yet (every interval boundary so far
+    // saw fewer than ROUTE_BATCH whole units).
+    let out = shipments(s, 210);
     expect(out).toEqual([]);
     expect(n.units).toBe(40);
     expect(n.flowAcc).toBeCloseTo(0.8 * s.time, 6);
-    // The boundary at ~1.27 s ships exactly one unit.
+    // The first boundary after 3.75 s (tick 226, ~3.77 s) ships exactly one packet of ROUTE_BATCH units.
     out = shipments(s, 30);
-    expect(out.map((o) => o.n)).toEqual([1]);
-    expect(n.units).toBeGreaterThanOrEqual(39);
-    expect(n.units).toBeLessThan(40);
+    expect(out.map((o) => o.n)).toEqual([ROUTE_BATCH]);
+    expect(out[0]?.t).toBeCloseTo(226 * DT, 6);
+    expect(n.units).toBeGreaterThanOrEqual(37);
+    expect(n.units).toBeLessThan(38);
+    expect(n.flowAcc).toBeLessThan(1);
   });
 
   it('a node just below capacity still counts as full', () => {
@@ -239,17 +244,27 @@ describe('route shipments', () => {
     const n = node(s, 0);
     let minUnits = Infinity;
     const out: Shipment[] = [];
-    for (let i = 0; i < 600; i++) {
+    for (let i = 0; i < 1200; i++) {
       step(s, DT);
       minUnits = Math.min(minUnits, n.units);
       for (const e of launches(drainEvents(s))) out.push({ t: s.time, to: target(e.group), n: e.group.n });
     }
     // First interval: floor(25 - 20) = 5 units, not the 100 in the accumulator.
     expect(out[0]?.n).toBe(5);
+    expect(out[0]?.t).toBeCloseTo(DT);
     expect(minUnits).toBeGreaterThanOrEqual(20 - 1e-9);
-    // Later shipments are single units of the production surplus above the reserve.
-    for (const o of out.slice(1)) expect(o.n).toBe(1);
-    expect(out.length).toBeGreaterThan(3);
+    // Afterwards the surplus above the reserve grows at 0.8/s and leaves as a packet of ROUTE_BATCH
+    // units as soon as that many are available (every 3.75 s) - never as single stragglers.
+    for (const o of out.slice(1)) expect(o.n).toBe(ROUTE_BATCH);
+    expect(out).toHaveLength(6);
+    const earliest = ROUTE_BATCH / 0.8;
+    for (let i = 1; i < out.length; i++) {
+      const gap = (out[i] as Shipment).t - (out[i - 1] as Shipment).t;
+      expect(gap).toBeGreaterThanOrEqual(earliest - 1e-9);
+      expect(gap).toBeLessThanOrEqual(earliest + FLOW_INTERVAL + DT + 1e-9);
+    }
+    // The node sits just above the reserve after every packet.
+    expect(n.units).toBeLessThan(23);
   });
 
   it('ships twice as often with the flow perk', () => {
@@ -350,18 +365,97 @@ describe('route shipments', () => {
     expect(totals).toEqual([8, 8, 8]);
   });
 
-  it('sends everything to a single rotating route when fewer units than routes are available', () => {
+  it('holds back packets smaller than ROUTE_BATCH', () => {
+    // Two units available and accumulated: below the batch size, so nothing leaves at any boundary.
     const s = routeState([[1], [2], [3]]);
     const n = node(s, 0);
     const out = shipments(s, 80, () => {
       n.units = 2;
       n.flowAcc = 2;
     });
-    expect(out.map((o) => [o.to, o.n])).toEqual([
-      [1, 2],
-      [2, 2],
-      [3, 2],
-      [1, 2],
+    expect(out).toEqual([]);
+    expect(n.rr).toBe(0);
+    // Just below the batch: the accumulator keeps growing untouched.
+    const s2 = routeState([[1]], { units: 20, flowAcc: 2.9 });
+    step(s2, DT);
+    expect(s2.groups).toHaveLength(0);
+    expect(node(s2, 0).units).toBeCloseTo(20 + 0.8 * DT, 9);
+    expect(node(s2, 0).flowAcc).toBeCloseTo(2.9 + 0.8 * ROUTE_SHARE * DT, 9);
+    // Exactly the batch: it ships in one packet.
+    const s3 = routeState([[1]], { units: 20, flowAcc: 3 });
+    step(s3, DT);
+    expect(s3.groups).toHaveLength(1);
+    expect((s3.groups[0] as Group).n).toBe(ROUTE_BATCH);
+    expect(node(s3, 0).units).toBeCloseTo(17 + 0.8 * DT, 9);
+    expect(node(s3, 0).flowAcc).toBeCloseTo(0.8 * ROUTE_SHARE * DT, 9);
+  });
+
+  it('a packet of exactly ROUTE_BATCH units over three routes gives every route one unit', () => {
+    // MAX_ROUTES = ROUTE_BATCH = 3: a shipment can never have fewer units than routes, so every route in
+    // the rotation gets at least one unit per interval.
+    expect(ROUTE_BATCH).toBeGreaterThanOrEqual(MAX_ROUTES);
+    const s = routeState([[1], [2], [3]]);
+    const n = node(s, 0);
+    const out = shipments(s, 80, () => {
+      n.units = 3;
+      n.flowAcc = 3;
+    });
+    expect(out).toHaveLength(12);
+    const byInterval = [0, 1, 2, 3].map((k) => out.slice(3 * k, 3 * k + 3).map((o) => [o.to, o.n]));
+    expect(byInterval).toEqual([
+      [
+        [1, 1],
+        [2, 1],
+        [3, 1],
+      ],
+      [
+        [2, 1],
+        [3, 1],
+        [1, 1],
+      ],
+      [
+        [3, 1],
+        [1, 1],
+        [2, 1],
+      ],
+      [
+        [1, 1],
+        [2, 1],
+        [3, 1],
+      ],
+    ]);
+  });
+
+  it('gives the extra unit of a 4-unit packet to the rotating first route', () => {
+    const s = routeState([[1], [2], [3]]);
+    const n = node(s, 0);
+    const out = shipments(s, 80, () => {
+      n.units = 4;
+      n.flowAcc = 4;
+    });
+    expect(out).toHaveLength(12);
+    const byInterval = [0, 1, 2, 3].map((k) => out.slice(3 * k, 3 * k + 3).map((o) => [o.to, o.n]));
+    expect(byInterval).toEqual([
+      [
+        [1, 2],
+        [2, 1],
+        [3, 1],
+      ],
+      [
+        [2, 2],
+        [3, 1],
+        [1, 1],
+      ],
+      [
+        [3, 2],
+        [1, 1],
+        [2, 1],
+      ],
+      [
+        [1, 2],
+        [2, 1],
+        [3, 1],
+      ],
     ]);
   });
 

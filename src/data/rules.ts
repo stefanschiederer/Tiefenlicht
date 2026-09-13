@@ -63,4 +63,6 @@ export const FLOW_INTERVAL_FAST = 0.2;
  */
 export const ROUTE_SHARE = 0.4;
 export const ROUTE_SHARE_FAST = 0.6;
+/** Routes ship in packets of at least this many units (readable groups instead of single stragglers). */
+export const ROUTE_BATCH = 3;
 export const ENERGY_MAX = 100;

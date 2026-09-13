@@ -68,6 +68,7 @@ export type SimEvent =
     }
   | { type: 'upgrade'; node: number; owner: number }
   | { type: 'convert'; node: number; owner: number }
+  | { type: 'cut'; sources: number[]; x: number; y: number }
   | { type: 'ability'; id: AbilityId; node: number }
   | { type: 'finished'; won: boolean };
 

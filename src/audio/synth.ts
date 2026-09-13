@@ -5,6 +5,7 @@ export type SoundName =
   | 'click'
   | 'send'
   | 'route'
+  | 'cut'
   | 'capture'
   | 'lost'
   | 'upgrade'
@@ -103,6 +104,10 @@ export class Synth {
         this.tone(660, 0.08, 'sine', 0.08);
         later(() => this.tone(990, 0.1, 'sine', 0.08), 60);
         break;
+      case 'cut':
+        this.noise(0.1, 0.08, 3200);
+        this.tone(740, 0.12, 'triangle', 0.07, 240);
+        break;
       case 'capture':
         this.tone(523, 0.18, 'sine', 0.16);
         later(() => this.tone(784, 0.3, 'sine', 0.16), 90);
@@ -198,6 +203,9 @@ export class Synth {
         break;
       case 'zap':
         this.play('zap', 0.1);
+        break;
+      case 'cut':
+        this.play('cut', 0.1);
         break;
       case 'upgrade':
       case 'convert':

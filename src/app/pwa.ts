@@ -1,18 +1,16 @@
 import { registerSW } from 'virtual:pwa-register';
 
-/** Registers the service worker and shows a small "new version" toast when an update is waiting. */
+/**
+ * Registers the service worker. Updates are applied automatically: a new version is downloaded in the
+ * background and takes over on the next start (the page reloads once when it is installed while idle).
+ */
 export function registerPwa(): void {
   if (!('serviceWorker' in navigator)) return;
-  const toast = document.getElementById('pwaToast');
-  const reload = document.getElementById('pwaReload');
-  const later = document.getElementById('pwaLater');
-  const update = registerSW({
+  registerSW({
     immediate: true,
-    onNeedRefresh() {
-      if (!toast) return;
-      toast.hidden = false;
-      reload?.addEventListener('click', () => void update(true), { once: true });
-      later?.addEventListener('click', () => (toast.hidden = true), { once: true });
+    onRegisteredSW(_url, reg) {
+      // Check for a new version every 30 minutes while the app stays open.
+      if (reg) setInterval(() => void reg.update(), 30 * 60 * 1000);
     },
     onOfflineReady() {
       console.info('Tiefenlicht ist offline verfügbar.');
