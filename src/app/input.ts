@@ -96,6 +96,11 @@ export function bindInput(canvas: HTMLCanvasElement, game: Game, hooks: InputHoo
   );
   canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();
+    if (game.mode === 'editor') {
+      game.pointerDown(e.clientX, e.clientY, true);
+      game.pointerUp(e.clientX, e.clientY);
+      return;
+    }
     game.clearRoutesAt(e.clientX, e.clientY);
   });
   window.addEventListener('keydown', (e) => {

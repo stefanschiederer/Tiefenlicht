@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { startLevel } from './helpers';
 
 type TL = {
   nodes: { id: number; x: number; y: number; owner: number; units: number; routes: number[][] }[];
@@ -27,7 +28,7 @@ test('drawing a path sends the share and keeps a route; drawing again sends agai
   await page.goto('./');
   await page.getByRole('button', { name: 'Kampagne' }).click();
   await page.getByRole('button', { name: /1\. Erstes Leuchten/ }).click();
-  await page.getByRole('button', { name: 'Level starten' }).click();
+  await startLevel(page);
   await page.waitForTimeout(300);
   const before = await tl(page);
   await page.mouse.move(before.me.x, before.me.y);
@@ -60,7 +61,7 @@ test('touch drag works underneath the HUD info block', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: 'Kampagne' }).tap();
   await page.getByRole('button', { name: /1\. Erstes Leuchten/ }).tap();
-  await page.getByRole('button', { name: 'Level starten' }).tap();
+  await startLevel(page);
   await page.waitForTimeout(300);
   // The brand block (title, level, energy) must not intercept pointer events.
   const blocked = await page.evaluate(() => {
@@ -75,7 +76,7 @@ test('swiping across a route cuts it', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: 'Kampagne' }).click();
   await page.getByRole('button', { name: /1\. Erstes Leuchten/ }).click();
-  await page.getByRole('button', { name: 'Level starten' }).click();
+  await startLevel(page);
   await page.waitForTimeout(300);
   const t = await tl(page);
   await page.mouse.move(t.me.x, t.me.y);
@@ -108,7 +109,7 @@ test('multi-select: tapping two own nodes and dragging sends from both', async (
     .getByRole('button', { name: /6\. Zwei Fronten|1\. Erstes Leuchten/ })
     .first()
     .click();
-  await page.getByRole('button', { name: 'Level starten' }).click();
+  await startLevel(page);
   await page.waitForTimeout(300);
   // Capture a neighbour first so we own two nodes: send everything (shift) twice.
   const t = await tl(page);
@@ -178,7 +179,7 @@ test('on a phone in landscape no node is covered by HUD chrome', async ({ page }
   await page.goto('./');
   await page.getByRole('button', { name: 'Kampagne' }).tap();
   await page.getByRole('button', { name: /1\. Erstes Leuchten/ }).tap();
-  await page.getByRole('button', { name: 'Level starten' }).tap();
+  await startLevel(page);
   await page.waitForTimeout(300);
   const covered = await page.evaluate(() => {
     const t = (window as unknown as { TL: TL & { view: { offsetY: number } } }).TL;

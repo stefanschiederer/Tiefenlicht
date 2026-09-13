@@ -1,4 +1,5 @@
 import { test } from '@playwright/test';
+import { startLevel } from './helpers';
 
 // Produces the per-phase screenshots (menu and in-game) for the report.
 test('screenshots', async ({ page }, testInfo) => {
@@ -13,7 +14,7 @@ test('screenshots', async ({ page }, testInfo) => {
     .getByRole('button', { name: /8\. |1\. Erstes Leuchten/ })
     .first()
     .click();
-  await page.getByRole('button', { name: 'Level starten' }).click();
+  await startLevel(page);
   await page.waitForTimeout(2500);
   await page.screenshot({ path: `e2e/screenshots/${tag}-game.png` });
 });

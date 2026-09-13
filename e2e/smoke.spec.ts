@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { startLevel } from './helpers';
 
 test('menu loads without errors and a level can be started', async ({ page }) => {
   const errors: string[] = [];
@@ -7,7 +8,7 @@ test('menu loads without errors and a level can be started', async ({ page }) =>
   await expect(page.getByRole('heading', { name: 'Tiefenlicht' })).toBeVisible();
   await page.getByRole('button', { name: 'Kampagne' }).click();
   await page.getByRole('button', { name: /1\. Erstes Leuchten/ }).click();
-  await page.getByRole('button', { name: 'Level starten' }).click();
+  await startLevel(page);
   await expect(page.locator('#hud')).toBeVisible();
   await page.waitForTimeout(500);
   const nodes = await page.evaluate(

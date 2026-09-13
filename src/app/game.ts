@@ -1,4 +1,5 @@
 import { Synth } from '@/audio/synth';
+import { Editor } from './editor';
 import {
   ABILITIES,
   ABILITY_ORDER,
@@ -21,7 +22,7 @@ import { aliveFactions, drainEvents, step } from '@/sim/update';
 import { readSave, writeSave, type SaveGame } from './save';
 import { enterFullscreen } from './pwa';
 
-export type LevelKind = 'campaign' | 'endless';
+export type LevelKind = 'campaign' | 'endless' | 'custom';
 export type SendMode = 0.25 | 0.5 | 0.75 | 1;
 export const SEND_MODES: [SendMode, string][] = [
   [0.25, '25 %'],
@@ -55,7 +56,7 @@ const DOUBLE_TAP_MS = 350;
 export class Game {
   save: SaveGame;
   state: GameState;
-  mode: 'menu' | 'game' = 'menu';
+  mode: 'menu' | 'game' | 'editor' = 'menu';
   levelKind: LevelKind = 'campaign';
   levelIndex = 0;
   running = false;
@@ -82,6 +83,8 @@ export class Game {
   private lastFrame = 0;
   private dragShift = false;
   private lastTap: { id: number; at: number } | null = null;
+  editor: Editor | null = null;
+  private customDef: LevelDef | null = null;
 
   constructor(renderer: Renderer, listeners: GameListeners) {
     this.renderer = renderer;
@@ -158,7 +161,12 @@ export class Game {
   prepareLevel(kind: LevelKind, i: number): void {
     this.levelKind = kind;
     this.levelIndex = i;
-    const def = kind === 'campaign' ? (CAMPAIGN[i] as LevelDef) : endlessDef(i);
+    const def =
+      kind === 'campaign'
+        ? (CAMPAIGN[i] as LevelDef)
+        : kind === 'endless'
+          ? endlessDef(i)
+          : (this.customDef as LevelDef);
     this.mode = 'game';
     this.buildCurrent(def);
   }
@@ -178,6 +186,24 @@ export class Game {
     this.listeners.onAbilities();
     this.listeners.onPanel();
     this.listeners.onHud();
+  }
+  /** Play-test an editor map (no stars, no save). */
+  playCustom(def: LevelDef): void {
+    this.customDef = def;
+    this.prepareLevel('custom', 0);
+  }
+  /** Enters the editor: the renderer shows the editor's preview state, the sim does not run. */
+  openEditor(): Editor {
+    this.editor ??= new Editor();
+    this.mode = 'editor';
+    this.running = false;
+    this.paused = false;
+    this.resetUi();
+    this.state = this.editor.state;
+    this.renderer.view.resetCamera();
+    this.renderer.setLevel(this.state);
+    this.editor.onChange = null;
+    return this.editor;
   }
   restartLevel(): void {
     this.prepareLevel(this.levelKind, this.levelIndex);
@@ -327,7 +353,9 @@ export class Game {
     if (won) {
       const st = this.levelTime <= L.par ? 3 : this.levelTime <= L.par * 1.6 ? 2 : 1;
       let gained = 0;
-      if (this.levelKind === 'campaign') {
+      if (this.levelKind === 'custom') {
+        /* play-test: nothing is saved */
+      } else if (this.levelKind === 'campaign') {
         const prev = this.save.stars[this.levelIndex] ?? 0;
         if (st > prev) {
           gained = st - prev;
@@ -338,12 +366,12 @@ export class Game {
         this.save.endlessBest = this.levelIndex;
       }
       const times = this.levelKind === 'campaign' ? this.save.bestTimes : this.save.endlessBestTimes;
-      const prevBest = times[this.levelIndex];
-      const newBest = prevBest === undefined || this.levelTime < prevBest;
+      const prevBest = this.levelKind === 'custom' ? undefined : times[this.levelIndex];
+      const newBest = this.levelKind !== 'custom' && (prevBest === undefined || this.levelTime < prevBest);
       if (newBest) times[this.levelIndex] = this.levelTime;
       this.save.points += gained;
       result = { stars: st, gained, bestTime: times[this.levelIndex] ?? this.levelTime, newBest };
-      this.persist();
+      if (this.levelKind !== 'custom') this.persist();
       if (this.save.haptics) vibrate([60, 60, 120]);
     } else if (this.save.haptics) vibrate(200);
     this.result = result;
@@ -356,6 +384,11 @@ export class Game {
   }
   pointerDown(px: number, py: number, shift: boolean): 'drag' | 'ability' | 'cut' | 'none' {
     this.ui.pointer = { x: px, y: py };
+    if (this.mode === 'editor' && this.editor) {
+      const v = this.renderer.view;
+      this.editor.down(v.wx(px), v.wy(py), shift);
+      return 'drag';
+    }
     if (this.mode !== 'game' || !this.running || this.paused) return 'none';
     const hit = this.nodeAt(px, py);
     if (this.ui.abilityMode) {
@@ -384,6 +417,11 @@ export class Game {
   }
   pointerMove(px: number, py: number): void {
     this.ui.pointer = { x: px, y: py };
+    if (this.mode === 'editor' && this.editor) {
+      const v = this.renderer.view;
+      this.editor.move(v.wx(px), v.wy(py));
+      return;
+    }
     if (this.ui.cut) {
       const trail = this.ui.cut,
         last = trail[trail.length - 1] as { x: number; y: number };
@@ -424,6 +462,11 @@ export class Game {
   }
   pointerUp(px: number, py: number): void {
     this.ui.pointer = { x: px, y: py };
+    if (this.mode === 'editor' && this.editor) {
+      const v = this.renderer.view;
+      this.editor.up(v.wx(px), v.wy(py));
+      return;
+    }
     this.ui.cut = null;
     const d = this.ui.drag;
     if (!d) return;

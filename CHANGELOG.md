@@ -5,6 +5,7 @@
 - Handgebaute Karten: Level 1 „Erstes Leuchten“ (sanfter Einstieg) und Level 7 „Wachtposten“ (zwei Gassen mit neutralen Wächtern, Bastion in der Mitte, Barrieren vor den Gegnern) sind jetzt von Hand gebaut. Datenformat `HandMap` für den Editor.
 - Sonderziele: Level 7 „Halte die Bastion 45 Sekunden“, Level 8 „Halte eine Quelle 60 Sekunden“ gewinnen das Level vorzeitig; Fortschritt in der HUD.
 - Kapitel-Intros: erzählender Einstieg vor dem ersten Level jedes Kapitels.
+- Karten-Editor im Hauptmenü: Knoten setzen und verschieben, Kanten ziehen, Felsen, Barrieren, Minen, Besitzer, Art, Einheiten, Löschen; JSON-Export und -Import, Entwurf bleibt gespeichert, Probespiel direkt aus dem Editor.
 
 - Riffbarrieren auf Verbindungen (ab Level 10): Truppen verbrauchen sich beim Durchbrechen, erst dann kommt der Rest hindurch; Lebensbalken über der Barriere, gilt für alle Fraktionen.
 - Minen auf Verbindungen (ab Level 11): zerstören bis zu 8 Einheiten des ersten Schwarms, dann verbraucht.

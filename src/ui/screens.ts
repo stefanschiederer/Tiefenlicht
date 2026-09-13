@@ -24,6 +24,7 @@ export interface ScreenActions {
   resume(): void;
   restart(): void;
   next(): void;
+  editor(): void;
 }
 
 export function hideScreen(): void {
@@ -41,7 +42,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
   let h = '';
   if (kind === 'menu') {
     h = `<h1>Tiefenlicht</h1><p class="sub">Ein Strategiespiel um leuchtende Knoten im Abgrund</p>
-      <div class="menu"><button class="primary" data-go="campaign">${icon('campaign')}Kampagne</button><button data-go="endless">${icon('endless')}Endlos</button><button data-go="skills">${icon('skills')}Fähigkeiten ${pts ? `(${pts} Punkte frei)` : ''}</button><button data-go="settings">${icon('settings')}Einstellungen</button><button data-go="howto">${icon('help')}Anleitung</button><button id="mFs">${icon('fullscreen')}Vollbild</button></div>
+      <div class="menu"><button class="primary" data-go="campaign">${icon('campaign')}Kampagne</button><button data-go="endless">${icon('endless')}Endlos</button><button data-go="skills">${icon('skills')}Fähigkeiten ${pts ? `(${pts} Punkte frei)` : ''}</button><button data-go="settings">${icon('settings')}Einstellungen</button><button data-go="howto">${icon('help')}Anleitung</button><button id="mEditor">${icon('route')}Karten-Editor</button><button id="mFs">${icon('fullscreen')}Vollbild</button></div>
       <div class="meta">${stars} von ${CAMPAIGN.length * 3} Sternen, beste Endlos-Welle ${save.endlessBest}, Schwierigkeit ${DIFF[save.difficulty].label} · v${__APP_VERSION__}</div>`;
   } else if (kind === 'campaign') {
     card.className = 'card wide seamap-card';
@@ -141,7 +142,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     const r = game.result ?? { stars: 1, gained: 0, bestTime: game.levelTime, newBest: false };
     h = `<h2>${r.newBest ? 'Neue Bestzeit!' : 'Der Abgrund leuchtet golden'}</h2><p class="sub">${L.name} geschafft</p>
       <div class="stats"><div><b>${starIcons(r.stars)}</b>${r.stars === 3 ? 'unter Zielzeit' : r.stars === 2 ? 'nah an der Zielzeit' : 'geschafft'}</div><div><b>${fmtTime(game.levelTime)}</b>Zeit (Ziel ${fmtTime(L.par)})</div><div><b class="${r.newBest ? 'newbest' : ''}">${fmtTime(r.bestTime)}</b>${r.newBest ? 'neuer Rekord' : 'Bestzeit'}</div><div><b>${game.state.stats.captured}</b>erobert</div><div><b>+${r.gained}</b>Punkte</div></div>
-      <div class="actions"><button class="primary" id="next">${game.levelKind === 'campaign' ? (game.levelIndex + 1 < CAMPAIGN.length ? 'Nächstes Level' : 'Kampagne geschafft – zur Übersicht') : 'Nächste Welle'}</button><button id="again">Nochmal</button>${save.points ? '<button data-go="skills">Fähigkeiten</button>' : ''}<button data-go="menu">Menü</button></div>`;
+      <div class="actions"><button class="primary" id="next">${game.levelKind === 'campaign' ? (game.levelIndex + 1 < CAMPAIGN.length ? 'Nächstes Level' : 'Kampagne geschafft – zur Übersicht') : game.levelKind === 'custom' ? 'Zurück zum Editor' : 'Nächste Welle'}</button><button id="again">Nochmal</button>${save.points ? '<button data-go="skills">Fähigkeiten</button>' : ''}<button data-go="menu">Menü</button></div>`;
   } else if (kind === 'lose') {
     const winner = FACTIONS[game.state.nodes.find((n) => n.owner > 1)?.owner ?? 2] ?? FACTIONS[2];
     h = `<h2>Der Goldschwarm ist erloschen</h2><p class="sub">${L.name}</p>
@@ -197,6 +198,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
       }
     }),
   );
+  card.querySelector('#mEditor')?.addEventListener('click', () => act.editor());
   card.querySelector('#mFs')?.addEventListener('click', () => {
     void enterFullscreen().then((ok) => {
       if (!ok)

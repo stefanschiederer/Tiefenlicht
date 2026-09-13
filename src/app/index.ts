@@ -12,6 +12,8 @@ import {
 } from '@/ui/hud';
 import { positionPanel, renderPanel, updatePanel } from '@/ui/panel';
 import { hideScreen, showScreen, type ScreenActions, type ScreenKind } from '@/ui/screens';
+import { hideEditorUi, renderEditorUi } from '@/ui/editor';
+import { customDef } from './editor';
 import { Game, isTouch } from './game';
 import { createRenderer, type GraphicsQuality } from '@/render/renderer';
 import { readSave } from './save';
@@ -45,8 +47,27 @@ export async function startApp(): Promise<Game> {
     setGameUi(false);
     showScreen(game, kind, actions);
   };
+  const openEditor = () => {
+    hideScreen();
+    setGameUi(false);
+    const ed = game.openEditor();
+    renderEditorUi(ed, {
+      play: () => {
+        hideEditorUi();
+        game.playCustom(customDef(ed.map));
+        setGameUi(true);
+        renderSendbar(game);
+        showScreen(game, 'intro', actions);
+      },
+      close: () => {
+        hideEditorUi();
+        toMenu('menu');
+      },
+    });
+  };
   const actions: ScreenActions = {
     toMenu,
+    editor: openEditor,
     play: (kind, i) => {
       game.prepareLevel(kind, i);
       setGameUi(true);
@@ -69,8 +90,19 @@ export async function startApp(): Promise<Game> {
       game.resumePlay();
       setGameUi(true);
     },
-    restart: () => actions.play(game.levelKind, game.levelIndex),
+    restart: () => {
+      if (game.levelKind === 'custom') {
+        game.restartLevel();
+        setGameUi(true);
+        renderSendbar(game);
+        showScreen(game, 'intro', actions);
+      } else actions.play(game.levelKind, game.levelIndex);
+    },
     next: () => {
+      if (game.levelKind === 'custom') {
+        openEditor();
+        return;
+      }
       if (game.levelKind === 'campaign') {
         if (game.levelIndex + 1 < CAMPAIGN.length) actions.play('campaign', game.levelIndex + 1);
         else toMenu('campaign');
