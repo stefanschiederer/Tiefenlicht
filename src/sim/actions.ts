@@ -145,11 +145,38 @@ export function segmentsIntersect(
   return false;
 }
 
+/** Shortest distance between segments AB and CD (0 if they intersect). */
+export function segmentDistance(
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  cx: number,
+  cy: number,
+  dx: number,
+  dy: number,
+): number {
+  if (segmentsIntersect(ax, ay, bx, by, cx, cy, dx, dy)) return 0;
+  const pointSeg = (px: number, py: number, x1: number, y1: number, x2: number, y2: number) => {
+    const vx = x2 - x1,
+      vy = y2 - y1,
+      l2 = vx * vx + vy * vy || 1;
+    const t = Math.max(0, Math.min(1, ((px - x1) * vx + (py - y1) * vy) / l2));
+    return Math.hypot(x1 + vx * t - px, y1 + vy * t - py);
+  };
+  return Math.min(
+    pointSeg(ax, ay, cx, cy, dx, dy),
+    pointSeg(bx, by, cx, cy, dx, dy),
+    pointSeg(cx, cy, ax, ay, bx, by),
+    pointSeg(dx, dy, ax, ay, bx, by),
+  );
+}
+
 /**
- * Removes every player route that has a leg crossing the world-space segment AB (the "cut" gesture).
- * Returns the ids of the source nodes whose routes were cut.
+ * Removes every player route that has a leg within `tol` world units of the segment AB (the "cut"
+ * gesture; tol = 0 means the swipe must cross the leg). Returns the ids of the affected source nodes.
  */
-export function cutRoutes(s: GameState, ax: number, ay: number, bx: number, by: number): number[] {
+export function cutRoutes(s: GameState, ax: number, ay: number, bx: number, by: number, tol = 0): number[] {
   const cut: number[] = [];
   for (const n of s.nodes) {
     if (n.owner !== PLAYER || !n.routes.length) continue;
@@ -158,7 +185,7 @@ export function cutRoutes(s: GameState, ax: number, ay: number, bx: number, by: 
       let prev = n;
       for (const id of route) {
         const next = s.nodes[id] as SimNode;
-        if (segmentsIntersect(ax, ay, bx, by, prev.x, prev.y, next.x, next.y)) return false;
+        if (segmentDistance(ax, ay, bx, by, prev.x, prev.y, next.x, next.y) <= tol) return false;
         prev = next;
       }
       return true;

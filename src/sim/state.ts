@@ -81,6 +81,8 @@ export interface GameState {
   rng: Rng;
   nodes: SimNode[];
   edges: Edge[];
+  /** Connections a rock blocks; purely informational for rendering. */
+  blocked: Edge[];
   adj: number[][];
   rocks: Rock[];
   groups: Group[];

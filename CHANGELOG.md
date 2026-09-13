@@ -10,6 +10,7 @@
 - Knotenmenü ist rechts angedockt statt neben dem Knoten, damit es keine Nachbarknoten verdeckt.
 - Schwierigkeitskurve der Kampagne neu abgestimmt (siehe `BALANCE.md`).
 - Designbefund in `GAMEDESIGN.md`.
+- Wisch-Geste zum Kappen darf auch auf fremden Knoten beginnen und trifft fingerbreit; blockierte Verbindungen (Felsen) werden als unterbrochene rote Linien angedeutet.
 - Handy im Querformat: kompakte einzeilige HUD, das Spielfeld wird darunter eingepasst; Sende- und Fähigkeitenleiste sind außer ihren Buttons berührungsdurchlässig. Kein Knoten liegt mehr unter Anzeigen.
 
 ## 0.2.1 (2026-09-13)

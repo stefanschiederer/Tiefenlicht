@@ -227,10 +227,22 @@ export class CanvasRenderer {
       g.fillStyle = fg;
       g.fillRect(0, 0, W, H);
     }
+    // Blocked connections: faint broken lines so the obstacle reads as "there would be a way".
+    g.setLineDash([3, 10 * S]);
+    g.lineWidth = 1;
+    g.strokeStyle = 'rgba(200,120,120,.22)';
+    g.lineCap = 'round';
+    for (const [a, b] of state.blocked) {
+      const na = state.nodes[a] as SimNode,
+        nb = state.nodes[b] as SimNode;
+      g.beginPath();
+      g.moveTo(v.sx(na.x), v.sy(na.y));
+      g.lineTo(v.sx(nb.x), v.sy(nb.y));
+      g.stroke();
+    }
     g.setLineDash([2, 8 * S]);
     g.lineWidth = 1.5;
     g.strokeStyle = 'rgba(140,200,235,.3)';
-    g.lineCap = 'round';
     for (const [a, b] of state.edges) {
       const na = state.nodes[a] as SimNode,
         nb = state.nodes[b] as SimNode;

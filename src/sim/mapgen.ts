@@ -7,6 +7,8 @@ export interface GeneratedMap {
   points: { x: number; y: number }[];
   rocks: Rock[];
   edges: Edge[];
+  /** Gabriel edges that a rock blocks (drawn as broken connections so the player sees the obstacle). */
+  blocked: Edge[];
   /** Node ids of the start positions; index 0 is the player. */
   starts: number[];
   /** RNG continuing after generation (used for node types and garrisons). */
@@ -60,6 +62,7 @@ export function generateMap(p: MapParams): GeneratedMap | null {
     }
     if (pts.length < p.nodes) continue;
     const all: Edge[] = [];
+    const blocked: Edge[] = [];
     for (let i = 0; i < pts.length; i++) {
       for (let j = i + 1; j < pts.length; j++) {
         const a = pts[i] as { x: number; y: number },
@@ -75,7 +78,11 @@ export function generateMap(p: MapParams): GeneratedMap | null {
           const c = pts[k] as { x: number; y: number };
           if (Math.hypot(c.x - mx, c.y - my) < rr * 0.98) ok = false;
         }
-        if (!ok || rocks.some((r) => segmentHitsCircle(a.x, a.y, b.x, b.y, r.x, r.y, r.r + 8 * S))) continue;
+        if (!ok) continue;
+        if (rocks.some((r) => segmentHitsCircle(a.x, a.y, b.x, b.y, r.x, r.y, r.r + 8 * S))) {
+          blocked.push([i, j]);
+          continue;
+        }
         all.push([i, j]);
       }
     }
@@ -113,7 +120,7 @@ export function generateMap(p: MapParams): GeneratedMap | null {
     const hops = hopDistances(pts.length, keep, starts[0] as number);
     if (starts.slice(1).some((s) => (hops[s] as number) < minHops)) continue;
     if (keep.filter((e) => e[0] === starts[0] || e[1] === starts[0]).length < 2) continue;
-    return { points: pts, rocks, edges: keep, starts, rng };
+    return { points: pts, rocks, edges: keep, blocked, starts, rng };
   }
   return null;
 }

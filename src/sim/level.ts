@@ -41,6 +41,7 @@ export function buildLevel(def: LevelDef, opts: BuildOptions = {}): GameState {
     rng: gen.rng,
     nodes,
     edges: gen.edges,
+    blocked: gen.blocked,
     adj: buildAdjacency(nodes.length, gen.edges),
     rocks: gen.rocks,
     groups: [],

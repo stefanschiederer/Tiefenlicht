@@ -355,8 +355,7 @@ export class Game {
       this.ui.selected = [];
       this.listeners.onPanel();
     }
-    if (hit) return 'none';
-    // Swiping across a route from empty space cuts it (Tentacle-Wars style).
+    // Swiping across a route (starting on empty space or a foreign node) cuts it, Tentacle-Wars style.
     this.ui.cut = [{ x: px, y: py }];
     return 'cut';
   }
@@ -369,7 +368,7 @@ export class Game {
       trail.push({ x: px, y: py });
       if (trail.length > 60) trail.shift();
       const v = this.renderer.view;
-      const sources = cutRoutes(this.state, v.wx(last.x), v.wy(last.y), v.wx(px), v.wy(py));
+      const sources = cutRoutes(this.state, v.wx(last.x), v.wy(last.y), v.wx(px), v.wy(py), 10 / v.scale);
       if (sources.length) {
         this.state.events.push({ type: 'cut', sources, x: v.wx(px), y: v.wy(py) });
         this.handleEvents(drainEvents(this.state));
