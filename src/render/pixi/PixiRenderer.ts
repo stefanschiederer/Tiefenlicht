@@ -217,6 +217,7 @@ export class PixiRenderer implements Renderer {
       this.rocks,
       this.edges,
       this.routes,
+      this.obstacles,
       this.lights,
       this.nodesLayer,
       this.groupsLayer,
