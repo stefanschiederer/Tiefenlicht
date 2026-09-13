@@ -128,7 +128,15 @@ export function generateMapSafe(def: Pick<LevelDef, 'nodes' | 'enemies' | 'obst'
     else cur.nodes = Math.max(5, cur.nodes - 1);
     cur.seed += 7;
   }
-  const last = generateMap({ nodes: 6, enemies: def.enemies, obst: 0, seed: def.seed });
-  if (!last) throw new Error('map generation failed');
-  return last;
+  // Last resort like the prototype (6 nodes, no rocks, original seed); keep bumping the seed if even that fails.
+  for (let i = 0; i < 50; i++) {
+    const last = generateMap({
+      nodes: 6,
+      enemies: Math.min(def.enemies, 3),
+      obst: 0,
+      seed: def.seed + i * 7,
+    });
+    if (last) return last;
+  }
+  throw new Error('map generation failed');
 }
