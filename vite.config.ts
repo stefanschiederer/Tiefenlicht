@@ -3,7 +3,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
 
 // GitHub Pages serves the site under /<repo>/; local dev and preview use /.
-const base = process.env.VITE_BASE ?? (process.env.GITHUB_ACTIONS ? '/tiefenlicht/' : '/');
+const base = process.env.VITE_BASE ?? (process.env.GITHUB_ACTIONS ? '/Tiefenlicht/' : '/');
 
 export default defineConfig({
   base,
