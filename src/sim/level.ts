@@ -1,8 +1,17 @@
 import type { Difficulty } from '@/app/save';
-import { TYPE_WEIGHTS, TYPES, emptyPerks, type LevelDef, type NodeType, type Perks } from '@/data';
+import {
+  BARRIER_HP,
+  MINE_UNITS,
+  TYPE_WEIGHTS,
+  TYPES,
+  emptyPerks,
+  type LevelDef,
+  type NodeType,
+  type Perks,
+} from '@/data';
 import { buildAdjacency } from './graph';
 import { generateMapSafe } from './mapgen';
-import type { GameState, SimNode } from './state';
+import type { Barrier, GameState, Mine, SimNode } from './state';
 import { stat } from './stats';
 
 export interface BuildOptions {
@@ -44,6 +53,8 @@ export function buildLevel(def: LevelDef, opts: BuildOptions = {}): GameState {
     blocked: gen.blocked,
     adj: buildAdjacency(nodes.length, gen.edges),
     rocks: gen.rocks,
+    barriers: [],
+    mines: [],
     groups: [],
     nextGroupId: 1,
     time: 0,
@@ -87,6 +98,38 @@ export function buildLevel(def: LevelDef, opts: BuildOptions = {}): GameState {
     }
   });
   for (let f = demo ? 1 : 2; f <= def.enemies + 1; f++) state.aiTimers[f] = def.ai * (1.6 + rng.next() * 0.8);
+  // Obstacles on edges that do not touch a start node; one obstacle per edge.
+  const startSet = new Set(gen.starts);
+  const candidates = gen.edges.filter(([a, b]) => !startSet.has(a) && !startSet.has(b));
+  const used = new Set<number>();
+  const pick = (): [number, number] | null => {
+    for (let tries = 0; tries < 30 && used.size < candidates.length; tries++) {
+      const i = rng.int(candidates.length);
+      if (used.has(i)) continue;
+      used.add(i);
+      return candidates[i] as [number, number];
+    }
+    return null;
+  };
+  const at = (e: [number, number], t: number) => {
+    const na = nodes[e[0]] as SimNode,
+      nb = nodes[e[1]] as SimNode;
+    return { x: na.x + (nb.x - na.x) * t, y: na.y + (nb.y - na.y) * t };
+  };
+  for (let i = 0; i < (def.barriers ?? 0); i++) {
+    const e = pick();
+    if (!e) break;
+    const t = 0.5;
+    const b: Barrier = { a: e[0], b: e[1], t, ...at(e, t), hp: BARRIER_HP, maxHp: BARRIER_HP };
+    state.barriers.push(b);
+  }
+  for (let i = 0; i < (def.mines ?? 0); i++) {
+    const e = pick();
+    if (!e) break;
+    const t = 0.35 + rng.next() * 0.3;
+    const m: Mine = { a: e[0], b: e[1], t, ...at(e, t), units: MINE_UNITS };
+    state.mines.push(m);
+  }
   return state;
 }
 

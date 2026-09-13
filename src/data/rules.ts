@@ -75,3 +75,7 @@ export const ENERGY_MAX = 100;
 export const SURRENDER_NODES = 1;
 export const SURRENDER_SECONDS = 10;
 export const SURRENDER_SHARE = 0.6;
+/** Reef barrier hit points (attack power needed to break it) by level index bracket. */
+export const BARRIER_HP = 24;
+/** Units a mine destroys from the first group that passes. */
+export const MINE_UNITS = 8;

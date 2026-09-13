@@ -125,6 +125,12 @@ export class CanvasRenderer {
       case 'cut':
         this.sparks(v.sx(e.x), v.sy(e.y), '#ffffff', FACTIONS[PLAYER]?.color ?? null, 8);
         break;
+      case 'barrier':
+        this.sparks(v.sx(e.x), v.sy(e.y), '#ff9ac0', null, 6);
+        break;
+      case 'mine':
+        this.burst(v.sx(e.x), v.sy(e.y), '#ff5a6e', 30);
+        break;
       case 'ability': {
         const n = state.nodes[e.node] as SimNode;
         if (e.id === 'stoss') this.burst(v.sx(n.x), v.sy(n.y), '#ffffff', 26);
@@ -623,6 +629,33 @@ export class CanvasRenderer {
     ctx.drawImage(this.staticLayer as HTMLCanvasElement, 0, 0, v.width, v.height);
     this.drawAmbient(dt);
     this.drawRoutes(state, ui);
+    for (const b of state.barriers) {
+      const na = state.nodes[b.a] as SimNode,
+        nb = state.nodes[b.b] as SimNode,
+        ang = Math.atan2(nb.y - na.y, nb.x - na.x) + Math.PI / 2;
+      ctx.save();
+      ctx.translate(v.sx(b.x), v.sy(b.y));
+      ctx.rotate(ang);
+      ctx.fillStyle = '#6a3d5a';
+      ctx.fillRect(-16 * v.scale, -5 * v.scale, 32 * v.scale, 10 * v.scale);
+      ctx.restore();
+      if (b.hp < b.maxHp) {
+        ctx.fillStyle = 'rgba(0,0,0,.5)';
+        ctx.fillRect(v.sx(b.x) - 20, v.sy(b.y) - 30 * v.scale, 40, 4);
+        ctx.fillStyle = '#ff9ac0';
+        ctx.fillRect(v.sx(b.x) - 20, v.sy(b.y) - 30 * v.scale, (40 * b.hp) / b.maxHp, 4);
+      }
+    }
+    for (const m of state.mines) {
+      ctx.fillStyle = '#2a1116';
+      ctx.beginPath();
+      ctx.arc(v.sx(m.x), v.sy(m.y), 7 * v.scale + 2, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = '#ff5a6e';
+      ctx.beginPath();
+      ctx.arc(v.sx(m.x), v.sy(m.y), 2.5 * v.scale + 1, 0, TAU);
+      ctx.fill();
+    }
     for (const n of state.nodes) this.drawNode(state, n, ui);
     ctx.globalCompositeOperation = 'lighter';
     for (const g of state.groups) this.drawGroup(state, g);

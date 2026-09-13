@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 – Phase 4a: Hindernisse (2026-09-14)
+
+- Riffbarrieren auf Verbindungen (ab Level 10): Truppen verbrauchen sich beim Durchbrechen, erst dann kommt der Rest hindurch; Lebensbalken über der Barriere, gilt für alle Fraktionen.
+- Minen auf Verbindungen (ab Level 11): zerstören bis zu 8 Einheiten des ersten Schwarms, dann verbraucht.
+- Kampagne ab Kapitel 2 und Endlos-Wellen enthalten deterministisch gesetzte Barrieren und Minen; Einführungstexte in Level 10 und 11, Anleitung ergänzt.
+- Balance nachgezogen (`BALANCE.md`).
+
 ## 0.6.0 – Phase 3: Audio (2026-09-13)
 
 - Adaptive Musik, komplett prozedural (WebAudio): Tiefsee-Drone, atmender Pad-Akkord, Kampf-Puls und Spannungs-Schimmer werden je nach Bedrohung ein- und ausgeblendet; Sieg- und Niederlagen-Motiv am Levelende.

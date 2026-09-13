@@ -83,6 +83,8 @@ export function makeState(nodes: NodeSpec[], edges: Edge[], overrides: StateOver
     nodes: simNodes,
     edges: edges.slice(),
     blocked: [],
+    barriers: [],
+    mines: [],
     adj: buildAdjacency(simNodes.length, edges),
     rocks: [],
     groups: [],

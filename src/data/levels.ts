@@ -10,7 +10,7 @@ export const CHAPTERS: readonly Chapter[] = [
   { name: 'Der Abgrund', desc: 'Drei Schwärme, kein Licht. Alles, was du gelernt hast, zählt.' },
 ];
 
-export type LevelFeature = 'upgrade' | 'split' | 'convert';
+export type LevelFeature = 'upgrade' | 'split' | 'convert' | 'barrier' | 'mine';
 
 export interface LevelDef {
   name: string;
@@ -37,6 +37,10 @@ export interface LevelDef {
   demo?: boolean;
   /** Whether the AI upgrades/converts nodes (off in the first two campaign levels). */
   aiUpgrades?: boolean;
+  /** Reef barriers placed on random edges: troops must break them (costs units) before passing. */
+  barriers?: number;
+  /** Mines on random edges: the first group passing loses units. */
+  mines?: number;
 }
 
 const T1: NodeType[] = ['nest'];
@@ -195,7 +199,9 @@ export const CAMPAIGN: readonly LevelDef[] = [
     gar: 24,
     prod: 1.1,
     par: 175,
-    text: 'Viele Felsen, wenige Wege. Halte die Kreuzungen.',
+    text: 'Viele Felsen, wenige Wege. Riffbarrieren versperren manche Verbindung: Truppen müssen sie erst durchbrechen. Halte die Kreuzungen.',
+    feature: 'barrier',
+    barriers: 2,
   },
   {
     ch: 1,
@@ -209,7 +215,10 @@ export const CAMPAIGN: readonly LevelDef[] = [
     gar: 24,
     prod: 1.1,
     par: 180,
-    text: 'Fast alles läuft durch zwei Gassen. Wer dort einen Turm hat, gewinnt.',
+    text: 'Fast alles läuft durch zwei Gassen, und in den Gassen liegen Minen. Wer dort einen Turm hat, gewinnt.',
+    barriers: 2,
+    feature: 'mine',
+    mines: 2,
   },
   {
     ch: 1,
@@ -224,6 +233,8 @@ export const CAMPAIGN: readonly LevelDef[] = [
     prod: 1.12,
     par: 185,
     text: 'Die Gegner schicken ihre Schwärme durch Strömungen. Sei schneller.',
+    barriers: 1,
+    mines: 2,
   },
   {
     ch: 2,
@@ -238,6 +249,8 @@ export const CAMPAIGN: readonly LevelDef[] = [
     prod: 1.22,
     par: 200,
     text: 'Drei Schwärme. Lass sie sich gegenseitig zermürben, bevor du zuschlägst.',
+    barriers: 2,
+    mines: 2,
   },
   {
     ch: 2,
@@ -252,6 +265,8 @@ export const CAMPAIGN: readonly LevelDef[] = [
     prod: 1.2,
     par: 220,
     text: 'Lange Wege. Reserven an der Front sind hier wichtiger als überall sonst.',
+    barriers: 3,
+    mines: 2,
   },
   {
     ch: 2,
@@ -263,9 +278,11 @@ export const CAMPAIGN: readonly LevelDef[] = [
     obst: 6,
     seed: 101,
     gar: 28,
-    prod: 1.21,
+    prod: 1.12,
     par: 230,
     text: 'Ruhig, bis einer den ersten Zug macht.',
+    barriers: 2,
+    mines: 3,
   },
   {
     ch: 2,
@@ -281,6 +298,8 @@ export const CAMPAIGN: readonly LevelDef[] = [
     par: 240,
     text: 'Die Gegner starten mit ausgebauten Nestern. Deine Fähigkeiten entscheiden.',
     boss: true,
+    barriers: 2,
+    mines: 3,
   },
   {
     ch: 2,
@@ -295,6 +314,8 @@ export const CAMPAIGN: readonly LevelDef[] = [
     prod: 1.1,
     par: 260,
     text: 'Kein Licht mehr außer deinem.',
+    barriers: 3,
+    mines: 3,
   },
   {
     ch: 2,
@@ -306,10 +327,12 @@ export const CAMPAIGN: readonly LevelDef[] = [
     obst: 7,
     seed: 151,
     gar: 34,
-    prod: 1.12,
+    prod: 1.2,
     par: 280,
     text: 'Alles, was der Abgrund hat. Wer hier gewinnt, hat das Spiel gemeistert.',
     boss: true,
+    barriers: 3,
+    mines: 4,
   },
 ];
 
@@ -328,6 +351,8 @@ export function endlessDef(n: number): LevelDef {
     par: 170 + n * 15,
     endless: true,
     boss: n >= 6,
+    barriers: Math.min(4, Math.floor(n / 2)),
+    mines: Math.min(4, Math.floor((n + 1) / 2)),
     text: `Welle ${n}. Die Gegner werden mit jeder Welle stärker; deine Fähigkeiten wachsen mit.`,
   };
 }

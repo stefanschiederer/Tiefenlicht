@@ -10,7 +10,7 @@ import {
 } from 'pixi.js';
 import { AdvancedBloomFilter } from 'pixi-filters';
 import { FACTIONS, PLAYER, WORLD_H, WORLD_W, type NodeType } from '@/data';
-import type { GameState, Group, SimEvent, SimNode } from '@/sim/state';
+import type { Barrier, GameState, Group, Mine, SimEvent, SimNode } from '@/sim/state';
 import { nodeDist, nodeRadius, rangeOf } from '@/sim/stats';
 import type { GraphicsQuality, Renderer, UiState } from '../renderer';
 import { View } from '../view';
@@ -28,6 +28,8 @@ import {
   shaftTexture,
   unitTexture,
   plantTexture,
+  barrierTexture,
+  mineTexture,
 } from './textures';
 import { CausticsFilter } from './caustics';
 
@@ -133,6 +135,9 @@ export class PixiRenderer implements Renderer {
   private caustics: CausticsFilter | null = null;
   private plants: { s: Sprite; ph: number; base: number }[] = [];
   private plantLayer = new Container();
+  private obstacles = new Container();
+  private barrierViews: { s: Sprite; hp: Graphics; ref: Barrier }[] = [];
+  private mineViews: { s: Sprite; ref: Mine; ph: number }[] = [];
   private trailAcc = 0;
 
   static async create(canvas: HTMLCanvasElement, quality: GraphicsQuality): Promise<PixiRenderer> {
@@ -364,6 +369,30 @@ export class PixiRenderer implements Renderer {
         place(WORLD_W + 10 - rand() * 30, y + 60, 'fan', 0.4 + rand() * 0.4, true);
       }
     }
+    // obstacles
+    this.obstacles.removeChildren().forEach((c) => c.destroy());
+    this.barrierViews = [];
+    this.mineViews = [];
+    for (const b of state.barriers) {
+      const na = state.nodes[b.a] as SimNode,
+        nb = state.nodes[b.b] as SimNode;
+      const sp = new Sprite(barrierTexture());
+      sp.anchor.set(0.5);
+      sp.position.set(b.x, b.y);
+      sp.rotation = Math.atan2(nb.y - na.y, nb.x - na.x);
+      sp.scale.set(0.42);
+      const hp = new Graphics();
+      this.obstacles.addChild(sp, hp);
+      this.barrierViews.push({ s: sp, hp, ref: b });
+    }
+    for (const m of state.mines) {
+      const sp = new Sprite(mineTexture());
+      sp.anchor.set(0.5);
+      sp.position.set(m.x, m.y);
+      sp.scale.set(0.5);
+      this.obstacles.addChild(sp);
+      this.mineViews.push({ s: sp, ref: m, ph: Math.random() * TAU });
+    }
     // nodes
     for (const n of state.nodes) this.nodeViews.set(n.id, this.makeNodeView(n));
   }
@@ -462,6 +491,13 @@ export class PixiRenderer implements Renderer {
       }
       case 'cut':
         this.sparks(e.x, e.y, 0xffffff, FACTION_COLORS[PLAYER] ?? null, 8);
+        break;
+      case 'barrier':
+        this.sparks(e.x, e.y, 0xff9ac0, FACTION_COLORS[e.owner] ?? null, 6);
+        if (e.broken) this.burst(e.x, e.y, 0xff9ac0, 26);
+        break;
+      case 'mine':
+        this.burst(e.x, e.y, 0xff5a6e, 30);
         break;
       case 'ability': {
         const n = state.nodes[e.node] as SimNode;

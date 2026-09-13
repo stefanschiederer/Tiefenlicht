@@ -1,4 +1,4 @@
-import { CAMPAIGN, CHAPTERS, DIFF, FACTIONS, SKILLS, TYPES } from '@/data';
+import { CAMPAIGN, CHAPTERS, DIFF, FACTIONS, MINE_UNITS, SKILLS, TYPES } from '@/data';
 import { computePerks } from '@/data/skills';
 import { nodeIcon } from '@/render/pixi/textures';
 import { fmtTime, type Game } from '@/app/game';
@@ -107,6 +107,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
       <li><b>Vorschau:</b> Beim Ziehen steht am Zeiger, wie viele Einheiten losgehen und ob sie die Verteidigung des Ziels schlagen (✓ oder ✗).</li>
       <li><b>Mehrfachauswahl:</b> Eigene Knoten antippen, um sie zu sammeln; Doppeltipp wählt alle eigenen. Ziehen von einem gewählten Knoten schickt von allen. Tipp ins Leere hebt die Auswahl auf.</li>
       <li><b>Knotenmenü:</b> Einen einzelnen eigenen Knoten antippen: Ausbau bis Stufe 3, Reserve, Umbau in eine andere Art, Routen verwalten.</li>
+      <li><b>Hindernisse:</b> Riffbarrieren müssen durchbrochen werden (kostet Einheiten), Minen zerstören einen Teil des ersten Schwarms, der vorbeizieht. Felsen versperren Wege ganz.</li>
       <li><b>Kampf:</b> Angriffsstärke der Truppen gegen Einheiten × Verteidigung des Knotens. Bleibt etwas übrig, wechselt der Knoten die Seite.</li>
       <li><b>Truppen:</b> Jede Knotenart erzeugt eigene Truppen: Drohnen sind schnell und schwach, Panzer stark und langsam, Pfeile am schnellsten.</li>
       <li><b>Energie</b> entsteht, wenn Einheiten fallen. Damit zündest du Fähigkeiten (Tasten <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>).</li>
@@ -123,6 +124,10 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
       h += `<div class="new"><div class="icon" data-lv="3"></div><div><b>Neu: Ausbau</b><span>Tippe einen eigenen Knoten an und zahle Einheiten, um ihn auf Stufe 2 und 3 zu bringen: mehr Produktion, mehr Vorrat, mehr Verteidigung.</span></div></div>`;
     if (L.feature === 'split')
       h += `<div class="new"><div><b>Neu: Geteilte Routen und Reserve</b><span>Ziehe mehrere Routen von einem Knoten (bis zu drei); der Nachschub wird aufgeteilt. Ein voller Knoten schickt seine ganze Produktion weiter. Im Knotenmenü legst du eine Reserve fest, die zur Verteidigung bleibt und nie abfließt. Mit Shift + Ziehen schickst du sofort alles.</span></div></div>`;
+    if (L.feature === 'barrier')
+      h += `<div class="new"><div><b>Neu: Riffbarrieren</b><span>Manche Verbindungen sind von einer Barriere versperrt. Truppen, die dort ankommen, verbrauchen sich beim Durchbrechen: Erst wenn die Barriere fällt, kommen die nächsten hindurch. Das gilt auch für die Gegner.</span></div></div>`;
+    if (L.feature === 'mine')
+      h += `<div class="new"><div><b>Neu: Minen</b><span>Minen liegen auf Verbindungen und zerstören bis zu ${MINE_UNITS} Einheiten des ersten Schwarms, der vorbeizieht. Danach sind sie verbraucht. Schicke einen kleinen Trupp voraus oder lass den Gegner sie auslösen.</span></div></div>`;
     if (L.feature === 'convert')
       h += `<div class="new"><div><b>Neu: Umbau</b><span>Im Knotenmenü kannst du eine andere Knotenart wählen. Der Knoten fällt dabei auf Stufe 1 zurück.</span></div></div>`;
     h += `<div class="actions"><button class="primary" id="go">Level starten</button><button data-go="${game.levelKind === 'campaign' ? 'campaign' : 'menu'}">Zurück</button></div>`;

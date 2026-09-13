@@ -52,6 +52,25 @@ export interface Rock {
   c: number;
 }
 
+export interface Barrier {
+  a: number;
+  b: number;
+  /** Position along the edge a→b (0..1) and world coordinates. */
+  t: number;
+  x: number;
+  y: number;
+  hp: number;
+  maxHp: number;
+}
+export interface Mine {
+  a: number;
+  b: number;
+  t: number;
+  x: number;
+  y: number;
+  units: number;
+}
+
 export type SimEvent =
   | { type: 'launch'; group: Group; byPlayer: boolean; manual: boolean }
   | { type: 'capture'; node: number; by: number; prev: number; x: number; y: number }
@@ -70,6 +89,8 @@ export type SimEvent =
   | { type: 'convert'; node: number; owner: number }
   | { type: 'cut'; sources: number[]; x: number; y: number }
   | { type: 'surrender'; faction: number }
+  | { type: 'barrier'; x: number; y: number; hp: number; broken: boolean; owner: number }
+  | { type: 'mine'; x: number; y: number; killed: number; owner: number }
   | { type: 'ability'; id: AbilityId; node: number }
   | { type: 'finished'; won: boolean };
 
@@ -85,6 +106,8 @@ export interface GameState {
   blocked: Edge[];
   adj: number[][];
   rocks: Rock[];
+  barriers: Barrier[];
+  mines: Mine[];
   groups: Group[];
   nextGroupId: number;
   time: number;

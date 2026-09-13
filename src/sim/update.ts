@@ -95,10 +95,41 @@ export function step(s: GameState, dt: number): void {
     const a = s.nodes[g.from] as SimNode,
       b = s.nodes[g.to] as SimNode,
       d = Math.max(1, nodeDist(a, b));
-    g.t = Math.min(1, g.t + (g.speed * dt) / d);
+    const t0 = g.t;
+    let t1 = Math.min(1, g.t + (g.speed * dt) / d);
+    // Obstacles on this edge (either direction): position along from→to
+    for (const bar of s.barriers) {
+      if (bar.hp <= 0) continue;
+      const tb =
+        bar.a === g.from && bar.b === g.to ? bar.t : bar.b === g.from && bar.a === g.to ? 1 - bar.t : -1;
+      if (tb < 0 || !(t0 < tb && t1 >= tb)) continue;
+      // The group throws itself at the barrier: power spent on hit points, units consumed accordingly.
+      const pw = power(s, g),
+        dmg = Math.min(pw, bar.hp);
+      bar.hp -= dmg;
+      g.n -= dmg / strOf(s, g);
+      s.events.push({ type: 'barrier', x: bar.x, y: bar.y, hp: bar.hp, broken: bar.hp <= 0, owner: g.owner });
+      if (g.n <= 0.05) {
+        g.n = 0;
+        t1 = tb;
+      }
+    }
+    for (const m of s.mines) {
+      if (m.units <= 0) continue;
+      const tm = m.a === g.from && m.b === g.to ? m.t : m.b === g.from && m.a === g.to ? 1 - m.t : -1;
+      if (tm < 0 || !(t0 < tm && t1 >= tm)) continue;
+      const killed = Math.min(g.n, m.units);
+      g.n -= killed;
+      m.units = 0;
+      gainEnergy(s, killed * 0.5);
+      s.events.push({ type: 'mine', x: m.x, y: m.y, killed, owner: g.owner });
+    }
+    g.t = t1;
     g.x = a.x + (b.x - a.x) * g.t;
     g.y = a.y + (b.y - a.y) * g.t;
   }
+  s.mines = s.mines.filter((m) => m.units > 0);
+  s.barriers = s.barriers.filter((b) => b.hp > 0);
   // Groups meeting head-on on the same edge fight.
   for (let i = 0; i < s.groups.length; i++) {
     for (let j = i + 1; j < s.groups.length; j++) {

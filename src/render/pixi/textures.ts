@@ -797,3 +797,76 @@ export function nodeIcon(type: NodeType, level: Level = 1, color = '#ffc45a', si
   if (rt) draw(tinted(rt), 0.95);
   return out;
 }
+
+/** Reef barrier: a jagged coral wall segment (drawn vertical, rotated to the edge normal). */
+export function barrierTexture(): Texture {
+  return cached('barrier', () => {
+    const w = 60,
+      h = 140;
+    const [c, g] = canvas(w, h);
+    g.save();
+    g.shadowColor = 'rgba(0,0,0,0.8)';
+    g.shadowBlur = 12;
+    const body = g.createLinearGradient(0, 0, w, 0);
+    body.addColorStop(0, '#3a2438');
+    body.addColorStop(0.5, '#6a3d5a');
+    body.addColorStop(1, '#2a1a2a');
+    g.fillStyle = body;
+    g.beginPath();
+    g.moveTo(w * 0.35, 6);
+    for (let i = 0; i <= 10; i++) {
+      const y = 6 + (i / 10) * (h - 12);
+      g.lineTo(w * (0.62 + 0.18 * Math.sin(i * 2.1)), y);
+    }
+    g.lineTo(w * 0.35, h - 6);
+    for (let i = 10; i >= 0; i--) {
+      const y = 6 + (i / 10) * (h - 12);
+      g.lineTo(w * (0.38 - 0.18 * Math.sin(i * 1.7 + 1)), y);
+    }
+    g.closePath();
+    g.fill();
+    g.restore();
+    // polyps / highlights
+    for (let i = 0; i < 18; i++) {
+      const x = w * (0.3 + Math.random() * 0.4),
+        y = 10 + Math.random() * (h - 20);
+      g.fillStyle = Math.random() < 0.5 ? 'rgba(255,150,190,0.35)' : 'rgba(120,60,100,0.5)';
+      g.beginPath();
+      g.arc(x, y, 1.5 + Math.random() * 2.5, 0, TAU);
+      g.fill();
+    }
+    return c;
+  });
+}
+
+/** Mine: dark spiky orb with a glowing core. */
+export function mineTexture(): Texture {
+  return cached('mine', () => {
+    const size = 48,
+      cx = 24,
+      cy = 24;
+    const [c, g] = canvas(size, size);
+    g.fillStyle = '#2a1116';
+    for (let i = 0; i < 10; i++) {
+      const a = (i * TAU) / 10;
+      g.beginPath();
+      g.moveTo(cx + Math.cos(a - 0.2) * 12, cy + Math.sin(a - 0.2) * 12);
+      g.lineTo(cx + Math.cos(a) * 22, cy + Math.sin(a) * 22);
+      g.lineTo(cx + Math.cos(a + 0.2) * 12, cy + Math.sin(a + 0.2) * 12);
+      g.closePath();
+      g.fill();
+    }
+    const body = g.createRadialGradient(cx - 4, cy - 4, 2, cx, cy, 13);
+    body.addColorStop(0, '#5a2a36');
+    body.addColorStop(1, '#170a0e');
+    g.fillStyle = body;
+    g.beginPath();
+    g.arc(cx, cy, 13, 0, TAU);
+    g.fill();
+    g.fillStyle = '#ff5a6e';
+    g.beginPath();
+    g.arc(cx, cy, 4, 0, TAU);
+    g.fill();
+    return c;
+  });
+}

@@ -237,6 +237,12 @@ export class Synth {
       case 'cut':
         this.play('cut', 0.1, Synth.panFor(e.x));
         break;
+      case 'barrier':
+        this.play(e.broken ? 'upgrade' : 'clash', 0.2, Synth.panFor(e.x));
+        break;
+      case 'mine':
+        this.play('lost', 0.3, Synth.panFor(e.x));
+        break;
       case 'upgrade':
       case 'convert':
         if (e.owner === PLAYER) this.play('upgrade');
