@@ -4,7 +4,7 @@
 
 - PixiJS-8-Renderer (WebGL, automatischer Canvas-Fallback): generierte Sprites je Knotenart mit rotierenden Details und Atmen, additive Glows mit Bloom (Stufe „Hoch“), Truppen als Sprites, Partikel, verästelte Wächter-Blitze, Lichtsäulen und treibendes Plankton mit Parallaxe, Felsen mit Tiefe.
 - Kamera: Zoom per Mausrad, Pinch-Zoom und Zwei-Finger-Verschieben auf Touch, mittlere Maustaste zum Verschieben.
-- Grafikstufe in den Einstellungen (Auto, Hoch, Mittel, Niedrig = Canvas 2D); `prefers-reduced-motion` wird respektiert.
+- Grafikstufe in den Einstellungen (Auto, Hoch, Mittel, Niedrig = Canvas 2D); `prefers-reduced-motion` wird respektiert. Frame-Budget: Bleibt „Hoch“ zwei Sekunden lang über 28 ms pro Bild, schaltet das Spiel selbst auf „Mittel“ und sagt Bescheid.
 - Routen als durchgehender Strom einzelner Einheiten (Tower-War-Prinzip) statt Dreierpaketen; Balance geprüft, Kurve hält.
 - Randflora (Seetang, Fächerkorallen, Röhrenschwämme) prozedural am Kartenrand, Kaustik-Shader im Hintergrund (Stufe „Hoch“, WebGL), Leuchtspuren hinter Schwärmen, Puls bei Eroberung.
 - Handy: Knoten und Truppen werden auf kleinen Bildschirmen 45 % größer dargestellt, Hinweise erscheinen oben statt über der Karte.

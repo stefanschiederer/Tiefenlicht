@@ -28,6 +28,15 @@ Struktur:
 
 Der ursprüngliche Prototyp liegt als Referenz in `tiefenlicht.html`. Designentscheidungen und offene Punkte stehen in `GAMEDESIGN.md`, der Phasenplan in `PLAN.md`.
 
+## Steuerung
+
+- **Senden:** Von einem eigenen Knoten zu einem Ziel ziehen. Sofort geht der eingestellte Anteil (Standard 50 %) los, die Route bleibt und schickt laufend einen Teil der Produktion nach. Erneut ziehen schickt wieder den Anteil.
+- **Route kappen:** Quer über die Linie wischen (Start auf leerer Fläche oder einem fremden Knoten). Alternativ im Knotenmenü oder per Rechtsklick.
+- **Mehrfachauswahl:** Eigene Knoten antippen sammelt sie, Doppeltipp wählt alle. Ziehen von einem gewählten Knoten sendet von allen.
+- **Knotenmenü:** Einzelnen eigenen Knoten antippen: Ausbau, Reserve, Umbau, Routen löschen (radial am Knoten).
+- **Kamera:** Mausrad oder Pinch zoomt, Zwei-Finger-Ziehen oder mittlere Maustaste verschiebt.
+- **Tasten:** Q/W/E/R Anteil, 1–3 Fähigkeiten, Leertaste Pause, F Tempo, Esc Abbrechen.
+
 ## Installation auf dem iPhone
 
 1. Seite in Safari öffnen.

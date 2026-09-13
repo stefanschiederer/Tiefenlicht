@@ -50,6 +50,7 @@ interface Mote {
 export class CanvasRenderer {
   readonly view = new View();
   readonly kind = 'canvas' as const;
+  readonly quality = 'niedrig' as const;
   private ctx: CanvasRenderingContext2D;
   private dpr = 1;
   private staticLayer: HTMLCanvasElement | null = null;

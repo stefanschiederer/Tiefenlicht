@@ -93,7 +93,13 @@ export class PixiRenderer implements Renderer {
   readonly view = new View();
   readonly kind = 'pixi' as const;
   private app!: Application;
-  private quality: GraphicsQuality = 'hoch';
+  quality: GraphicsQuality = 'hoch';
+  private bloom: AdvancedBloomFilter | null = null;
+  private slowFrames = 0;
+  private frameSamples = 0;
+  private frameTime = 0;
+  /** Called when the renderer lowers its quality on its own (frame budget). */
+  onQualityChange: ((q: GraphicsQuality) => void) | null = null;
   private elapsed = 0;
   // layers
   private bg = new Container();
@@ -873,8 +879,35 @@ export class PixiRenderer implements Renderer {
     this.zaps = keep;
   }
 
+  /** Lowers or raises the effect level at runtime. */
+  setQuality(q: GraphicsQuality): void {
+    if (q === this.quality || q === 'niedrig') return;
+    this.quality = q;
+    this.world.filters = q === 'hoch' && this.bloom ? [this.bloom] : null;
+    this.bg.filters = q === 'hoch' && this.caustics ? [this.caustics] : null;
+    this.initMotes();
+  }
+
+  /** Frame budget: if rendering stays above ~28 ms per frame for two seconds on 'hoch', drop to 'mittel'. */
+  private watchFrameBudget(dt: number): void {
+    if (this.quality !== 'hoch') return;
+    this.frameTime += dt;
+    this.frameSamples++;
+    if (this.frameTime < 2) return;
+    const avg = this.frameTime / this.frameSamples;
+    this.frameTime = 0;
+    this.frameSamples = 0;
+    if (avg > 0.028) this.slowFrames++;
+    else this.slowFrames = 0;
+    if (this.slowFrames >= 2) {
+      this.setQuality('mittel');
+      this.onQualityChange?.('mittel');
+    }
+  }
+
   render(state: GameState, ui: UiState, dt: number): void {
     this.elapsed += dt;
+    this.watchFrameBudget(dt);
     if (this.levelFor !== state) this.setLevel(state);
     this.syncCamera();
     if (this.caustics) this.caustics.time = this.elapsed;

@@ -14,6 +14,9 @@ export interface Renderer {
   nodeAt(state: GameState, px: number, py: number): SimNode | null;
   onEvent(e: SimEvent, state: GameState): void;
   render(state: GameState, ui: UiState, dt: number): void;
+  /** Current quality; renderers may lower it at runtime when frames are too slow. */
+  readonly quality: GraphicsQuality;
+  setQuality?(q: GraphicsQuality): void;
   destroy(): void;
 }
 

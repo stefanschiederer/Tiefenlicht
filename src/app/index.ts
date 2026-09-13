@@ -23,6 +23,9 @@ export async function startApp(): Promise<Game> {
   const pref = readSave().graphics;
   const quality: GraphicsQuality = pref === 'auto' ? (isTouch() ? 'mittel' : 'hoch') : pref;
   const renderer = await createRenderer(canvas, quality);
+  if ('onQualityChange' in renderer)
+    (renderer as { onQualityChange: ((q: string) => void) | null }).onQualityChange = () =>
+      tip('Grafik auf „Mittel“ gesenkt, damit es flüssig bleibt. In den Einstellungen änderbar.', 4000);
   const game = new Game(renderer, {
     onHud: () => {
       updateHud(game);
