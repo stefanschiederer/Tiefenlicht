@@ -196,6 +196,7 @@ export class Game {
   }
   pause(): void {
     this.paused = true;
+    this.cancelGesture();
   }
   toggleSpeed(): number {
     this.speed = this.speed === 1 ? 2 : 1;
@@ -228,7 +229,7 @@ export class Game {
     }
     this.ui.hover =
       this.mode === 'game'
-        ? (this.renderer.nodeAt(this.state, this.ui.pointer.x, this.ui.pointer.y)?.id ?? null)
+        ? (this.renderer.view.nodeAt(this.state, this.ui.pointer.x, this.ui.pointer.y)?.id ?? null)
         : null;
     if (this.ui.drag) this.updateDragPreview();
     this.renderer.render(this.state, this.ui, dt);
@@ -302,6 +303,7 @@ export class Game {
     if (!this.running) return;
     this.running = false;
     this.ui.abilityMode = null;
+    this.cancelGesture();
     const L = this.def;
     let result: LevelResult | null = null;
     if (won) {
@@ -332,7 +334,7 @@ export class Game {
 
   // ---- Input actions (screen coordinates) ----
   nodeAt(px: number, py: number): SimNode | null {
-    return this.renderer.nodeAt(this.state, px, py);
+    return this.renderer.view.nodeAt(this.state, px, py);
   }
   pointerDown(px: number, py: number, shift: boolean): 'drag' | 'ability' | 'cut' | 'none' {
     this.ui.pointer = { x: px, y: py };
@@ -393,7 +395,14 @@ export class Game {
       return;
     }
     const p = bfsPath(this.state.adj, lastId, hit.id);
-    if (p) for (const id of p.slice(1)) if (!path.includes(id)) path.push(id);
+    if (!p) return;
+    // Append the shortest continuation; if it revisits a node already on the path, backtrack to it so
+    // every consecutive pair on the path stays an actual edge.
+    for (const id of p.slice(1)) {
+      const at = path.indexOf(id);
+      if (at >= 0) path.length = at + 1;
+      else path.push(id);
+    }
   }
   pointerUp(px: number, py: number): void {
     this.ui.pointer = { x: px, y: py };
@@ -401,6 +410,7 @@ export class Game {
     const d = this.ui.drag;
     if (!d) return;
     this.ui.drag = null;
+    if (this.mode !== 'game' || !this.running || this.paused) return;
     const src = this.state.nodes[d.src] as SimNode;
     if (d.path.length >= 2) {
       this.sendAlong(src, d.path);

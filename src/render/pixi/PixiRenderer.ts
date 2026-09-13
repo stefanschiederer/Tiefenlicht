@@ -92,6 +92,7 @@ interface Mote {
 export class PixiRenderer implements Renderer {
   readonly view = new View();
   readonly kind = 'pixi' as const;
+  canvas!: HTMLCanvasElement;
   private app!: Application;
   quality: GraphicsQuality = 'hoch';
   private bloom: AdvancedBloomFilter | null = null;
@@ -152,7 +153,13 @@ export class PixiRenderer implements Renderer {
     });
     app.ticker.stop();
     r.app = app;
-    r.build();
+    r.canvas = canvas;
+    try {
+      r.build();
+    } catch (err) {
+      app.destroy(false, { children: true });
+      throw err;
+    }
     return r;
   }
 
@@ -215,15 +222,15 @@ export class PixiRenderer implements Renderer {
     this.world.addChild(this.fx, this.zapsG);
     stage.addChild(this.world);
     if (this.quality === 'hoch') {
-      const bloom = new AdvancedBloomFilter({
+      this.bloom = new AdvancedBloomFilter({
         threshold: 0.45,
         bloomScale: 0.9,
         brightness: 1.0,
         blur: 6,
         quality: 4,
       });
-      bloom.resolution = 0.5;
-      this.world.filters = [bloom];
+      this.bloom.resolution = 0.5;
+      this.world.filters = [this.bloom];
     }
     // overlay (screen space)
     this.dragLabel = new BitmapText({ text: '', style: { fontFamily: LABEL_FONT, fontSize: 14 } });
@@ -290,7 +297,7 @@ export class PixiRenderer implements Renderer {
     this.groupViews.clear();
     this.lights.removeChildren().forEach((c) => c.destroy());
     this.labels.removeChildren().forEach((c) => c.destroy());
-    this.rocks.removeChildren().forEach((c) => c.destroy());
+    this.rocks.removeChildren().forEach((c) => c.destroy({ texture: true, textureSource: true }));
     this.fx.removeParticles();
     this.particles = [];
     this.zaps = [];
@@ -414,15 +421,6 @@ export class PixiRenderer implements Renderer {
       phase: Math.random() * TAU,
       flash: 0,
     };
-  }
-
-  nodeAt(state: GameState, px: number, py: number): SimNode | null {
-    const v = this.view;
-    for (const n of state.nodes) {
-      const r = Math.max(nodeRadius(n) * v.nodeScale * v.scale + 16 * v.S, 24);
-      if (Math.hypot(v.sx(n.x) - px, v.sy(n.y) - py) <= r) return n;
-    }
-    return null;
   }
 
   onEvent(e: SimEvent, state: GameState): void {

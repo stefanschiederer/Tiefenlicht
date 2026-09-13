@@ -1,4 +1,4 @@
-import type { GameState, SimEvent, SimNode } from '@/sim/state';
+import type { GameState, SimEvent } from '@/sim/state';
 import type { View } from './view';
 import type { UiState } from './canvas2d/renderer';
 
@@ -9,9 +9,10 @@ export type GraphicsQuality = 'niedrig' | 'mittel' | 'hoch';
 export interface Renderer {
   readonly view: View;
   readonly kind: 'canvas' | 'pixi';
+  /** The canvas actually used (the fallback may replace a WebGL-bound canvas). */
+  readonly canvas: HTMLCanvasElement;
   resize(width: number, height: number, insets?: Partial<View['insets']>): void;
   setLevel(state: GameState): void;
-  nodeAt(state: GameState, px: number, py: number): SimNode | null;
   onEvent(e: SimEvent, state: GameState): void;
   render(state: GameState, ui: UiState, dt: number): void;
   /** Current quality; renderers may lower it at runtime when frames are too slow. */
@@ -31,5 +32,11 @@ export async function createRenderer(canvas: HTMLCanvasElement, quality: Graphic
     }
   }
   const { CanvasRenderer } = await import('./canvas2d/renderer');
-  return new CanvasRenderer(canvas);
+  // A canvas that already holds a WebGL context cannot provide a 2D context: swap in a fresh one.
+  let target = canvas;
+  if (!canvas.getContext('2d')) {
+    target = canvas.cloneNode(false) as HTMLCanvasElement;
+    canvas.replaceWith(target);
+  }
+  return new CanvasRenderer(target);
 }

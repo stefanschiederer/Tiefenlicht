@@ -1,4 +1,6 @@
 import { WORLD_H, WORLD_W } from '@/data';
+import type { GameState, SimNode } from '@/sim/state';
+import { nodeRadius } from '@/sim/stats';
 
 /**
  * Maps world coordinates (fixed 1600×800) to the screen. The map is fitted into the screen minus HUD
@@ -24,6 +26,8 @@ export class View {
   readonly minZoom = 1;
   readonly maxZoom = 3;
   private fit = 1;
+  /** Incremented whenever the mapping changes (renderers use it to invalidate cached layers). */
+  version = 0;
 
   resize(width: number, height: number, insets?: Partial<View['insets']>): void {
     this.width = width;
@@ -59,6 +63,7 @@ export class View {
     this.cy = WORLD_H * this.scale <= r.h ? WORLD_H / 2 : Math.max(halfH, Math.min(WORLD_H - halfH, this.cy));
     this.offsetX = r.x + r.w / 2 - this.cx * this.scale;
     this.offsetY = r.y + r.h / 2 - this.cy * this.scale;
+    this.version++;
   }
 
   /** Zooms by `factor` keeping the world point under screen (px, py) fixed. */
@@ -84,6 +89,15 @@ export class View {
     this.cx = WORLD_W / 2;
     this.cy = WORLD_H / 2;
     this.apply();
+  }
+
+  /** Screen-space hit test with touch slop (shared by all renderers). */
+  nodeAt(state: GameState, px: number, py: number): SimNode | null {
+    for (const n of state.nodes) {
+      const r = Math.max(nodeRadius(n) * this.nodeScale * this.scale + 16 * this.S, 24);
+      if (Math.hypot(this.sx(n.x) - px, this.sy(n.y) - py) <= r) return n;
+    }
+    return null;
   }
 
   sx(x: number): number {

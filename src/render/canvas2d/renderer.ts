@@ -55,6 +55,7 @@ export class CanvasRenderer {
   private dpr = 1;
   private staticLayer: HTMLCanvasElement | null = null;
   private staticFor: GameState | null = null;
+  private staticVersion = -1;
   private motes: Mote[] = [];
   private particles: Particle[] = [];
   private zaps: Zap[] = [];
@@ -62,8 +63,10 @@ export class CanvasRenderer {
   private pulse = new Map<number, number>();
   private elapsed = 0;
 
-  constructor(private canvas: HTMLCanvasElement) {
-    this.ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+  constructor(readonly canvas: HTMLCanvasElement) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas 2D context unavailable');
+    this.ctx = ctx;
   }
 
   resize(width: number, height: number, insets?: Partial<View['insets']>): void {
@@ -87,16 +90,6 @@ export class CanvasRenderer {
     for (const n of state.nodes) this.pulse.set(n.id, Math.random() * TAU);
     this.staticLayer = null;
     this.staticFor = state;
-  }
-
-  /** Screen-space hit test with touch slop. */
-  nodeAt(state: GameState, px: number, py: number): SimNode | null {
-    const v = this.view;
-    for (const n of state.nodes) {
-      const r = Math.max(nodeRadius(n) * v.nodeScale * v.scale + 16 * v.S, 24);
-      if (Math.hypot(v.sx(n.x) - px, v.sy(n.y) - py) <= r) return n;
-    }
-    return null;
   }
 
   onEvent(e: SimEvent, state: GameState): void {
@@ -313,6 +306,7 @@ export class CanvasRenderer {
     g.fillRect(0, 0, W, H);
     this.staticLayer = c;
     this.staticFor = state;
+    this.staticVersion = this.view.version;
   }
 
   private drawAmbient(dt: number): void {
@@ -621,7 +615,8 @@ export class CanvasRenderer {
       if (nf <= 0) this.flash.delete(id);
       else this.flash.set(id, nf);
     }
-    if (!this.staticLayer || this.staticFor !== state) this.buildStatic(state);
+    if (!this.staticLayer || this.staticFor !== state || this.staticVersion !== this.view.version)
+      this.buildStatic(state);
     const ctx = this.ctx,
       v = this.view,
       S = v.S;

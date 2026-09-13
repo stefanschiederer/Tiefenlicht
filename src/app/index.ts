@@ -75,7 +75,7 @@ export async function startApp(): Promise<Game> {
   const toggleSpeed = () => setSpeedButton(game.toggleSpeed());
   initHud();
   setSpeedButton(1);
-  bindInput(canvas, game, { togglePause, toggleSpeed, onSendMode: () => renderSendbar(game) });
+  bindInput(renderer.canvas, game, { togglePause, toggleSpeed, onSendMode: () => renderSendbar(game) });
 
   $('#legendBtn').addEventListener('click', () => {
     const b = $('#legend');

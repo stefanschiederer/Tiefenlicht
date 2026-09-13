@@ -408,7 +408,8 @@ export function rockClusterTexture(
     g.fill();
   }
   g.restore();
-  return { texture: Texture.from(c), x: minX, y: minY, w, h };
+  // Not cached: each level builds its own rock textures and releases them on the next setLevel.
+  return { texture: Texture.from(c, true), x: minX, y: minY, w, h };
 }
 
 /** Screen background gradient (stretched). */
