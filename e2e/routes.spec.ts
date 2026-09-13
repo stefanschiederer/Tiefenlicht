@@ -1,9 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 
 type TL = {
-  nodes: { id: number; nx: number; ny: number; owner: number; units: number; routes: number[][] }[];
+  nodes: { id: number; x: number; y: number; owner: number; units: number; routes: number[][] }[];
   edges: [number, number][];
   groups: { owner: number; n: number }[];
+  view: { sx(x: number): number; sy(y: number): number };
 };
 const tl = (page: Page) =>
   page.evaluate(() => {
@@ -14,11 +15,9 @@ const tl = (page: Page) =>
     if (!e) throw new Error('no edge');
     const nb = t.nodes[e[0] === me.id ? e[1] : e[0]];
     if (!nb) throw new Error('no neighbour');
-    const W = innerWidth,
-      H = innerHeight;
     return {
-      me: { x: me.nx * W, y: me.ny * H, units: me.units, routes: me.routes.length },
-      nb: { x: nb.nx * W, y: nb.ny * H },
+      me: { x: t.view.sx(me.x), y: t.view.sy(me.y), units: me.units, routes: me.routes.length },
+      nb: { x: t.view.sx(nb.x), y: t.view.sy(nb.y) },
       groups: t.groups.filter((g) => g.owner === 1).map((g) => g.n),
     };
   });
@@ -39,8 +38,7 @@ test('drawing a path sends the share and keeps a route; drawing again sends agai
   const after = await tl(page);
   expect(after.me.routes).toBe(1);
   expect(after.groups.length).toBeGreaterThanOrEqual(1);
-  const first = after.groups[0] ?? 0;
-  expect(first).toBeGreaterThanOrEqual(Math.floor(before.me.units * 0.5) - 1);
+  expect(after.groups[0] ?? 0).toBeGreaterThanOrEqual(Math.floor(before.me.units * 0.5) - 1);
   // Draw the same path again: sends the share of what is left, route count stays 1.
   await page.mouse.move(before.me.x, before.me.y);
   await page.mouse.down();
@@ -50,4 +48,19 @@ test('drawing a path sends the share and keeps a route; drawing again sends agai
   const again = await tl(page);
   expect(again.me.routes).toBe(1);
   expect(again.groups.length).toBeGreaterThanOrEqual(2);
+});
+
+test('touch drag works underneath the HUD info block', async ({ page }) => {
+  test.skip(test.info().project.name !== 'mobile', 'touch only');
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Kampagne' }).tap();
+  await page.getByRole('button', { name: /1\. Erstes Leuchten/ }).tap();
+  await page.getByRole('button', { name: 'Level starten' }).tap();
+  await page.waitForTimeout(300);
+  // The brand block (title, level, energy) must not intercept pointer events.
+  const blocked = await page.evaluate(() => {
+    const el = document.elementFromPoint(60, 60);
+    return el ? el.closest('#hud .brand') !== null : false;
+  });
+  expect(blocked).toBe(false);
 });

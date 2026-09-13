@@ -1,0 +1,119 @@
+import { ABILITIES, ENERGY_MAX, MAX_ROUTES, PLAYER, TYPES, type AbilityId, type NodeType } from '@/data';
+import type { GameState, Group, SimNode } from './state';
+import { capOf, convertCost, speedFrom, upgradeCost } from './stats';
+
+export interface LaunchOptions {
+  /** Player-initiated drag (sound + tips). */
+  manual?: boolean;
+}
+
+/** Sends `k` units from `n` along `path` (node ids after n). Returns the group or null. */
+export function launch(
+  s: GameState,
+  n: SimNode,
+  path: readonly number[],
+  k: number,
+  opts: LaunchOptions = {},
+): Group | null {
+  k = Math.min(Math.floor(n.units), Math.floor(k));
+  if (k < 1 || !path.length) return null;
+  n.units -= k;
+  const unit = TYPES[n.type].unit;
+  const g: Group = {
+    id: s.nextGroupId++,
+    owner: n.owner,
+    n: k,
+    unit,
+    from: n.id,
+    to: path[0] as number,
+    path: path.slice(1),
+    t: 0,
+    x: n.x,
+    y: n.y,
+    speed: speedFrom(s, n, n.owner, unit),
+  };
+  s.groups.push(g);
+  s.events.push({ type: 'launch', group: g, byPlayer: n.owner === PLAYER && !s.demo, manual: !!opts.manual });
+  return g;
+}
+
+export function gainEnergy(s: GameState, lost: number): void {
+  if (s.demo) return;
+  s.energy = Math.min(ENERGY_MAX, s.energy + lost * 0.5 * (1 + s.perks.energy));
+}
+
+export function doUpgrade(s: GameState, n: SimNode, free = false): boolean {
+  if (n.level >= 3) return false;
+  const cost = free ? 0 : upgradeCost(s, n);
+  if (n.units < cost) return false;
+  n.units -= cost;
+  n.level = (n.level + 1) as 2 | 3;
+  s.events.push({ type: 'upgrade', node: n.id, owner: n.owner });
+  return true;
+}
+
+export function doConvert(s: GameState, n: SimNode, type: NodeType): boolean {
+  if (type === n.type || !s.def.types.includes(type)) return false;
+  const cost = convertCost(s, n);
+  if (n.units < cost) return false;
+  n.units -= cost;
+  n.type = type;
+  n.level = 1;
+  n.zapAcc = 0;
+  s.events.push({ type: 'convert', node: n.id, owner: n.owner });
+  return true;
+}
+
+export function canUseAbility(s: GameState, id: AbilityId): boolean {
+  return s.perks.abilities.includes(id) && s.energy >= Math.ceil(ABILITIES[id].cost * (1 - s.perks.abcost));
+}
+
+export function useAbility(s: GameState, id: AbilityId, n: SimNode): boolean {
+  const A = ABILITIES[id];
+  const cost = Math.ceil(A.cost * (1 - s.perks.abcost));
+  if (s.energy < cost || !s.perks.abilities.includes(id)) return false;
+  if (A.target === 'own' && n.owner !== PLAYER) return false;
+  if (A.target === 'enemy' && n.owner === PLAYER) return false;
+  s.energy -= cost;
+  if (id === 'stoss') n.units += 12;
+  if (id === 'frost') {
+    n.frozen = 10;
+    n.units *= 0.7;
+  }
+  if (id === 'schild') n.shield = 8;
+  s.events.push({ type: 'ability', id, node: n.id });
+  return true;
+}
+
+/** Units a manual drag would send at the given fraction, respecting the reserve. */
+export function sendAmount(s: GameState, n: SimNode, frac: number): number {
+  const avail = Math.max(0, n.units - n.reserve * capOf(s, n));
+  return Math.max(avail >= 1 ? 1 : 0, Math.floor(avail * frac));
+}
+
+/** Adds (or replaces, by target) a persistent route. Returns true if it is a new route. */
+export function addRoute(src: SimNode, route: readonly number[]): boolean {
+  const target = route[route.length - 1];
+  const i = src.routes.findIndex((r) => r[r.length - 1] === target);
+  const isNew = i < 0;
+  if (i >= 0) src.routes[i] = [...route];
+  else {
+    if (src.routes.length >= MAX_ROUTES) src.routes.shift();
+    src.routes.push([...route]);
+  }
+  src.flowT = 0;
+  return isNew;
+}
+
+export function removeRoute(src: SimNode, index: number): void {
+  src.routes.splice(index, 1);
+}
+
+export function clearRoutes(src: SimNode): void {
+  src.routes = [];
+}
+
+export function cycleReserve(src: SimNode): number {
+  src.reserve = (src.reserve + 0.25) % 1;
+  return src.reserve;
+}

@@ -1,0 +1,66 @@
+import type { Difficulty } from '@/app/save';
+
+export interface DifficultyDef {
+  label: string;
+  /** Multiplier on enemy production. */
+  prod: number;
+  /** Multiplier on the AI's decision interval (lower = faster AI). */
+  ai: number;
+}
+export const DIFF: Record<Difficulty, DifficultyDef> = {
+  leicht: { label: 'Leicht', prod: 0.85, ai: 1.3 },
+  normal: { label: 'Normal', prod: 1, ai: 1 },
+  schwer: { label: 'Schwer', prod: 1.15, ai: 0.8 },
+};
+
+export type AbilityId = 'stoss' | 'frost' | 'schild';
+export interface AbilityDef {
+  name: string;
+  icon: string;
+  cost: number;
+  target: 'own' | 'enemy';
+  desc: string;
+}
+export const ABILITIES: Record<AbilityId, AbilityDef> = {
+  stoss: {
+    name: 'Lichtstoß',
+    icon: '✦',
+    cost: 35,
+    target: 'own',
+    desc: '12 Einheiten erscheinen sofort an einem eigenen Knoten.',
+  },
+  frost: {
+    name: 'Frostwelle',
+    icon: '❄',
+    cost: 60,
+    target: 'enemy',
+    desc: 'Ein fremder Knoten friert 10 Sekunden ein und verliert 30 % seiner Einheiten.',
+  },
+  schild: {
+    name: 'Schild',
+    icon: '⬡',
+    cost: 45,
+    target: 'own',
+    desc: 'Ein eigener Knoten verteidigt 8 Sekunden lang dreifach.',
+  },
+};
+export const ABILITY_ORDER: readonly AbilityId[] = ['stoss', 'frost', 'schild'];
+
+/** World size in world units. The simulation is independent of the screen. */
+export const WORLD_W = 1600;
+export const WORLD_H = 800;
+/** Equivalent of the prototype's screen scale factor at the reference resolution. */
+export const SIM_SCALE = 1;
+export const BASE_SPEED = 82;
+/** Max simultaneous routes per node. */
+export const MAX_ROUTES = 3;
+/** Seconds between route shipments (halved with the "flow" perk). */
+export const FLOW_INTERVAL = 0.4;
+export const FLOW_INTERVAL_FAST = 0.2;
+/**
+ * Share of a node's production that persistent routes forward. The rest stays at the node so it keeps
+ * growing (for upgrades and defence). A full node forwards its whole production instead.
+ */
+export const ROUTE_SHARE = 0.4;
+export const ROUTE_SHARE_FAST = 0.6;
+export const ENERGY_MAX = 100;

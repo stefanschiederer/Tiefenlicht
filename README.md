@@ -13,8 +13,20 @@ npm run screenshots
 npm run icons      # Icons aus public/logo.svg neu erzeugen
 ```
 
-Struktur: `src/sim` (Spiellogik ohne DOM), `src/ai`, `src/render`, `src/ui`, `src/audio`, `src/data`, `src/app`, `public/`.
-In Phase 0 läuft der ursprüngliche Prototyp als `src/legacy/prototype.js`; die Zerlegung folgt in Phase 1 (siehe `PLAN.md`).
+```sh
+npm run balance    # spielt alle Level headless mit dem Bot durch, schreibt BALANCE.md
+```
+
+Struktur:
+
+- `src/data` – Knotenarten, Truppen, Fraktionen, Fähigkeiten, Skills, Kampagne, Regeln (Weltgröße 1600 × 800).
+- `src/sim` – reine Simulation ohne DOM: RNG, Graph, Kartengenerator, Levelaufbau, Aktionen, `step()`; gibt Ereignisse aus.
+- `src/ai` – Gegner-KI (`bot.ts`) und Heuristik-Bot für den Balance-Harness (`playerBot.ts`).
+- `src/render/canvas2d` – Renderer (liest den Zustand, hält nur visuelle Effekte), `src/render/view.ts` bildet Welt auf Bildschirm ab.
+- `src/ui` – HUD, Knotenmenü, Bildschirme. `src/app` – Spielsitzung, Eingabe, Spielstand, PWA.
+- `src/audio` – synthetische Sounds. `tests/` – Vitest. `e2e/` – Playwright. `scripts/` – Icons, Balance.
+
+Der ursprüngliche Prototyp liegt als Referenz in `tiefenlicht.html`.
 
 ## Installation auf dem iPhone
 

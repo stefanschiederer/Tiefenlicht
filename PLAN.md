@@ -12,7 +12,7 @@ Die Spielregeln sind vollständig in einer Datei und gut abgegrenzt (Daten → H
 
 Sonstiges: Endlos-Level, Skill-Effekte, Fähigkeiten, Sterne und Spielstand-Code sind sauber datengetrieben und lassen sich 1:1 übernehmen. Der Renderer (Canvas 2D) ist eng mit dem Zustand verflochten und wird in Phase 2 komplett ersetzt; bis dahin läuft er als „Legacy-Renderer“ weiter.
 
-## Phase 0 – Projekt, Git, Deployment
+## Phase 0 – Projekt, Git, Deployment (erledigt 2026-09-13)
 
 - Vite 8 + TypeScript 7 (strict), ESLint 10 (flat config, typescript-eslint), Prettier, Vitest 5, Playwright 1.63.
 - Verzeichnisse: `src/sim`, `src/ai`, `src/render`, `src/ui`, `src/audio`, `src/data`, `src/app`, `public/`, `tests/`, `scripts/`, `e2e/`.
@@ -22,7 +22,9 @@ Sonstiges: Endlos-Level, Skill-Effekte, Fähigkeiten, Sterne und Spielstand-Code
 - Git: `git init`, `.gitignore`, erster Commit. GitHub-Repository `tiefenlicht`, Workflow `.github/workflows/deploy.yml` (Lint, Tests, Build, Pages-Deploy bei Push auf `main`), Vite `base: '/tiefenlicht/'`.
 - **Offen:** `gh` ist auf diesem Rechner nicht installiert. Repository-Anlage und Push brauchen `gh auth login` (Anleitung im Bericht).
 
-## Phase 1 – Refactoring ohne Verhaltensänderung
+## Phase 1 – Refactoring ohne Verhaltensänderung (erledigt 2026-09-13)
+
+Umgesetzt wie unten; Weltgröße 1600 × 800 (2:1, passt zu Handy-Querformat). Auf Wunsch geändert: Ziehen schickt sofort den Anteil und legt die Route an; Routen leiten 40 % der Produktion als Strom weiter (voller Knoten: alles). Zielzeiten sind dadurch noch nicht neu abgestimmt (siehe `BALANCE.md`); das gehört in Phase 4.
 
 - `src/sim`: `state.ts` (Typen), `rng.ts`, `graph.ts` (BFS, Zusammenhang, Hop-Distanzen), `mapgen.ts`, `level.ts` (Aufbau), `combat.ts`, `routes.ts`, `abilities.ts`, `update.ts` (ein `step(state, dt)`), `events.ts` (Sim emittiert Ereignisse wie `capture`, `clash`, `zap`; Audio, Partikel und Tipps hängen sich daran, nicht umgekehrt).
 - `src/ai/bot.ts`: die Gegner-KI aus `aiAct` mit injiziertem RNG; identische Heuristik.
