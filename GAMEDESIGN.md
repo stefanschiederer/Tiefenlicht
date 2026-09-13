@@ -36,11 +36,15 @@ Vom Spieler als Referenz gewünscht. Was Tower War richtig macht und wie Tiefenl
 - **Typspezifischer Ausbau.** Brutnest → Produktion, Bastion → Verteidigung, Wächter → Reichweite/Feuerrate, Strömung → Tempo, Quelle → Verstärkung, Nest → Vorrat und Routen.
 - **Ausbau als sichtbarer Sprung** (Turm wächst). Tiefenlicht: Ausbaustufen mit Ringen und größerem Sprite; Umbau in andere Arten als zusätzliche Tiefe, die Tower War nicht hat.
 
+## Stand 2026-09-14: Lagune und Linien
+
+Auf Wunsch des Besitzers komplett auf Tower War umgestellt: Linien statt Sende-Anteile, fester Strom, Kappen per Wischen, Gegner mit Linien. Art Direction „Sonnige Lagune“ (siehe Design-Canvas): helles Wasser, Korallen und Muscheln als Gebäude, Meerestiere als Truppen. Skill-Baum auf 32 Fähigkeiten erweitert.
+
 ## Regeln, die bewusst bleiben
 
-- Ziehen schickt sofort den Anteil und legt eine Route an; Routen leiten 40 % der Produktion in Paketen weiter, ein voller Knoten alles. Der Knoten wächst weiter und kann ausgebaut werden.
-- Routen kappt man mit einer Wisch-Geste quer über die Linie, alternativ im Knotenmenü.
-- Reserve, Ausbau, Umbau, Energie und Fähigkeiten bleiben wie im Prototyp.
+- Eine Linie ist die Verbindung; Einheiten strömen mit fester Rate (1,6/s je Linie), Produktion läuft weiter. Linien pro Gebäude: 1/2/3 nach Stufe.
+- Linien kappt man mit einer Wisch-Geste quer über die Linie, alternativ im Gebäudemenü.
+- Ausbau (typspezifisch), Umbau, Energie und Fähigkeiten bleiben.
 
 ## Messbarkeit
 
