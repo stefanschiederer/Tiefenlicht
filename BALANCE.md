@@ -14,61 +14,61 @@ Stand: 2026-09-13 · Weltgröße: 1600 × 800 · Laufzeit des Harness: 13.1 s
 
 | Level | Name                  | Gegner | Zielzeit | Ausgang (3 Läufe) | Zeit (Median) | Sterne | Anteil 60 s | Anteil 120 s |
 | ----- | --------------------- | ------ | -------- | ----------------- | ------------- | ------ | ----------- | ------------ |
-| 1     | Erstes Leuchten       | 1      | 95 s     | S S S             | 133 s         | 3/2/2  | 67 %        | 71 %         |
-| 2     | Brutgrund             | 1      | 90 s     | S S S             | 138 s         | 2/2/1  | 59 %        | 74 %         |
-| 3     | Ausbau                | 1      | 95 s     | S S S             | 188 s         | 1/1/1  | 63 %        | 77 %         |
-| 4     | Riffkante             | 1      | 90 s     | S S S             | 134 s         | 2/2/1  | 50 %        | 73 %         |
-| 5     | Kalte Strömung        | 1      | 155 s    | S S S             | 191 s         | 3/2/1  | 61 %        | 76 %         |
-| 6     | Zwei Fronten          | 2      | 190 s    | S S S             | 187 s         | 2/3/3  | 42 %        | 67 %         |
-| 7     | Wachtposten           | 2      | 145 s    | S N N             | 141 s         | 3/0/0  | 33 %        | 53 %         |
-| 8     | Die Quelle            | 2      | 155 s    | N S N             | 202 s         | 0/2/0  | 41 %        | 46 %         |
-| 9     | Umbau                 | 2      | 155 s    | S N N             | 307 s         | 1/0/0  | 38 %        | 36 %         |
-| 10    | Schwarzes Riff        | 2      | 195 s    | S N S             | 215 s         | 3/0/2  | 38 %        | 55 %         |
-| 11    | Enge Gassen           | 2      | 195 s    | N S N             | 303 s         | 0/2/0  | 33 %        | 42 %         |
-| 12    | Gegenstrom            | 2      | 230 s    | S N N             | 850 s         | 1/0/0  | 40 %        | 53 %         |
-| 13    | Dreifront             | 3      | 240 s    | S S N             | 173 s         | 3/3/0  | 31 %        | 54 %         |
-| 14    | Tiefe Gräben          | 3      | 250 s    | S N N             | 288 s         | 2/0/0  | 25 %        | 29 %         |
-| 15    | Stille Wasser         | 3      | 265 s    | N S N             | 154 s         | 0/3/0  | 33 %        | 57 %         |
-| 16    | Das Leuchten erlischt | 3      | 280 s    | S Z S             | 243 s         | 3/0/3  | 35 %        | 50 %         |
-| 17    | Abgrund               | 3      | 290 s    | S S N             | 365 s         | 2/2/0  | 31 %        | 26 %         |
-| 18    | Der Grund             | 3      | 300 s    | N N N             | –             | 0/0/0  | 27 %        | 20 %         |
+| 1     | Erstes Leuchten       | 1      | 85 s     | S S S             | 118 s         | 3/2/2  | 62 %        | 81 %         |
+| 2     | Brutgrund             | 1      | 95 s     | S S S             | 140 s         | 1/2/2  | 59 %        | 78 %         |
+| 3     | Ausbau                | 1      | 100 s    | S S S             | 138 s         | 2/1/2  | 60 %        | 77 %         |
+| 4     | Riffkante             | 1      | 110 s    | S S S             | 156 s         | 2/2/2  | 47 %        | 63 %         |
+| 5     | Kalte Strömung        | 1      | 120 s    | S S S             | 169 s         | 2/3/2  | 67 %        | 79 %         |
+| 6     | Zwei Fronten          | 2      | 130 s    | S S S             | 154 s         | 2/3/2  | 39 %        | 72 %         |
+| 7     | Wachtposten           | 2      | 145 s    | S N N             | 208 s         | 2/0/0  | 39 %        | 47 %         |
+| 8     | Die Quelle            | 2      | 150 s    | N S N             | 214 s         | 0/2/0  | 46 %        | 38 %         |
+| 9     | Umbau                 | 2      | 170 s    | S N N             | 287 s         | 1/0/0  | 46 %        | 41 %         |
+| 10    | Schwarzes Riff        | 2      | 175 s    | S S N             | 179 s         | 3/2/0  | 33 %        | 55 %         |
+| 11    | Enge Gassen           | 2      | 180 s    | S S S             | 204 s         | 2/1/3  | 36 %        | 51 %         |
+| 12    | Gegenstrom            | 2      | 185 s    | S S N             | 163 s         | 3/3/0  | 42 %        | 49 %         |
+| 13    | Dreifront             | 3      | 200 s    | N S N             | 280 s         | 0/2/0  | 33 %        | 35 %         |
+| 14    | Tiefe Gräben          | 3      | 220 s    | N N S             | 409 s         | 0/0/1  | 47 %        | 45 %         |
+| 15    | Stille Wasser         | 3      | 230 s    | N S Z             | 267 s         | 0/2/0  | 29 %        | 45 %         |
+| 16    | Das Leuchten erlischt | 3      | 240 s    | S S N             | 198 s         | 3/3/0  | 30 %        | 52 %         |
+| 17    | Abgrund               | 3      | 260 s    | S N N             | 435 s         | 1/0/0  | 35 %        | 50 %         |
+| 18    | Der Grund             | 3      | 280 s    | Z S N             | 161 s         | 0/3/0  | 25 %        | 37 %         |
 
 ## Endlos, Wellen 1–6 (Normal)
 
 | Level | Name    | Gegner | Zielzeit | Ausgang (3 Läufe) | Zeit (Median) | Sterne | Anteil 60 s | Anteil 120 s |
 | ----- | ------- | ------ | -------- | ----------------- | ------------- | ------ | ----------- | ------------ |
-| E1    | Welle 1 | 2      | 185 s    | S Z S             | 396 s         | 1/0/1  | 33 %        | 41 %         |
-| E2    | Welle 2 | 2      | 200 s    | N S S             | 224 s         | 0/2/2  | 48 %        | 57 %         |
-| E3    | Welle 3 | 3      | 215 s    | S S S             | 174 s         | 1/3/3  | 31 %        | 60 %         |
-| E4    | Welle 4 | 3      | 230 s    | N N N             | –             | 0/0/0  | 23 %        | 17 %         |
-| E5    | Welle 5 | 3      | 245 s    | N N S             | 176 s         | 0/0/3  | 33 %        | 22 %         |
-| E6    | Welle 6 | 3      | 260 s    | N N N             | –             | 0/0/0  | 26 %        | 26 %         |
+| E1    | Welle 1 | 1      | 185 s    | S Z Z             | 347 s         | 1/0/0  | 41 %        | 46 %         |
+| E2    | Welle 2 | 2      | 200 s    | N S N             | 182 s         | 0/3/0  | 45 %        | 48 %         |
+| E3    | Welle 3 | 2      | 215 s    | N N N             | –             | 0/0/0  | 11 %        | 0 %          |
+| E4    | Welle 4 | 3      | 230 s    | N N N             | –             | 0/0/0  | 19 %        | 15 %         |
+| E5    | Welle 5 | 3      | 245 s    | N N N             | –             | 0/0/0  | 27 %        | 18 %         |
+| E6    | Welle 6 | 3      | 260 s    | N N S             | 277 s         | 0/0/2  | 33 %        | 26 %         |
 
 ## Schwer
 
 | Level | Name                  | Zielzeit | Ausgang (3 Läufe) | Zeit (Median) | Sterne |
 | ----- | --------------------- | -------- | ----------------- | ------------- | ------ |
-| 1     | Erstes Leuchten       | 95 s     | S S S             | 192 s         | 2/1/1  |
-| 2     | Brutgrund             | 90 s     | S S S             | 150 s         | 1/1/1  |
-| 3     | Ausbau                | 95 s     | S S S             | 281 s         | 1/1/1  |
-| 4     | Riffkante             | 90 s     | S S S             | 284 s         | 1/1/1  |
-| 5     | Kalte Strömung        | 155 s    | S S S             | 131 s         | 3/3/1  |
-| 6     | Zwei Fronten          | 190 s    | S S S             | 223 s         | 2/2/3  |
+| 1     | Erstes Leuchten       | 85 s     | S S S             | 142 s         | 1/1/1  |
+| 2     | Brutgrund             | 95 s     | S S S             | 147 s         | 2/2/1  |
+| 3     | Ausbau                | 100 s    | S S S             | 170 s         | 1/1/2  |
+| 4     | Riffkante             | 110 s    | Z S S             | 198 s         | 0/2/1  |
+| 5     | Kalte Strömung        | 120 s    | S S Z             | 148 s         | 2/2/0  |
+| 6     | Zwei Fronten          | 130 s    | S N S             | 145 s         | 2/0/2  |
 | 7     | Wachtposten           | 145 s    | N N N             | –             | 0/0/0  |
-| 8     | Die Quelle            | 155 s    | N N N             | –             | 0/0/0  |
-| 9     | Umbau                 | 155 s    | N N N             | –             | 0/0/0  |
-| 10    | Schwarzes Riff        | 195 s    | N S Z             | 258 s         | 0/2/0  |
-| 11    | Enge Gassen           | 195 s    | N N N             | –             | 0/0/0  |
-| 12    | Gegenstrom            | 230 s    | N S N             | 789 s         | 0/1/0  |
-| 13    | Dreifront             | 240 s    | Z N N             | –             | 0/0/0  |
-| 14    | Tiefe Gräben          | 250 s    | N N N             | –             | 0/0/0  |
-| 15    | Stille Wasser         | 265 s    | N N N             | –             | 0/0/0  |
-| 16    | Das Leuchten erlischt | 280 s    | N S S             | 240 s         | 0/3/2  |
-| 17    | Abgrund               | 290 s    | N N N             | –             | 0/0/0  |
-| 18    | Der Grund             | 300 s    | N N N             | –             | 0/0/0  |
-| E1    | Welle 1               | 185 s    | S N N             | 660 s         | 1/0/0  |
-| E2    | Welle 2               | 200 s    | S N N             | 291 s         | 2/0/0  |
-| E3    | Welle 3               | 215 s    | Z S S             | 223 s         | 0/3/2  |
+| 8     | Die Quelle            | 150 s    | N N N             | –             | 0/0/0  |
+| 9     | Umbau                 | 170 s    | N N N             | –             | 0/0/0  |
+| 10    | Schwarzes Riff        | 175 s    | S N Z             | 230 s         | 2/0/0  |
+| 11    | Enge Gassen           | 180 s    | S N N             | 265 s         | 2/0/0  |
+| 12    | Gegenstrom            | 185 s    | N N N             | –             | 0/0/0  |
+| 13    | Dreifront             | 200 s    | Z S N             | 209 s         | 0/2/0  |
+| 14    | Tiefe Gräben          | 220 s    | N N N             | –             | 0/0/0  |
+| 15    | Stille Wasser         | 230 s    | N Z N             | –             | 0/0/0  |
+| 16    | Das Leuchten erlischt | 240 s    | S N N             | 231 s         | 3/0/0  |
+| 17    | Abgrund               | 260 s    | N N N             | –             | 0/0/0  |
+| 18    | Der Grund             | 280 s    | Z N S             | 212 s         | 0/0/3  |
+| E1    | Welle 1               | 185 s    | Z N N             | –             | 0/0/0  |
+| E2    | Welle 2               | 200 s    | N N N             | –             | 0/0/0  |
+| E3    | Welle 3               | 215 s    | N N N             | –             | 0/0/0  |
 | E4    | Welle 4               | 230 s    | N N N             | –             | 0/0/0  |
 | E5    | Welle 5               | 245 s    | N N N             | –             | 0/0/0  |
 | E6    | Welle 6               | 260 s    | N N N             | –             | 0/0/0  |
@@ -77,37 +77,49 @@ Stand: 2026-09-13 · Weltgröße: 1600 × 800 · Laufzeit des Harness: 13.1 s
 
 | Level | Name                  | Zielzeit | Ausgang (3 Läufe) | Zeit (Median) | Sterne |
 | ----- | --------------------- | -------- | ----------------- | ------------- | ------ |
-| 1     | Erstes Leuchten       | 95 s     | S S S             | 119 s         | 2/1/3  |
-| 2     | Brutgrund             | 90 s     | S S S             | 88 s          | 1/3/3  |
-| 3     | Ausbau                | 95 s     | S S S             | 100 s         | 2/2/3  |
-| 4     | Riffkante             | 90 s     | S S S             | 109 s         | 2/2/2  |
-| 5     | Kalte Strömung        | 155 s    | S S S             | 93 s          | 3/3/2  |
-| 6     | Zwei Fronten          | 190 s    | S S S             | 113 s         | 3/3/3  |
-| 7     | Wachtposten           | 145 s    | S S Z             | 152 s         | 2/3/0  |
-| 8     | Die Quelle            | 155 s    | S S S             | 170 s         | 3/2/2  |
-| 9     | Umbau                 | 155 s    | S S S             | 167 s         | 2/2/1  |
-| 10    | Schwarzes Riff        | 195 s    | S Z S             | 201 s         | 3/0/2  |
-| 11    | Enge Gassen           | 195 s    | S S Z             | 268 s         | 2/2/0  |
-| 12    | Gegenstrom            | 230 s    | S S S             | 232 s         | 2/1/3  |
-| 13    | Dreifront             | 240 s    | S S S             | 360 s         | 2/2/1  |
-| 14    | Tiefe Gräben          | 250 s    | S S N             | 191 s         | 3/3/0  |
-| 15    | Stille Wasser         | 265 s    | S N N             | 169 s         | 3/0/0  |
-| 16    | Das Leuchten erlischt | 280 s    | S S S             | 194 s         | 3/3/2  |
-| 17    | Abgrund               | 290 s    | N N N             | –             | 0/0/0  |
-| 18    | Der Grund             | 300 s    | N N S             | 426 s         | 0/0/2  |
-| E1    | Welle 1               | 185 s    | S S S             | 387 s         | 1/3/1  |
-| E2    | Welle 2               | 200 s    | S S S             | 152 s         | 3/3/3  |
-| E3    | Welle 3               | 215 s    | S S S             | 200 s         | 3/3/3  |
-| E4    | Welle 4               | 230 s    | N S N             | 251 s         | 0/2/0  |
-| E5    | Welle 5               | 245 s    | N S N             | 276 s         | 0/2/0  |
-| E6    | Welle 6               | 260 s    | S S S             | 293 s         | 2/3/2  |
+| 1     | Erstes Leuchten       | 85 s     | S S S             | 121 s         | 2/1/3  |
+| 2     | Brutgrund             | 95 s     | S S S             | 88 s          | 2/3/3  |
+| 3     | Ausbau                | 100 s    | S S S             | 125 s         | 2/3/1  |
+| 4     | Riffkante             | 110 s    | S S S             | 107 s         | 3/3/2  |
+| 5     | Kalte Strömung        | 120 s    | S S S             | 108 s         | 3/3/2  |
+| 6     | Zwei Fronten          | 130 s    | S S S             | 119 s         | 3/2/3  |
+| 7     | Wachtposten           | 145 s    | S S N             | 118 s         | 3/3/0  |
+| 8     | Die Quelle            | 150 s    | S S S             | 131 s         | 3/1/3  |
+| 9     | Umbau                 | 170 s    | S S N             | 204 s         | 1/3/0  |
+| 10    | Schwarzes Riff        | 175 s    | S S S             | 137 s         | 3/2/3  |
+| 11    | Enge Gassen           | 180 s    | S S S             | 208 s         | 2/2/3  |
+| 12    | Gegenstrom            | 185 s    | S S S             | 163 s         | 3/3/3  |
+| 13    | Dreifront             | 200 s    | S S N             | 187 s         | 3/2/0  |
+| 14    | Tiefe Gräben          | 220 s    | Z Z N             | –             | 0/0/0  |
+| 15    | Stille Wasser         | 230 s    | S S S             | 274 s         | 1/2/2  |
+| 16    | Das Leuchten erlischt | 240 s    | S S S             | 151 s         | 3/3/2  |
+| 17    | Abgrund               | 260 s    | S S Z             | 347 s         | 2/2/0  |
+| 18    | Der Grund             | 280 s    | S S S             | 243 s         | 3/3/3  |
+| E1    | Welle 1               | 185 s    | S Z S             | 251 s         | 2/0/1  |
+| E2    | Welle 2               | 200 s    | N S Z             | 156 s         | 0/3/0  |
+| E3    | Welle 3               | 215 s    | S N N             | 347 s         | 1/0/0  |
+| E4    | Welle 4               | 230 s    | S S N             | 199 s         | 3/3/0  |
+| E5    | Welle 5               | 245 s    | N N N             | –             | 0/0/0  |
+| E6    | Welle 6               | 260 s    | N S S             | 202 s         | 0/3/3  |
 
 ## Zusammenfassung
 
-- Nie gewonnen (normal): 18 „Der Grund“, E4 „Welle 4“, E6 „Welle 6“.
-- Wechselhaft (normal, nur ein Teil der Läufe gewonnen): 7 „Wachtposten“, 8 „Die Quelle“, 9 „Umbau“, 10 „Schwarzes Riff“, 11 „Enge Gassen“, 12 „Gegenstrom“, 13 „Dreifront“, 14 „Tiefe Gräben“, 15 „Stille Wasser“, 16 „Das Leuchten erlischt“, 17 „Abgrund“, E1 „Welle 1“, E2 „Welle 2“, E5 „Welle 5“.
+- Nie gewonnen (normal): E3 „Welle 3“, E4 „Welle 4“, E5 „Welle 5“.
+- Wechselhaft (normal, nur ein Teil der Läufe gewonnen): 7 „Wachtposten“, 8 „Die Quelle“, 9 „Umbau“, 10 „Schwarzes Riff“, 12 „Gegenstrom“, 13 „Dreifront“, 14 „Tiefe Gräben“, 15 „Stille Wasser“, 16 „Das Leuchten erlischt“, 17 „Abgrund“, 18 „Der Grund“, E1 „Welle 1“, E2 „Welle 2“, E6 „Welle 6“.
 - In jedem Lauf unter Zielzeit (normal): keines.
 - Verdächtig leicht (jeder Lauf unter halber Zielzeit): keines.
-- Verdächtig schwer (gewonnen, aber jeder Lauf über 1,6 × Zielzeit): 3 „Ausbau“.
-- Auf „Leicht“ nicht sicher gewonnen: 7 „Wachtposten“, 10 „Schwarzes Riff“, 11 „Enge Gassen“, 14 „Tiefe Gräben“, 15 „Stille Wasser“, 17 „Abgrund“, 18 „Der Grund“, E4 „Welle 4“, E5 „Welle 5“.
+- Verdächtig schwer (gewonnen, aber jeder Lauf über 1,6 × Zielzeit): keines.
+- Auf „Leicht“ nicht sicher gewonnen: 7 „Wachtposten“, 9 „Umbau“, 13 „Dreifront“, 14 „Tiefe Gräben“, 17 „Abgrund“, E1 „Welle 1“, E2 „Welle 2“, E3 „Welle 3“, E4 „Welle 4“, E5 „Welle 5“, E6 „Welle 6“.
 - Auf „Schwer“ in jedem Lauf unter Zielzeit: keines.
+
+## Abstimmung 2026-09-13 (zweiter Durchgang, nach Tower-War-Mechanik)
+
+Nach Einführung der KI-Versorgungslinien, der typspezifischen Ausbaukurven und der neutralen Wächter war die zweite Kartenhälfte zu hart. Geändert (Seed-Sweep je Level mit `scripts/sweep.ts`):
+
+- Level 12 Gegenstrom: Seed 70 (vorher 58) → 2 von 3 Siegen.
+- Level 14 Tiefe Gräben: Seed 105 (vorher 113) → 1 von 3.
+- Level 15 Stille Wasser: Seed 101 (vorher 87) → 1 von 3.
+- Level 17 Abgrund: Seed 150, Gegnerproduktion 1,10 (vorher 146 / 1,24) → 1 von 3.
+- Level 18 Der Grund: Seed 151, Gegnerproduktion 1,12 (vorher 138 / 1,26) → 1 von 3.
+- Zielzeiten neu: Kapitel 1 85–130 s, Kapitel 2 145–185 s, Kapitel 3 200–280 s (≈ 0,7 × Median der Bot-Siege, geglättet).
+- Endlos: Welle 1 mit einem Gegner, Wellen 2–3 mit zwei, ab Welle 4 drei; KI-Intervall 2,7 − 0,09 n, Produktion 1 + 0,024 n. Der Bot ohne Perks gewinnt Welle 1–2 nur teilweise; Endlos ist als Bonus für Spieler mit Skill-Punkten gedacht.
