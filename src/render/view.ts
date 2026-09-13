@@ -13,6 +13,8 @@ export class View {
   offsetY = 0;
   /** UI scale for stroke widths, fonts, hit slop (≈ prototype's S). */
   S = 1;
+  /** Visual magnification of nodes and units on small screens (does not affect the simulation). */
+  nodeScale = 1;
   /** Screen margins reserved for HUD chrome (map is fitted into the remaining rect). */
   insets = { top: 0, bottom: 0, left: 0, right: 0 };
   /** Camera: zoom multiplier over the fit scale and the world point shown at the rect centre. */
@@ -31,6 +33,8 @@ export class View {
       ah = Math.max(1, height - this.insets.top - this.insets.bottom);
     this.fit = Math.min(aw / WORLD_W, ah / WORLD_H);
     this.S = Math.max(0.55, Math.min(1.3, Math.min(width, height) / 760));
+    // Phones show the whole 1600×800 world at ~0.4 scale; enlarge nodes so they stay readable and tappable.
+    this.nodeScale = height < 500 ? 1.45 : width < 900 ? 1.2 : 1;
     this.apply();
   }
 

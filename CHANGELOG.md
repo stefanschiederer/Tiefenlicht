@@ -5,6 +5,7 @@
 - PixiJS-8-Renderer (WebGL, automatischer Canvas-Fallback): generierte Sprites je Knotenart mit rotierenden Details und Atmen, additive Glows mit Bloom (Stufe „Hoch“), Truppen als Sprites, Partikel, verästelte Wächter-Blitze, Lichtsäulen und treibendes Plankton mit Parallaxe, Felsen mit Tiefe.
 - Kamera: Zoom per Mausrad, Pinch-Zoom und Zwei-Finger-Verschieben auf Touch, mittlere Maustaste zum Verschieben.
 - Grafikstufe in den Einstellungen (Auto, Hoch, Mittel, Niedrig = Canvas 2D); `prefers-reduced-motion` wird respektiert.
+- Handy: Knoten und Truppen werden auf kleinen Bildschirmen 45 % größer dargestellt, Hinweise erscheinen oben statt über der Karte.
 - Balance: Kampagnen-Seeds, Gegnerproduktion und Zielzeiten neu abgestimmt zu einer aufsteigenden Kurve (`BALANCE.md`).
 
 ## 0.3.0 – Gamedesign-Paket (2026-09-13)

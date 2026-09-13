@@ -367,7 +367,7 @@ export class PixiRenderer implements Renderer {
   nodeAt(state: GameState, px: number, py: number): SimNode | null {
     const v = this.view;
     for (const n of state.nodes) {
-      const r = Math.max(nodeRadius(n) * v.scale + 16 * v.S, 24);
+      const r = Math.max(nodeRadius(n) * v.nodeScale * v.scale + 16 * v.S, 24);
       if (Math.hypot(v.sx(n.x) - px, v.sy(n.y) - py) <= r) return n;
     }
     return null;
@@ -521,7 +521,7 @@ export class PixiRenderer implements Renderer {
     for (const n of state.nodes) {
       const nv = this.nodeViews.get(n.id);
       if (!nv) continue;
-      const r = nodeRadius(n),
+      const r = nodeRadius(n) * this.view.nodeScale,
         k = r / NODE_R / TEX_SCALE,
         C = FACTION_COLORS[n.owner] ?? 0xffffff,
         own = n.owner > 0,
@@ -530,7 +530,8 @@ export class PixiRenderer implements Renderer {
       nv.flash = Math.max(0, nv.flash - dt * 1.4);
       nv.root.scale.set(k * breathe);
       nv.detail.tint = C;
-      nv.detail.alpha = own ? 1 : 0.8;
+      nv.detail.alpha = own ? 1 : 0.55;
+      nv.platform.alpha = own ? 1 : 0.85;
       if (nv.rotor) {
         nv.rotor.tint = C;
         if (!this.reducedMotion) nv.rotor.rotation = t * ROTOR_SPEED[n.type] + nv.phase;
@@ -619,7 +620,9 @@ export class PixiRenderer implements Renderer {
         gap = big ? 8 : 6,
         n = Math.max(1, Math.round(g.n)),
         count = Math.min(n, big ? 14 : 18),
-        traveled = g.t * nodeDist(a, b) + nodeRadius(a) * 0.5;
+        traveled = g.t * nodeDist(a, b) + nodeRadius(a) * this.view.nodeScale * 0.5;
+      const us = this.view.nodeScale;
+      gv.root.scale.set(us);
       gv.units.forEach((u, i) => {
         const back = i * gap;
         const visible = i < count && back <= traveled;
@@ -633,13 +636,13 @@ export class PixiRenderer implements Renderer {
               ? 0
               : Math.sin(t * 9 + i * 1.9) * 1.4;
         const lane = (((i * 7) % 5) - 2) * (big ? 3.4 : 2.6) + wob;
-        u.position.set(-back, lane);
+        u.position.set(-back / us, lane / us);
         u.tint = C;
         u.alpha = 0.95 - i * 0.03;
       });
       gv.glow.position.set(g.x, g.y);
       gv.glow.tint = C;
-      gv.glow.width = gv.glow.height = (10 + Math.min(g.n, 40) * 0.4) * 2.2;
+      gv.glow.width = gv.glow.height = (10 + Math.min(g.n, 40) * 0.4) * 2.2 * us;
       gv.glow.alpha = g.n >= 3 ? 0.5 : 0.25;
       gv.label.visible = g.n >= 3;
       if (gv.label.visible) {

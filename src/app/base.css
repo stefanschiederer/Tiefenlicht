@@ -129,3 +129,10 @@ html.compact #abilities button small {
 html.compact #abilities button b {
   font-size: 18px;
 }
+html.compact #tip {
+  top: 48px;
+  bottom: auto;
+  font-size: 11px;
+  padding: 5px 10px;
+  max-width: 70vw;
+}

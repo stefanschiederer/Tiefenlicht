@@ -92,7 +92,7 @@ export class CanvasRenderer {
   nodeAt(state: GameState, px: number, py: number): SimNode | null {
     const v = this.view;
     for (const n of state.nodes) {
-      const r = Math.max(nodeRadius(n) * v.scale + 16 * v.S, 24);
+      const r = Math.max(nodeRadius(n) * v.nodeScale * v.scale + 16 * v.S, 24);
       if (Math.hypot(v.sx(n.x) - px, v.sy(n.y) - py) <= r) return n;
     }
     return null;
@@ -450,7 +450,7 @@ export class CanvasRenderer {
       S = v.S;
     const x = v.sx(n.x),
       y = v.sy(n.y),
-      r = nodeRadius(n) * v.scale,
+      r = nodeRadius(n) * v.nodeScale * v.scale,
       C = FACTIONS[n.owner]?.color ?? '#fff',
       own = n.owner > 0,
       ph = this.pulse.get(n.id) ?? 0,
@@ -546,7 +546,7 @@ export class CanvasRenderer {
       gap = (big ? 7.5 : 5.5) * S,
       n = Math.max(1, Math.round(g.n)),
       count = Math.min(n, big ? 14 : 18),
-      traveled = g.t * nodeDist(a, b) * v.scale + nodeRadius(a) * v.scale * 0.5;
+      traveled = g.t * nodeDist(a, b) * v.scale + nodeRadius(a) * v.nodeScale * v.scale * 0.5;
     glow(ctx, gx, gy, (10 + Math.min(g.n, 40) * 0.4) * S, C, 0.55);
     for (let i = 0; i < count; i++) {
       const back = i * gap;
@@ -559,7 +559,7 @@ export class CanvasRenderer {
             : Math.sin(this.elapsed * 9 + i * 1.9) * 1.4 * S;
       const lane = (((i * 7) % 5) - 2) * (big ? 3.4 : 2.6) * S + wob;
       ctx.globalAlpha = 0.95 - i * 0.035;
-      drawUnit(ctx, gx - dx * back + nx * lane, gy - dy * back + ny * lane, ang, U, C, S);
+      drawUnit(ctx, gx - dx * back + nx * lane, gy - dy * back + ny * lane, ang, U, C, S * v.nodeScale);
     }
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#fff';
@@ -637,7 +637,7 @@ export class CanvasRenderer {
         ctx,
         String(Math.floor(n.units)),
         v.sx(n.x),
-        v.sy(n.y) + nodeRadius(n) * v.scale + 11 * S,
+        v.sy(n.y) + nodeRadius(n) * v.nodeScale * v.scale + 11 * S,
         Math.round(12 * S),
         n.owner === PLAYER && !state.demo ? '#fff' : 'rgba(255,255,255,.85)',
       );
