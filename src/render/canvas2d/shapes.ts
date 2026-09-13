@@ -70,10 +70,10 @@ export function pill(
   g.textBaseline = 'middle';
   const w = g.measureText(text).width + size * 0.9,
     h = size * 1.5;
-  g.fillStyle = 'rgba(4,10,18,.72)';
+  g.fillStyle = 'rgba(255,255,255,.9)';
   roundRect(g, x - w / 2, y - h / 2, w, h, h / 2);
   g.fill();
-  g.fillStyle = color || '#fff';
+  g.fillStyle = color && color !== '#fff' ? color : '#10324a';
   g.fillText(text, x, y + 0.5);
 }
 export function poly(

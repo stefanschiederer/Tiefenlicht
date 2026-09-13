@@ -4,14 +4,12 @@ import {
   FLOW_INTERVAL,
   FLOW_INTERVAL_FAST,
   MAX_ROUTES,
-  ROUTE_BATCH,
-  ROUTE_SHARE,
-  ROUTE_SHARE_FAST,
+  STREAM_RATE,
+  STREAM_RATE_FAST,
   TYPES,
 } from '@/data';
 import { addRoute, clearRoutes, launch, removeRoute, sendAmount } from '@/sim/actions';
 import type { GameState, Group, SimEvent } from '@/sim/state';
-import { capOf, rateOf } from '@/sim/stats';
 import { drainEvents, step } from '@/sim/update';
 import { DT, makeNode, makeState, node, run, type NodeSpec } from './helpers';
 
@@ -122,73 +120,45 @@ function shipments(s: GameState, steps: number, before?: () => void): Shipment[]
 
 const shipped = (out: Shipment[]) => out.reduce((a, o) => a + o.n, 0);
 
-describe('route flow accumulation', () => {
-  it('forwards ROUTE_SHARE of the production while the node keeps growing', () => {
-    const s = routeState([[1]]);
+describe('route stream (Tower-War style)', () => {
+  it('pulls STREAM_RATE units per second per route out of the node, one unit at a time', () => {
+    const s = routeState([[1]], { units: 20 });
     const n = node(s, 0);
-    const rate = rateOf(s, n);
-    expect(rate).toBeCloseTo(0.8);
-    expect(ROUTE_SHARE).toBe(0.4);
-    const ticks = 20 * 60;
-    const out = shipments(s, ticks);
-    const T = s.time;
-    // Production is untouched by the routes: everything produced is either still here or was shipped.
-    expect(n.units - 10 + shipped(out)).toBeCloseTo(rate * T, 6);
-    // Shipments plus what is still accumulated equal the production share.
-    expect(shipped(out) + n.flowAcc).toBeCloseTo(rate * ROUTE_SHARE * T, 6);
-    expect(Math.abs(shipped(out) - rate * ROUTE_SHARE * T)).toBeLessThan(1);
-    expect(shipped(out)).toBeGreaterThanOrEqual(5);
-    // Net growth at rate * (1 - share) within one unit.
-    expect(Math.abs(n.units - 10 - rate * (1 - ROUTE_SHARE) * T)).toBeLessThan(1);
-    expect(n.units).toBeGreaterThan(10);
-    for (const o of out) {
-      expect(o.to).toBe(1);
-      expect(Number.isInteger(o.n)).toBe(true);
-      expect(o.n).toBeGreaterThanOrEqual(1);
-    }
+    const out = shipments(s, 600); // 10 s
+    expect(out.every((o) => o.n === 1)).toBe(true);
+    // ~16 units streamed (1.6/s), production 0.8/s keeps flowing in
+    expect(shipped(out)).toBeGreaterThanOrEqual(14);
+    expect(shipped(out)).toBeLessThanOrEqual(17);
+    expect(n.units).toBeCloseTo(20 + 8 - shipped(out), 0);
   });
 
-  it('forwards ROUTE_SHARE_FAST with the flow perk', () => {
-    const s = routeState([[1]]);
+  it('streams faster with two routes and splits the units round-robin', () => {
+    const s = routeState([[1], [2]], { units: 60 });
+    const out = shipments(s, 300); // 5 s
+    expect(shipped(out)).toBeGreaterThanOrEqual(14);
+    const a = out.filter((o) => o.to === 1).length,
+      b = out.filter((o) => o.to === 2).length;
+    expect(Math.abs(a - b)).toBeLessThanOrEqual(1);
+  });
+
+  it('streams STREAM_RATE_FAST times faster with the flow perk', () => {
+    const s = routeState([[1]], { units: 60 });
     s.perks.flow = 1;
+    const out = shipments(s, 300);
+    expect(shipped(out)).toBeGreaterThanOrEqual(Math.floor(STREAM_RATE * STREAM_RATE_FAST * 5) - 2);
+  });
+
+  it('drains the node to zero and keeps streaming whatever is produced', () => {
+    const s = routeState([[1]], { units: 3 });
     const n = node(s, 0);
-    expect(ROUTE_SHARE_FAST).toBe(0.6);
-    const out = shipments(s, 20 * 60);
-    const T = s.time;
-    expect(shipped(out) + n.flowAcc).toBeCloseTo(0.8 * ROUTE_SHARE_FAST * T, 6);
-    expect(Math.abs(shipped(out) - 0.8 * ROUTE_SHARE_FAST * T)).toBeLessThan(1);
-    expect(n.units - 10 + shipped(out)).toBeCloseTo(0.8 * T, 6);
+    run(s, 300);
+    expect(n.units).toBeLessThan(1.5);
+    const out = shipments(s, 300);
+    expect(shipped(out)).toBeGreaterThanOrEqual(3);
+    expect(n.units).toBeLessThan(1.5);
   });
 
-  it('a full node forwards all of its production as a stream of single units', () => {
-    const s = routeState([[1]], { units: 40 });
-    const n = node(s, 0);
-    expect(capOf(s, n)).toBe(40);
-    expect(ROUTE_BATCH).toBe(1);
-    // 1.15 s: 0.92 units accumulated at the full rate, none shipped yet.
-    let out = shipments(s, 69);
-    expect(out).toEqual([]);
-    expect(n.units).toBe(40);
-    expect(n.flowAcc).toBeCloseTo(0.8 * s.time, 6);
-    // The first boundary after 1.25 s (tick 76) ships exactly one unit.
-    out = shipments(s, 10);
-    expect(out.map((o) => o.n)).toEqual([1]);
-    expect(out[0]?.t).toBeCloseTo(76 * DT, 6);
-    expect(n.units).toBeGreaterThanOrEqual(39);
-    expect(n.units).toBeLessThan(40);
-    expect(n.flowAcc).toBeLessThan(1);
-  });
-
-  it('a node just below capacity still counts as full', () => {
-    const s = routeState([[1]], { units: 39.6 });
-    step(s, DT);
-    expect(node(s, 0).flowAcc).toBeCloseTo(0.8 * DT, 9);
-    const s2 = routeState([[1]], { units: 39.4 });
-    step(s2, DT);
-    expect(node(s2, 0).flowAcc).toBeCloseTo(0.8 * ROUTE_SHARE * DT, 9);
-  });
-
-  it('a frozen node accumulates nothing', () => {
+  it('a frozen node streams nothing', () => {
     const s = routeState([[1]], { units: 40, frozen: 5 });
     run(s, 60);
     expect(node(s, 0).flowAcc).toBe(0);
@@ -196,17 +166,17 @@ describe('route flow accumulation', () => {
   });
 
   it('resets the accumulator when the routes are gone', () => {
-    const s = routeState([[1]], { units: 20, flowAcc: 5.5 });
+    const s = routeState([[1]], { units: 20, flowAcc: 2.5 });
     clearRoutes(node(s, 0));
     step(s, DT);
     expect(node(s, 0).flowAcc).toBe(0);
   });
 
-  it('caps the accumulator at the capacity when nothing can leave', () => {
-    const s = routeState([[1]], { units: 20, reserve: 0.75, flowAcc: 1000 });
+  it('caps the accumulator when nothing can leave', () => {
+    const s = routeState([[1]], { units: 20, reserve: 1, flowAcc: 1000 });
     step(s, DT);
     expect(s.groups).toHaveLength(0);
-    expect(node(s, 0).flowAcc).toBe(40);
+    expect(node(s, 0).flowAcc).toBeLessThanOrEqual(3);
   });
 });
 
@@ -379,14 +349,14 @@ describe('route shipments', () => {
     step(s2, DT);
     expect(s2.groups).toHaveLength(0);
     expect(node(s2, 0).units).toBeCloseTo(20 + 0.8 * DT, 9);
-    expect(node(s2, 0).flowAcc).toBeCloseTo(0.9 + 0.8 * ROUTE_SHARE * DT, 9);
+    expect(node(s2, 0).flowAcc).toBeCloseTo(0.9 + STREAM_RATE * DT, 9);
     // Exactly one unit: it ships.
     const s3 = routeState([[1]], { units: 20, flowAcc: 1 });
     step(s3, DT);
     expect(s3.groups).toHaveLength(1);
     expect((s3.groups[0] as Group).n).toBe(1);
     expect(node(s3, 0).units).toBeCloseTo(19 + 0.8 * DT, 9);
-    expect(node(s3, 0).flowAcc).toBeCloseTo(0.8 * ROUTE_SHARE * DT, 9);
+    expect(node(s3, 0).flowAcc).toBeCloseTo(STREAM_RATE * DT, 9);
   });
 
   it('three units over three routes gives every route one unit', () => {
@@ -463,7 +433,6 @@ describe('route shipments', () => {
     expect(g.path).toEqual([3]);
     expect(g.n).toBe(10);
     expect(node(s, 0).units).toBeCloseTo(0.8 * DT, 9);
-    expect(node(s, 0).flowAcc).toBeCloseTo(0.8 * ROUTE_SHARE * DT, 9);
     expect(s.stats.sends).toBe(0);
   });
 });

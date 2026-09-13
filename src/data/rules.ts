@@ -60,11 +60,12 @@ export const ROUTES_PER_LEVEL: readonly number[] = [1, 2, 3];
 export const FLOW_INTERVAL = 0.4;
 export const FLOW_INTERVAL_FAST = 0.2;
 /**
- * Share of a node's production that persistent routes forward. The rest stays at the node so it keeps
- * growing (for upgrades and defence). A full node forwards its whole production instead.
+ * Tower-War stream: every route carries units out of its node at this constant rate (units per second),
+ * one unit at a time, as long as the node has units. Production may outpace it on upgraded nodes.
  */
-export const ROUTE_SHARE = 0.4;
-export const ROUTE_SHARE_FAST = 0.6;
+export const STREAM_RATE = 1.6;
+/** Stream rate multiplier with the "flow" perk. */
+export const STREAM_RATE_FAST = 1.5;
 /** Minimum units per route shipment. 1 = continuous stream of single units (Tower-War style). */
 export const ROUTE_BATCH = 1;
 export const ENERGY_MAX = 100;

@@ -1,8 +1,8 @@
 import { TYPES, UNITS } from '@/data';
 import { bfsPath } from '@/sim/graph';
-import { addRoute, doConvert, doUpgrade, launch } from '@/sim/actions';
+import { addRoute, doConvert, doUpgrade } from '@/sim/actions';
 import type { GameState, SimNode } from '@/sim/state';
-import { capOf, convertCost, defOf, incoming, rateOf, upgradeCost } from '@/sim/stats';
+import { capOf, convertCost, defOf, incoming, rateOf, routeLimit, upgradeCost } from '@/sim/stats';
 
 /** All non-own nodes reachable through own territory from `src`, with the path (excluding src). */
 export function frontier(s: GameState, src: SimNode, F: number): Map<number, number[]> {
@@ -51,8 +51,8 @@ export function aiAct(s: GameState, F: number): void {
         .map((j) => s.nodes[j] as SimNode)
         .filter((m) => m.owner === F && m.units >= 6)
         .sort((a, b) => b.units - a.units)[0];
-      if (helper) {
-        launch(s, helper, [n.id], Math.floor(helper.units * 0.6));
+      if (helper && !helper.routes.some((r) => r[r.length - 1] === n.id)) {
+        addRoute(helper, [n.id], routeLimit(helper));
         return;
       }
     }
@@ -125,9 +125,8 @@ export function aiAct(s: GameState, F: number): void {
     }
   }
   if (best) {
-    launch(s, best.src, best.path, best.avail);
-    // Keep the attack as one visible supply line (Tower-War style bots draw a single line).
-    if (aiUpg) addRoute(best.src, best.path, 1);
+    // Tower-War bots attack by drawing a line; the stream does the rest.
+    addRoute(best.src, best.path, routeLimit(best.src));
     return;
   }
   // Otherwise shift surplus from a full node to the weakest frontline node
@@ -138,5 +137,5 @@ export function aiAct(s: GameState, F: number): void {
     .sort((a, b) => a.units - b.units)[0];
   if (!front) return;
   const p = bfsPath(s.adj, rich.id, front.id, (id) => (s.nodes[id] as SimNode).owner === F);
-  if (p && p.length > 1) launch(s, rich, p.slice(1), Math.floor(rich.units * 0.5));
+  if (p && p.length > 1) addRoute(rich, p.slice(1), routeLimit(rich));
 }

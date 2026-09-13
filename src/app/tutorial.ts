@@ -46,7 +46,7 @@ export class Tutorial {
         const nb = (s.adj[me.id] ?? [])
           .map((j) => s.nodes[j] as SimNode)
           .sort((a, b) => a.units - b.units)[0];
-        if (nb) this.draw(v.sx(me.x), v.sy(me.y), v.sx(nb.x), v.sy(nb.y), 'Ziehe von deinem Knoten hierher');
+        if (nb) this.draw(v.sx(me.x), v.sy(me.y), v.sx(nb.x), v.sy(nb.y), 'Ziehe eine Linie hierher');
         return;
       }
     }

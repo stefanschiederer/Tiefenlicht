@@ -18,23 +18,16 @@ import {
 } from '@/data';
 import { computePerks } from '@/data/skills';
 import type { Renderer, UiState } from '@/render/renderer';
-import { addRoute, cutRoutes, launch, sendAmount, useAbility } from '@/sim/actions';
+import { addRoute, cutRoutes, useAbility } from '@/sim/actions';
 import { bfsPath } from '@/sim/graph';
 import { buildLevel } from '@/sim/level';
 import type { GameState, SimEvent, SimNode } from '@/sim/state';
-import { abilityCost, defOf, routeLimit, strOf } from '@/sim/stats';
+import { abilityCost, routeLimit } from '@/sim/stats';
 import { aliveFactions, drainEvents, step } from '@/sim/update';
 import { readSave, writeSave, type SaveGame } from './save';
 import { enterFullscreen } from './pwa';
 
 export type LevelKind = 'campaign' | 'endless' | 'custom' | 'daily';
-export type SendMode = 0.25 | 0.5 | 0.75 | 1;
-export const SEND_MODES: [SendMode, string][] = [
-  [0.25, '25 %'],
-  [0.5, '50 %'],
-  [0.75, '75 %'],
-  [1, 'Alle'],
-];
 
 export interface LevelResult {
   stars: number;
@@ -55,8 +48,6 @@ export interface GameListeners {
   onFinish(won: boolean, result: LevelResult | null): void;
 }
 
-const DOUBLE_TAP_MS = 350;
-
 /** Orchestrates level lifecycle, input state, save game, renderer and audio. No DOM except the canvas. */
 export class Game {
   save: SaveGame;
@@ -68,7 +59,6 @@ export class Game {
   paused = false;
   speed = 1;
   levelTime = 0;
-  sendMode: SendMode = 0.5;
   ui: UiState = {
     drag: null,
     selected: [],
@@ -86,8 +76,6 @@ export class Game {
   private demoIdle = 0;
   private hudTimer = 0;
   private lastFrame = 0;
-  private dragShift = false;
-  private lastTap: { id: number; at: number } | null = null;
   editor: Editor | null = null;
   private lostThisLevel = 0;
   /** Achievements unlocked by the last finished level (shown on the result screen). */
@@ -165,7 +153,6 @@ export class Game {
     this.ui.selected = [];
     this.ui.abilityMode = null;
     this.ui.hover = null;
-    this.lastTap = null;
   }
 
   /** Builds the level and shows the intro (caller shows the screen). */
@@ -230,7 +217,7 @@ export class Game {
       const L = this.def;
       this.listeners.onTip(
         this.levelKind === 'campaign' && this.levelIndex === 0
-          ? 'Ziehe vom goldenen Knoten zu einem Nachbarn – die Hälfte bricht auf, danach fließt Nachschub.'
+          ? 'Ziehe vom goldenen Gebäude eine Linie zu einem Nachbarn – deine Einheiten strömen dann hinüber.'
           : `${L.name}: ${this.state.nodes.length} Knoten, ${L.enemies === 1 ? 'ein Gegner' : L.enemies + ' Gegner'}. Zielzeit ${fmtTime(L.par)}.`,
         4500,
       );
@@ -298,42 +285,25 @@ export class Game {
     return Math.min(1, 0.15 + incoming / 30 + own / 60 + (share < 0.25 ? 0.25 : 0));
   }
 
-  /** Nodes a drag from `src` would send from: the whole selection if src belongs to it. */
-  private dragSources(src: number): SimNode[] {
-    const ids = this.ui.selected.includes(src) ? this.ui.selected : [src];
-    return ids.map((id) => this.state.nodes[id] as SimNode).filter((n) => n.owner === PLAYER);
-  }
-
-  /** Attack preview at the pointer: units on the way, target defence, and whether it succeeds. */
+  /** Label at the pointer while drawing a line. */
   private updateDragPreview(): void {
     const d = this.ui.drag;
     if (!d) return;
-    const frac = this.dragShift ? 1 : this.sendMode;
-    const sources = this.dragSources(d.src);
-    let units = 0,
-      pw = 0;
-    for (const n of sources) {
-      const k = sendAmount(this.state, n, frac);
-      units += k;
-      pw += k * strOf(this.state, { unit: TYPES[n.type].unit, owner: n.owner });
-    }
     const target =
       d.path.length >= 2 ? (this.state.nodes[d.path[d.path.length - 1] as number] as SimNode) : null;
+    const src = this.state.nodes[d.src] as SimNode;
     if (!target) {
-      this.ui.dragLabel =
-        sources.length > 1 ? `${units} Einheiten aus ${sources.length} Knoten` : `${units} Einheiten`;
+      this.ui.dragLabel = `${src.routes.length}/${routeLimit(src)} Linien`;
       this.ui.dragOk = null;
       return;
     }
     if (target.owner === PLAYER) {
-      this.ui.dragLabel = `${units} → ${TYPES[target.type].name} verstärken`;
+      this.ui.dragLabel = `Nachschub → ${TYPES[target.type].name}`;
       this.ui.dragOk = null;
       return;
     }
-    const effDef = target.units * defOf(this.state, target);
-    const ok = pw > effDef;
-    this.ui.dragLabel = `${units} → ${TYPES[target.type].name}: ${Math.round(pw)} gegen ${Math.ceil(effDef)} ${ok ? '✓' : '✗'}`;
-    this.ui.dragOk = ok;
+    this.ui.dragLabel = `Angriff → ${TYPES[target.type].name} (${Math.floor(target.units)})`;
+    this.ui.dragOk = target.owner === 0 ? true : null;
   }
 
   private handleEvents(events: SimEvent[]): void {
@@ -429,11 +399,11 @@ export class Game {
   nodeAt(px: number, py: number): SimNode | null {
     return this.renderer.view.nodeAt(this.state, px, py);
   }
-  pointerDown(px: number, py: number, shift: boolean): 'drag' | 'ability' | 'cut' | 'none' {
+  pointerDown(px: number, py: number, _shift: boolean): 'drag' | 'ability' | 'cut' | 'none' {
     this.ui.pointer = { x: px, y: py };
     if (this.mode === 'editor' && this.editor) {
       const v = this.renderer.view;
-      this.editor.down(v.wx(px), v.wy(py), shift);
+      this.editor.down(v.wx(px), v.wy(py), _shift);
       return 'drag';
     }
     if (this.mode !== 'game' || !this.running || this.paused) return 'none';
@@ -451,7 +421,6 @@ export class Game {
     }
     if (hit && hit.owner === PLAYER) {
       this.ui.drag = { src: hit.id, path: [hit.id] };
-      this.dragShift = shift;
       return 'drag';
     }
     if (this.ui.selected.length) {
@@ -527,69 +496,32 @@ export class Game {
     this.tap(src);
   }
 
-  /** Tap on an own node: select / toggle in a multi-selection; double tap selects all own nodes. */
+  /** Tap on an own node toggles its menu. */
   private tap(n: SimNode): void {
-    const now = performance.now();
-    const dbl = this.lastTap && this.lastTap.id === n.id && now - this.lastTap.at < DOUBLE_TAP_MS;
-    this.lastTap = { id: n.id, at: now };
-    if (dbl) {
-      this.ui.selected = this.state.nodes.filter((m) => m.owner === PLAYER).map((m) => m.id);
-      this.listeners.onTip(
-        `Alle ${this.ui.selected.length} eigenen Knoten gewählt. Ziehe von einem davon, um von allen zu schicken.`,
-        3000,
-      );
-      this.audio.play('route', 0.1);
-    } else if (this.ui.selected.includes(n.id)) {
-      this.ui.selected = this.ui.selected.filter((id) => id !== n.id);
-    } else {
-      this.ui.selected = [...this.ui.selected, n.id];
-      if (this.ui.selected.length === 2)
-        this.listeners.onTip(
-          'Zwei Knoten gewählt. Ziehen schickt von beiden. Tippe weitere an oder doppeltippe für alle.',
-          3000,
-        );
-      this.audio.play('click');
-    }
+    this.ui.selected = this.ui.selected.includes(n.id) ? [] : [n.id];
+    if (this.ui.selected.length) this.audio.play('click');
     this.listeners.onPanel();
   }
 
-  /** Every drawn path sends the selected share from all sources immediately and stays as a route. */
+  /** A drawn line becomes a route (Tower-War style): the stream starts at once, nothing is sent in a burst. */
   private sendAlong(src: SimNode, path: number[]): void {
-    const target = path[path.length - 1] as number;
-    const frac = this.dragShift ? 1 : this.sendMode;
-    const sources = this.dragSources(src.id);
-    let sentUnits = 0,
-      newRoutes = 0,
-      multiRoute = false;
-    for (const n of sources) {
-      const route =
-        n.id === src.id ? path.slice(1) : (bfsPath(this.state.adj, n.id, target)?.slice(1) ?? null);
-      if (!route || !route.length) continue;
-      const k = sendAmount(this.state, n, frac);
-      const g = launch(this.state, n, route, k, { manual: true });
-      if (g) sentUnits += g.n;
-      if (addRoute(n, route, routeLimit(n))) newRoutes++;
-      if (n.routes.length > 1) multiRoute = true;
-    }
+    const route = path.slice(1);
+    if (!route.length) return;
+    const isNew = addRoute(src, route, routeLimit(src));
     this.handleEvents(drainEvents(this.state));
-    if (newRoutes) this.audio.play('route', 0.2);
+    if (isNew) this.audio.play('route', 0.2);
     this.state.stats.sends++;
     const sends = this.state.stats.sends;
-    if (sources.length > 1)
+    if (sends <= 2)
       this.listeners.onTip(
-        `${sentUnits} Einheiten aus ${sources.length} Knoten unterwegs, Routen gesetzt.`,
-        2500,
-      );
-    else if (newRoutes && multiRoute)
-      this.listeners.onTip(`Route ${src.routes.length} von 3 gesetzt – der Nachschub teilt sich auf.`, 3000);
-    else if (sends <= 2)
-      this.listeners.onTip(
-        sentUnits
-          ? `${sentUnits} Einheiten unterwegs, die Route bleibt und schickt laufend Nachschub. Erneut ziehen schickt sofort mehr, quer über die Linie wischen löscht die Route.`
-          : 'Route gesetzt: Der Knoten schickt laufend einen Teil seiner Produktion nach. Quer über die Linie wischen löscht sie.',
+        `Linie gesetzt: Deine Einheiten strömen jetzt laufend hinüber. Quer über die Linie wischen kappt sie. Stufe ${src.level} hält ${routeLimit(src)} Linie${routeLimit(src) > 1 ? 'n' : ''}.`,
         3800,
       );
-    else if (!sentUnits) this.listeners.onTip('Route gesetzt, gerade keine Einheiten zum Senden.', 1500);
+    else if (isNew && src.routes.length > 1)
+      this.listeners.onTip(
+        `Linie ${src.routes.length} von ${routeLimit(src)} – der Strom teilt sich auf.`,
+        2500,
+      );
     this.listeners.onPanel();
   }
 
@@ -625,9 +557,6 @@ export class Game {
       this.listeners.onPanel();
     }
     this.listeners.onHud();
-  }
-  setSendMode(m: SendMode): void {
-    this.sendMode = m;
   }
   toggleAbility(id: AbilityId): void {
     if (this.ui.abilityMode === id) this.ui.abilityMode = null;

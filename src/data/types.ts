@@ -126,10 +126,10 @@ export interface Faction {
   color: string;
 }
 export const FACTIONS: readonly Faction[] = [
-  { name: 'Wilde Knoten', color: '#6f8494' },
-  { name: 'Goldschwarm', color: '#ffc45a' },
-  { name: 'Purpurschwarm', color: '#ff4f9a' },
-  { name: 'Grünschwarm', color: '#7ee06a' },
-  { name: 'Violettschwarm', color: '#a27bff' },
+  { name: 'Wilde Knoten', color: '#dff3f8' },
+  { name: 'Goldschwarm', color: '#ffb400' },
+  { name: 'Korallenschwarm', color: '#ff4f7d' },
+  { name: 'Algenschwarm', color: '#4fd35a' },
+  { name: 'Tintenschwarm', color: '#9b6bff' },
 ];
 export const PLAYER = 1;

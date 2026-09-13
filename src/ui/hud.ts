@@ -1,6 +1,6 @@
 import { ABILITIES, ALL_TYPES, CHAPTERS, FACTIONS, PLAYER, TYPES, UNITS, type AbilityId } from '@/data';
 import { nodeIcon } from '@/render/pixi/textures';
-import { SEND_MODES, type Game } from '@/app/game';
+import type { Game } from '@/app/game';
 import { $ } from './dom';
 import { ICONS, icon } from './icons';
 
@@ -78,23 +78,6 @@ export function renderAbilities(game: Game): void {
   }
 }
 
-export function renderSendbar(game: Game): void {
-  const bar = $('#sendbar');
-  bar.querySelectorAll('button').forEach((b) => b.remove());
-  for (const [m, label] of SEND_MODES) {
-    const b = document.createElement('button');
-    b.textContent = label;
-    b.setAttribute('aria-pressed', String(game.sendMode === m));
-    b.title = `Ziehen schickt sofort ${label === 'Alle' ? 'alle' : label} der verfügbaren Einheiten und legt die Route an`;
-    b.addEventListener('click', () => {
-      game.setSendMode(m);
-      game.audio.play('click');
-      renderSendbar(game);
-    });
-    bar.appendChild(b);
-  }
-}
-
 export function buildLegend(game: Game): void {
   const box = $('#legend');
   box.innerHTML = '';
@@ -120,7 +103,6 @@ export function setSpeedButton(speed: number): void {
 export function setGameUi(on: boolean): void {
   $('#hud').hidden = !on;
   $('#abilities').hidden = !on;
-  $('#sendbar').hidden = !on;
   if (!on) {
     $('#nodePanel').hidden = true;
     $('#legend').hidden = true;

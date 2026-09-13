@@ -165,7 +165,7 @@ export const CAMPAIGN: readonly LevelDef[] = [
     prod: 1.04,
     par: 130,
     feature: 'split',
-    text: 'Zwei Gegner. Ein Knoten kann bis zu drei Routen halten und teilt seinen Nachschub gleichmäßig auf. Über die Reserve behältst du Verteidiger zurück.',
+    text: 'Zwei Gegner. Ausgebaute Gebäude halten mehrere Linien und teilen ihren Strom auf. Kappe Linien, bevor ein Gebäude leerläuft.',
   },
   {
     ch: 1,

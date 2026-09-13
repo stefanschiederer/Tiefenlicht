@@ -10,6 +10,7 @@ import {
 } from 'pixi.js';
 import { AdvancedBloomFilter } from 'pixi-filters';
 import { FACTIONS, PLAYER, WORLD_H, WORLD_W, type NodeType } from '@/data';
+const FACTION_HEX = FACTIONS.map((f) => f.color);
 import type { Barrier, GameState, Group, Mine, SimEvent, SimNode } from '@/sim/state';
 import { nodeDist, nodeRadius, rangeOf } from '@/sim/stats';
 import type { GraphicsQuality, Renderer, UiState } from '../renderer';
@@ -30,6 +31,8 @@ import {
   plantTexture,
   barrierTexture,
   mineTexture,
+  sandTexture,
+  tintedTexture,
 } from './textures';
 import { CausticsFilter } from './caustics';
 
@@ -59,6 +62,9 @@ interface NodeView {
   label: BitmapText;
   phase: number;
   flash: number;
+  color: string;
+  type: NodeType;
+  level: number;
 }
 interface GroupView {
   root: Container;
@@ -66,6 +72,7 @@ interface GroupView {
   units: Sprite[];
   label: BitmapText;
   unit: string;
+  color: string;
 }
 interface FxParticle {
   p: Particle;
@@ -153,7 +160,7 @@ export class PixiRenderer implements Renderer {
       resolution: Math.min(2, window.devicePixelRatio || 1),
       autoDensity: true,
       backgroundAlpha: 1,
-      background: 0x03080f,
+      background: 0x37b7d6,
       powerPreference: 'high-performance',
     });
     app.ticker.stop();
@@ -188,8 +195,8 @@ export class PixiRenderer implements Renderer {
     for (let i = 0; i < 3; i++) {
       const f = new Sprite(glowTexture());
       f.anchor.set(0.5);
-      f.tint = 0x2f7fb3;
-      f.alpha = 0.16;
+      f.tint = 0xffffff;
+      f.alpha = 0.1;
       f.blendMode = 'add';
       this.fogs.push(f);
       this.bg.addChild(f);
@@ -197,8 +204,8 @@ export class PixiRenderer implements Renderer {
     for (let i = 0; i < 4; i++) {
       const s = new Sprite(shaftTexture());
       s.anchor.set(0.5, 0);
-      s.tint = 0x9fd4ff;
-      s.alpha = 0.03 + i * 0.008;
+      s.tint = 0xffffff;
+      s.alpha = 0.06 + i * 0.015;
       s.blendMode = 'add';
       this.shafts.push(s);
       this.bg.addChild(s);
@@ -224,7 +231,7 @@ export class PixiRenderer implements Renderer {
     );
     this.fx = new ParticleContainer({ dynamicProperties: { position: true, color: true } });
     this.fx.blendMode = 'add';
-    this.lights.blendMode = 'add';
+    this.lights.blendMode = 'normal';
     this.world.addChild(this.fx, this.zapsG);
     stage.addChild(this.world);
     if (this.quality === 'hoch') {
@@ -329,7 +336,7 @@ export class PixiRenderer implements Renderer {
       const na = state.nodes[a] as SimNode,
         nb = state.nodes[b] as SimNode;
       dashed(g, na.x, na.y, nb.x, nb.y, 4, 12, 0);
-      g.stroke({ width: 1.2, color: 0xd87a7a, alpha: 0.3, cap: 'round' });
+      g.stroke({ width: 2, color: 0xff4f7d, alpha: 0.45, cap: 'round' });
     }
     for (const [a, b] of state.edges) {
       const na = state.nodes[a] as SimNode,
@@ -338,32 +345,47 @@ export class PixiRenderer implements Renderer {
         n = Math.max(2, Math.round(len / 11));
       for (let i = 1; i < n; i++) {
         const t = i / n;
-        g.circle(na.x + (nb.x - na.x) * t, na.y + (nb.y - na.y) * t, 1.4);
+        g.circle(na.x + (nb.x - na.x) * t, na.y + (nb.y - na.y) * t, 2.2);
       }
     }
-    g.fill({ color: 0x8cc8eb, alpha: 0.38 });
+    g.fill({ color: 0xffffff, alpha: 0.75 });
     // border flora: kelp and corals along the bottom, sea fans on the sides (world space, behind everything)
     this.plantLayer.removeChildren().forEach((c) => c.destroy());
     this.plants = [];
+    {
+      // sand floor strip along the bottom of the world
+      const sand = new Sprite(sandTexture());
+      sand.anchor.set(0, 0);
+      sand.position.set(-200, WORLD_H - 60);
+      sand.width = WORLD_W + 400;
+      sand.height = 160;
+      this.plantLayer.addChild(sand);
+    }
     if (this.quality !== 'niedrig') {
       let seed = state.def.seed * 17 + 5;
       const rand = () => {
         seed = (seed * 1103515245 + 12345) & 0x7fffffff;
         return seed / 0x7fffffff;
       };
-      const place = (x: number, y: number, kind: 'fan' | 'kelp' | 'tube', scale: number, flip: boolean) => {
+      const place = (
+        x: number,
+        y: number,
+        kind: 'fan' | 'kelp' | 'brain' | 'tube',
+        scale: number,
+        flip: boolean,
+      ) => {
         const sp = new Sprite(plantTexture(kind, Math.floor(rand() * 1000)));
         sp.anchor.set(0.5, 1);
         sp.position.set(x, y);
         sp.scale.set(scale * (flip ? -1 : 1), scale);
-        sp.tint = kind === 'kelp' ? 0x2f7a6a : kind === 'fan' ? 0x8a4a7a : 0x3a6a8a;
-        sp.alpha = 0.55;
+        sp.alpha = 0.95;
         this.plantLayer.addChild(sp);
         this.plants.push({ s: sp, ph: rand() * TAU, base: sp.rotation });
       };
-      for (let x = 40; x < WORLD_W; x += 90 + rand() * 120) {
-        const kind = rand() < 0.6 ? 'kelp' : 'fan';
-        place(x, WORLD_H + 10 + rand() * 20, kind, 0.55 + rand() * 0.5, rand() < 0.5);
+      for (let x = 30; x < WORLD_W; x += 70 + rand() * 90) {
+        const r = rand();
+        const kind = r < 0.35 ? 'kelp' : r < 0.6 ? 'fan' : r < 0.8 ? 'brain' : 'tube';
+        place(x, WORLD_H - 10 + rand() * 24, kind, 0.5 + rand() * 0.5, rand() < 0.5);
       }
       for (let y = 120; y < WORLD_H - 60; y += 140 + rand() * 120) {
         place(-10 + rand() * 30, y, 'fan', 0.4 + rand() * 0.4, false);
@@ -450,6 +472,9 @@ export class PixiRenderer implements Renderer {
       label,
       phase: Math.random() * TAU,
       flash: 0,
+      color: '',
+      type: n.type,
+      level: n.level,
     };
   }
 
@@ -583,7 +608,7 @@ export class PixiRenderer implements Renderer {
       ),
     );
     this.shafts.forEach((s, i) => {
-      s.alpha = 0.025 + 0.015 * (0.5 + 0.5 * Math.sin(t * 0.25 + i * 1.3));
+      s.alpha = 0.05 + 0.04 * (0.5 + 0.5 * Math.sin(t * 0.25 + i * 1.3));
       s.skew.x = 0.05 * Math.sin(t * 0.1 + i);
     });
     // parallax: motes drift with a fraction of the camera offset
@@ -618,28 +643,34 @@ export class PixiRenderer implements Renderer {
         breathe = this.reducedMotion ? 1 : 1 + 0.02 * Math.sin(t * 1.6 + nv.phase);
       nv.flash = Math.max(0, nv.flash - dt * 1.4);
       nv.root.scale.set(k * breathe * (1 + nv.flash * nv.flash * 0.18));
-      nv.detail.tint = C;
-      nv.detail.alpha = own ? 1 : 0.55;
-      nv.platform.alpha = own ? 1 : 0.85;
-      if (nv.rotor) {
-        nv.rotor.tint = C;
-        if (!this.reducedMotion) nv.rotor.rotation = t * ROTOR_SPEED[n.type] + nv.phase;
+      const hex = FACTION_HEX[n.owner] ?? '#ffffff';
+      if (nv.color !== hex) {
+        // Pre-tinted textures instead of runtime tint (identical on WebGL and the canvas fallback).
+        nv.color = hex;
+        nv.detail.texture = tintedTexture(detailTexture(n.type, n.level), hex);
+        const rt = rotorTexture(n.type, n.level);
+        if (nv.rotor && rt) nv.rotor.texture = tintedTexture(rt, hex);
+        const ring = tintedTexture(ringTexture(), hex);
+        nv.rings.forEach((rs) => (rs.texture = ring));
+        nv.glow.texture = tintedTexture(glowTexture(), hex);
+        nv.aura.texture = nv.glow.texture;
       }
+      nv.detail.alpha = 1;
+      nv.platform.alpha = 1;
+      if (nv.rotor && !this.reducedMotion) nv.rotor.rotation = t * ROTOR_SPEED[n.type] + nv.phase;
       nv.rings.forEach((rs, i) => {
         rs.visible = n.level > i + 1;
-        rs.tint = C;
         rs.alpha = 0.6;
         rs.scale.set(1 + i * 0.07);
       });
-      // glow (world units)
+      // glows are off in the lagoon theme (they wash out on bright water)
+      nv.glow.visible = false;
       nv.glow.position.set(n.x, n.y);
-      nv.glow.tint = C;
-      nv.glow.width = nv.glow.height = r * (own ? 5.2 : 4);
-      nv.glow.alpha = own ? 0.45 + 0.15 * pulse : 0.22;
-      nv.aura.visible = n.type === 'quelle' && own;
+      nv.glow.width = nv.glow.height = r * (own ? 3.6 : 2.6);
+      nv.glow.alpha = own ? 0.35 + 0.1 * pulse : 0.12;
+      nv.aura.visible = false;
       if (nv.aura.visible) {
         nv.aura.position.set(n.x, n.y);
-        nv.aura.tint = C;
         nv.aura.width = nv.aura.height = r * 7.2;
         nv.aura.alpha = 0.1 + 0.1 * pulse;
       }
@@ -668,13 +699,13 @@ export class PixiRenderer implements Renderer {
       const selected = ui.selected.includes(n.id) || (ui.drag && ui.drag.src === n.id);
       if (selected) {
         dashedCircle(sg, R + 12, 14, -t * 24);
-        sg.stroke({ width: 2.2, color: 0xffffff, alpha: 0.95 });
+        sg.stroke({ width: 3, color: 0x10324a, alpha: 0.9 });
       } else if (
         (dragEnd !== null && dragEnd !== n.id && ui.hover === n.id) ||
         (ui.abilityMode && ui.hover === n.id)
       ) {
         sg.circle(0, 0, R + 12);
-        sg.stroke({ width: 2.5, color: 0xffffff, alpha: 0.85 });
+        sg.stroke({ width: 3, color: 0x10324a, alpha: 0.7 });
       }
       // label (screen space)
       nv.label.text = String(Math.floor(n.units));
@@ -700,8 +731,14 @@ export class PixiRenderer implements Renderer {
         this.groupViews.set(g.id, gv);
       }
       const a = state.nodes[g.from] as SimNode,
-        b = state.nodes[g.to] as SimNode,
-        C = FACTION_COLORS[g.owner] ?? 0xffffff;
+        b = state.nodes[g.to] as SimNode;
+      const hex = FACTION_HEX[g.owner] ?? '#ffffff';
+      if (gv.color !== hex) {
+        gv.color = hex;
+        const ut = tintedTexture(unitTexture(g.unit), hex);
+        for (const u of gv.units) u.texture = ut;
+        gv.glow.texture = tintedTexture(glowTexture(), hex);
+      }
       const ang = Math.atan2(b.y - a.y, b.x - a.x);
       gv.root.position.set(g.x, g.y);
       gv.root.rotation = ang;
@@ -726,13 +763,12 @@ export class PixiRenderer implements Renderer {
               : Math.sin(t * 9 + i * 1.9) * 1.4;
         const lane = (((i * 7) % 5) - 2) * (big ? 3.4 : 2.6) + wob;
         u.position.set(-back / us, lane / us);
-        u.tint = C;
         u.alpha = 0.95 - i * 0.03;
       });
+      gv.glow.visible = false;
       gv.glow.position.set(g.x, g.y);
-      gv.glow.tint = C;
       gv.glow.width = gv.glow.height = (10 + Math.min(g.n, 40) * 0.4) * 2.2 * us;
-      gv.glow.alpha = g.n >= 3 ? 0.5 : 0.25;
+      gv.glow.alpha = g.n >= 3 ? 0.35 : 0.2;
       gv.label.visible = g.n >= 3;
       if (gv.label.visible) {
         gv.label.text = String(Math.round(g.n));
@@ -758,7 +794,7 @@ export class PixiRenderer implements Renderer {
     for (let i = 0; i < 18; i++) {
       const s = new Sprite(tex);
       s.anchor.set(0.5);
-      s.scale.set(0.5);
+      s.scale.set(0.42);
       s.visible = false;
       units.push(s);
       root.addChild(s);
@@ -771,7 +807,7 @@ export class PixiRenderer implements Renderer {
     const label = new BitmapText({ text: '', style: { fontFamily: LABEL_FONT, fontSize: 11 } });
     label.anchor.set(0.5);
     this.labels.addChild(label);
-    return { root, glow, units, label, unit: g.unit };
+    return { root, glow, units, label, unit: g.unit, color: '' };
   }
 
   private updateRoutes(state: GameState, ui: UiState): void {
@@ -784,13 +820,13 @@ export class PixiRenderer implements Renderer {
           b = state.nodes[ids[i + 1] as number] as SimNode;
         g.moveTo(a.x, a.y).lineTo(b.x, b.y);
       }
-      g.stroke({ width: 9, color: C, alpha: 0.12 * alpha, cap: 'round', join: 'round' });
+      g.stroke({ width: 7, color: 0x10324a, alpha: 0.25 * alpha, cap: 'round', join: 'round' });
       for (let i = 0; i < ids.length - 1; i++) {
         const a = state.nodes[ids[i] as number] as SimNode,
           b = state.nodes[ids[i + 1] as number] as SimNode;
         dashed(g, a.x, a.y, b.x, b.y, 10, 9, off + offset);
       }
-      g.stroke({ width: 2, color: C, alpha: 0.9 * alpha, cap: 'round' });
+      g.stroke({ width: 3, color: C, alpha: 0.95 * alpha, cap: 'round' });
       for (let i = 0; i < ids.length - 1; i++) {
         const a = state.nodes[ids[i] as number] as SimNode,
           b = state.nodes[ids[i + 1] as number] as SimNode;
@@ -839,7 +875,7 @@ export class PixiRenderer implements Renderer {
     const cg = this.cutG.clear();
     if (ui.cut && ui.cut.length > 1) {
       ui.cut.forEach((q, i) => (i ? cg.lineTo(q.x, q.y) : cg.moveTo(q.x, q.y)));
-      cg.stroke({ width: 2 * S, color: 0xffffff, alpha: 0.7, cap: 'round', join: 'round' });
+      cg.stroke({ width: 3 * S, color: 0x10324a, alpha: 0.7, cap: 'round', join: 'round' });
     }
     const pg = this.dragPill.clear();
     if (ui.drag) {
@@ -853,7 +889,7 @@ export class PixiRenderer implements Renderer {
       this.dragLabel.position.set(x, y);
       const w = this.dragLabel.width + 16 * S,
         h = this.dragLabel.height + 8 * S;
-      pg.roundRect(x - w / 2, y - h / 2, w, h, h / 2).fill({ color: 0x040a12, alpha: 0.75 });
+      pg.roundRect(x - w / 2, y - h / 2, w, h, h / 2).fill({ color: 0xffffff, alpha: 0.9 });
     } else this.dragLabel.visible = false;
   }
 

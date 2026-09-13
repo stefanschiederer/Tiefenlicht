@@ -1,10 +1,9 @@
 import type { AbilityId } from '@/data';
-import type { Game, SendMode } from './game';
+import type { Game } from './game';
 
 export interface InputHooks {
   togglePause(): void;
   toggleSpeed(): void;
-  onSendMode(): void;
 }
 
 /** Pointer and keyboard handling for the game canvas. */
@@ -112,12 +111,6 @@ export function bindInput(canvas: HTMLCanvasElement, game: Game, hooks: InputHoo
       hooks.togglePause();
     }
     if (e.key.toLowerCase() === 'f') hooks.toggleSpeed();
-    const km: Record<string, SendMode> = { q: 0.25, w: 0.5, e: 0.75, r: 1 };
-    const m = km[e.key.toLowerCase()];
-    if (m !== undefined) {
-      game.setSendMode(m);
-      hooks.onSendMode();
-    }
     const ids: AbilityId[] = game.availableAbilities();
     const idx = ['1', '2', '3'].indexOf(e.key);
     const id = idx >= 0 ? ids[idx] : undefined;

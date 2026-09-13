@@ -1,5 +1,5 @@
 import { PLAYER, TYPES, UNITS, type NodeType } from '@/data';
-import { clearRoutes, cycleReserve, doConvert, doUpgrade } from '@/sim/actions';
+import { clearRoutes, doConvert, doUpgrade } from '@/sim/actions';
 import { capOf, convertCost, nodeRadius, routeLimit, upgradeCost, upgradePreview } from '@/sim/stats';
 import { nodeIcon } from '@/render/pixi/textures';
 import type { Game } from '@/app/game';
@@ -75,7 +75,7 @@ export function renderPanel(game: Game): void {
         {
           cls: 'cl',
           html: ICONS.clear,
-          title: 'Routen löschen',
+          title: 'Linien löschen',
           cost: null,
           disabled: !n.routes.length,
           extra: 'id="pClear"',
@@ -102,11 +102,6 @@ export function renderPanel(game: Game): void {
       tip(`${TYPES[n.type].name} auf Stufe ${n.level} ausgebaut.`, 2000);
       renderPanel(game);
     }
-  });
-  panel.querySelector('#pRes')?.addEventListener('click', () => {
-    cycleReserve(n);
-    game.audio.play('click');
-    renderPanel(game);
   });
   panel.querySelector('#pConv')?.addEventListener('click', () => {
     panelConv = true;

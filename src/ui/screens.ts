@@ -113,21 +113,20 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
       <div class="actions"><button data-go="menu">Zurück</button></div>`;
   } else if (kind === 'howto') {
     h = `<h2>Anleitung</h2>
-      <ul><li><b>Senden:</b> Ziehe von einem eigenen Knoten über verbundene Knoten. Sofort geht die Hälfte der verfügbaren Einheiten los, und die Route bleibt bestehen: Der Knoten schickt danach laufend einen Teil seiner Produktion nach und wächst trotzdem weiter. Ziehe erneut, um sofort wieder die Hälfte zu schicken. Unten links (oder <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd>) wählst du 25 bis 100 %, <kbd>Shift</kbd> + Ziehen schickt alles.</li>
-      <li><b>Routen:</b> Eine Route schickt laufend einen Teil der Produktion nach (in kleinen Paketen), der Knoten wächst trotzdem weiter; ein voller Knoten schickt alles. Bis zu drei Routen je Knoten teilen den Nachschub. <b>Löschen:</b> Quer über die Linie wischen, im Knotenmenü einzeln entfernen, oder Rechtsklick auf den Knoten für alle.</li>
-      <li><b>Vorschau:</b> Beim Ziehen steht am Zeiger, wie viele Einheiten losgehen und ob sie die Verteidigung des Ziels schlagen (✓ oder ✗).</li>
-      <li><b>Mehrfachauswahl:</b> Eigene Knoten antippen, um sie zu sammeln; Doppeltipp wählt alle eigenen. Ziehen von einem gewählten Knoten schickt von allen. Tipp ins Leere hebt die Auswahl auf.</li>
-      <li><b>Knotenmenü:</b> Einen einzelnen eigenen Knoten antippen: Ausbau bis Stufe 3, Reserve, Umbau in eine andere Art, Routen verwalten.</li>
+      <ul><li><b>Linien:</b> Ziehe von einem eigenen Gebäude zu einem Ziel. Die Linie bleibt, und deine Einheiten strömen laufend hinüber, bis du sie kappst. Mehr Linien pro Gebäude gibt es mit jeder Ausbaustufe (1, 2, 3).</li>
+      <li><b>Kappen:</b> Quer über eine Linie wischen. Alternativ im Gebäudemenü oder per Rechtsklick auf das Gebäude.</li>
+      
+      <li><b>Gebäudemenü:</b> Eigenes Gebäude antippen: Ausbau bis Stufe 3 (jede Art wird anders stärker), Umbau in eine andere Art, Linien löschen.</li>
       <li><b>Hindernisse:</b> Riffbarrieren müssen durchbrochen werden (kostet Einheiten), Minen zerstören einen Teil des ersten Schwarms, der vorbeizieht. Felsen versperren Wege ganz.</li>
       <li><b>Kampf:</b> Angriffsstärke der Truppen gegen Einheiten × Verteidigung des Knotens. Bleibt etwas übrig, wechselt der Knoten die Seite.</li>
       <li><b>Truppen:</b> Jede Knotenart erzeugt eigene Truppen: Drohnen sind schnell und schwach, Panzer stark und langsam, Pfeile am schnellsten.</li>
       <li><b>Energie</b> entsteht, wenn Einheiten fallen. Damit zündest du Fähigkeiten (Tasten <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>).</li>
-      <li><b>Tasten:</b> <kbd>Leertaste</kbd> Pause, <kbd>F</kbd> Tempo, <kbd>Esc</kbd> Abbrechen.</li></ul>
+      <li><b>Tasten:</b> <kbd>Leertaste</kbd> Pause, <kbd>F</kbd> Tempo, <kbd>1</kbd>–<kbd>3</kbd> Fähigkeiten, <kbd>Esc</kbd> Abbrechen.</li></ul>
       <div class="actions"><button data-go="menu">Zurück</button></div>`;
   } else if (kind === 'intro') {
     h = `<h2>${L.name}</h2><p class="sub">${game.levelKind === 'campaign' ? `Kapitel ${L.ch + 1}: ${CHAPTERS[L.ch]?.name ?? ''}, Level ${game.levelIndex + 1} von ${CAMPAIGN.length}` : game.levelKind === 'daily' ? 'Heute für alle gleich' : game.levelKind === 'custom' ? 'Eigene Karte' : 'Endlos'} · ${L.enemies === 1 ? 'ein Gegner' : L.enemies + ' Gegner'} · Zielzeit ${fmtTime(L.par)}</p>`;
     if (game.levelKind === 'campaign' && game.levelIndex === 0)
-      h += `<ul><li>Ziehe vom goldenen Knoten zu einem Nachbarn: Die Hälfte deiner Einheiten bricht sofort auf, und die Route bleibt – ein Teil des Nachwuchses fließt laufend weiter. Ziehe erneut, um sofort mehr zu schicken.</li><li>Fremde Knoten werden angegriffen; ist deine Stärke größer, gehören sie dir.</li><li>Nur gepunktete Linien sind Wege. Felsen trennen das Netz.</li></ul>`;
+      h += `<ul><li>Ziehe vom goldenen Gebäude zu einem Nachbarn: Die Linie bleibt, und deine Einheiten strömen laufend hinüber. Wische quer über die Linie, um sie zu kappen.</li><li>Fremde Knoten werden angegriffen; ist deine Stärke größer, gehören sie dir.</li><li>Nur gepunktete Linien sind Wege. Felsen trennen das Netz.</li></ul>`;
     else h += `<p>${L.text}</p>`;
     if (L.objective)
       h += `<div class="new"><div><b>${icon('target')} Sonderziel</b><span>${L.objective.label}. Gelingt das, ist das Level sofort gewonnen – oder du besiegst alle Gegner.</span></div></div>`;
@@ -136,7 +135,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     if (L.feature === 'upgrade')
       h += `<div class="new"><div class="icon" data-lv="3"></div><div><b>Neu: Ausbau</b><span>Tippe einen eigenen Knoten an und zahle Einheiten, um ihn auf Stufe 2 und 3 zu bringen: mehr Produktion, mehr Vorrat, mehr Verteidigung.</span></div></div>`;
     if (L.feature === 'split')
-      h += `<div class="new"><div><b>Neu: Geteilte Routen und Reserve</b><span>Ziehe mehrere Routen von einem Knoten (bis zu drei); der Nachschub wird aufgeteilt. Ein voller Knoten schickt seine ganze Produktion weiter. Im Knotenmenü legst du eine Reserve fest, die zur Verteidigung bleibt und nie abfließt. Mit Shift + Ziehen schickst du sofort alles.</span></div></div>`;
+      h += `<div class="new"><div><b>Neu: Geteilte Routen und Reserve</b><span>Ein Gebäude hält je nach Ausbaustufe eine, zwei oder drei Linien; der Strom teilt sich gleichmäßig auf. Kappe Linien rechtzeitig, damit ein Gebäude nicht leerläuft.</span></div></div>`;
     if (L.feature === 'barrier')
       h += `<div class="new"><div><b>Neu: Riffbarrieren</b><span>Manche Verbindungen sind von einer Barriere versperrt. Truppen, die dort ankommen, verbrauchen sich beim Durchbrechen: Erst wenn die Barriere fällt, kommen die nächsten hindurch. Das gilt auch für die Gegner.</span></div></div>`;
     if (L.feature === 'mine')

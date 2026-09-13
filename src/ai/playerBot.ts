@@ -7,11 +7,10 @@
  */
 import { MAX_ROUTES, PLAYER, TYPES, UNITS } from '@/data';
 import { frontier } from '@/ai/bot';
-import { ROUTE_SHARE } from '@/data';
-import { addRoute, doUpgrade, launch, removeRoute, sendAmount } from '@/sim/actions';
+import { addRoute, doUpgrade, removeRoute } from '@/sim/actions';
 import { bfsPath } from '@/sim/graph';
 import type { GameState, SimNode } from '@/sim/state';
-import { capOf, defOf, incoming, rateOf, upgradeCost } from '@/sim/stats';
+import { capOf, defOf, incoming, rateOf, routeLimit, upgradeCost } from '@/sim/stats';
 
 export interface PlayerBotOptions {
   /** Seconds between decisions (default 1.5). */
@@ -84,8 +83,7 @@ function setReserves(s: GameState, mine: SimNode[], frontReserve: number): void 
 
 /** Sends the configured share now and keeps the path as a route (the player's draw gesture). */
 function draw(s: GameState, src: SimNode, path: readonly number[], frac: number): void {
-  const k = sendAmount(s, src, frac);
-  if (k >= 1) launch(s, src, path, k);
+  void frac;
   const target = path[path.length - 1];
   if (target !== undefined && node(s, target).owner !== PLAYER) {
     // Only one attack route per source: concentrate instead of spreading the drip.
@@ -118,7 +116,7 @@ export function playerBotAct(s: GameState, opts: PlayerBotOptions = {}): boolean
         .filter((m) => m.owner === F && m.units >= 6)
         .sort((a, b) => b.units - a.units)[0];
       if (helper) {
-        launch(s, helper, [n.id], Math.floor(helper.units * 0.6));
+        addRoute(helper, [n.id], routeLimit(helper));
         return true;
       }
     }
@@ -150,9 +148,9 @@ export function playerBotAct(s: GameState, opts: PlayerBotOptions = {}): boolean
     // The draw sends `sendFrac` at once; afterwards the route streams ROUTE_SHARE of the production.
     // Count the burst plus roughly four seconds of stream for the feasibility check.
     const u = UNITS[TYPES[src.type].unit],
-      avail = sendAmount(s, src, o.sendFrac) + rateOf(s, src) * ROUTE_SHARE * 4,
+      avail = Math.min(src.units, 6 + rateOf(s, src) * 4),
       availPow = avail * u.str;
-    if (sendAmount(s, src, o.sendFrac) < 1) continue;
+    if (src.units < 2) continue;
     for (const [tid, path] of frontier(s, src, F)) {
       const t = node(s, tid),
         hops = path.length,

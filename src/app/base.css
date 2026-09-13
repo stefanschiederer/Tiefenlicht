@@ -29,6 +29,7 @@ body {
   padding: 6px 12px;
 }
 #errorBox {
+  font-family: monospace;
   position: fixed;
   left: 8px;
   right: 8px;
@@ -67,6 +68,7 @@ html.compact .brand {
   align-items: center;
   gap: 10px;
   min-width: 0;
+  padding: 4px 10px;
 }
 html.compact .brand .t {
   display: none;
@@ -129,7 +131,7 @@ html.compact #abilities button b {
   font-size: 18px;
 }
 html.compact #tip {
-  top: 48px;
+  top: 70px;
   bottom: auto;
   font-size: 11px;
   padding: 5px 10px;

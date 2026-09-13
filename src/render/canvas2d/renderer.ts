@@ -209,8 +209,8 @@ export class CanvasRenderer {
     const g = c.getContext('2d') as CanvasRenderingContext2D;
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     const bg = g.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#081527');
-    bg.addColorStop(1, '#03080f');
+    bg.addColorStop(0, '#bff0ff');
+    bg.addColorStop(1, '#1a89b3');
     g.fillStyle = bg;
     g.fillRect(0, 0, W, H);
     const lg = g.createRadialGradient(W * 0.5, -H * 0.25, 0, W * 0.5, -H * 0.25, H * 1.05);
@@ -243,7 +243,7 @@ export class CanvasRenderer {
     }
     g.setLineDash([2, 8 * S]);
     g.lineWidth = 1.5;
-    g.strokeStyle = 'rgba(140,200,235,.3)';
+    g.strokeStyle = 'rgba(255,255,255,.75)';
     for (const [a, b] of state.edges) {
       const na = state.nodes[a] as SimNode,
         nb = state.nodes[b] as SimNode;

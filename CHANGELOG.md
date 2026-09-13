@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0 – Sonnige Lagune und Tower-War-Steuerung (2026-09-14)
+
+- Steuerung exakt wie Tower War: Eine gezogene Linie ist die Verbindung, Einheiten strömen mit fester Rate hinüber, bis die Linie gekappt wird. Keine Anteile (25/50/75/Alle), keine Sofortsendung, keine Mehrfachauswahl, keine Reserve. Gegner ziehen ebenfalls Linien.
+- Neue Art Direction „Sonnige Lagune“: helles türkises Wasser mit Sonnenstrahlen, Sandboden mit bunten Korallen, Seetang und Schwämmen, dunkle Zahlen auf hellem Grund, helle Glas-Oberfläche mit den Schriften Baloo 2 und Nunito (lokal gebündelt, OFL).
+- Sechs neue Gebäude: Korallen-Nest, Quallen-Kolonie, Muschel-Festung, Strudel-Turbine, Leuchtturm-Wächter, Riesenmuschel-Quelle; Besitzerfarbe auf Ring, Kuppel und Licht, Ausbau fügt sichtbar Teile hinzu.
+- Truppen als Meerestiere: Fisch, Qualle, Panzerkrebs, Manta, Kugelfisch, Perle.
+- Fraktionsfarben: Gold, Koralle, Alge, Tinte; Neutral Perlmutt.
+
 ## 0.8.1 – Phase 5: Feinschliff (2026-09-14)
 
 - Lighthouse: Best Practices 100, SEO 91, Barrierefreiheit-Korrekturen (Viewport erlaubt Zoom wieder, Pinch bleibt auf dem Spielfeld; `robots.txt`).

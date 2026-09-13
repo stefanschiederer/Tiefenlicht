@@ -35,7 +35,7 @@ describe('frontier', () => {
 });
 
 describe('aiAct', () => {
-  it('reinforces a threatened node from its strongest own neighbour with 60 %', () => {
+  it('reinforces a threatened node with a line from its strongest own neighbour', () => {
     const s = makeState(
       [
         { x: 0, y: 0, owner: F, units: 5 },
@@ -52,11 +52,11 @@ describe('aiAct', () => {
     );
     addGroup(s, { owner: 1, n: 10, from: 3, to: 0, t: 0.2 });
     aiAct(s, F);
-    expect(s.groups).toHaveLength(2);
-    const g = s.groups[1];
-    expect(g).toMatchObject({ owner: F, from: 1, to: 0, n: 12, path: [] });
-    expect(node(s, 1).units).toBe(8);
-    expect(node(s, 2).units).toBe(10);
+    // Tower-War bots reinforce by drawing a line from the strongest neighbour.
+    expect(s.groups).toHaveLength(1);
+    expect(node(s, 1).routes).toEqual([[0]]);
+    expect(node(s, 2).routes).toEqual([]);
+    expect(node(s, 1).units).toBe(20);
   });
 
   it('does not reinforce against a negligible threat', () => {
@@ -78,7 +78,7 @@ describe('aiAct', () => {
     expect(s.groups).toHaveLength(1);
   });
 
-  it('attacks a reachable weak target with 75 % of the strongest source', () => {
+  it('attacks a reachable weak target by drawing a line from the strongest source', () => {
     const s = makeState(
       [
         { x: 0, y: 0, owner: F, units: 30 },
@@ -88,9 +88,9 @@ describe('aiAct', () => {
       { def: { aiUpgrades: false } },
     );
     aiAct(s, F);
-    expect(s.groups).toHaveLength(1);
-    expect(s.groups[0]).toMatchObject({ owner: F, from: 0, to: 1, n: 22, path: [] });
-    expect(node(s, 0).units).toBe(8);
+    expect(s.groups).toHaveLength(0);
+    expect(node(s, 0).routes).toEqual([[1]]);
+    expect(node(s, 0).units).toBe(30);
   });
 
   it('attacks through own territory along the frontier path', () => {
@@ -107,7 +107,7 @@ describe('aiAct', () => {
       { def: { aiUpgrades: false } },
     );
     aiAct(s, F);
-    expect(s.groups[0]).toMatchObject({ owner: F, from: 0, to: 1, path: [2], n: 22 });
+    expect(node(s, 0).routes).toEqual([[1, 2]]);
   });
 
   it('does nothing when every target is too strong and no node is rich', () => {
@@ -125,7 +125,7 @@ describe('aiAct', () => {
     expect(drainEvents(s)).toEqual([]);
   });
 
-  it('shifts half the surplus of a full rear node to the weakest frontline node', () => {
+  it('draws a supply line from a full rear node to the weakest frontline node', () => {
     const s = makeState(
       [
         { x: 0, y: 0, owner: F, units: 40 },
@@ -143,9 +143,9 @@ describe('aiAct', () => {
       { def: { aiUpgrades: false } },
     );
     aiAct(s, F);
-    expect(s.groups).toHaveLength(1);
-    expect(s.groups[0]).toMatchObject({ owner: F, from: 0, to: 2, path: [], n: 20 });
-    expect(node(s, 0).units).toBe(20);
+    expect(s.groups).toHaveLength(0);
+    expect(node(s, 0).routes).toEqual([[2]]);
+    expect(node(s, 0).units).toBe(40);
   });
 
   it('never upgrades or converts with aiUpgrades false', () => {

@@ -4,8 +4,8 @@ import {
   FLOW_INTERVAL_FAST,
   PLAYER,
   ROUTE_BATCH,
-  ROUTE_SHARE,
-  ROUTE_SHARE_FAST,
+  STREAM_RATE,
+  STREAM_RATE_FAST,
   SIM_SCALE,
   SURRENDER_NODES,
   SURRENDER_SECONDS,
@@ -60,7 +60,7 @@ export function step(s: GameState, dt: number): void {
   if (s.over) return;
   s.time += dt;
   const flowInterval = s.perks.flow ? FLOW_INTERVAL_FAST : FLOW_INTERVAL;
-  const routeShare = s.perks.flow ? ROUTE_SHARE_FAST : ROUTE_SHARE;
+  const streamRate = STREAM_RATE * (s.perks.flow ? STREAM_RATE_FAST : 1);
   for (const n of s.nodes) {
     n.frozen = Math.max(0, n.frozen - dt);
     n.shield = Math.max(0, n.shield - dt);
@@ -68,10 +68,10 @@ export function step(s: GameState, dt: number): void {
     const cap = capOf(s, n),
       r = rateOf(s, n);
     if (r > 0 && n.units < cap) n.units = Math.min(cap, n.units + r * dt);
-    // Routes forward a share of production as a slow stream in packets of ROUTE_BATCH units; a full node
-    // forwards everything it makes. Nothing below the reserve ever leaves through a route.
-    if (n.routes.length) {
-      n.flowAcc += r * (n.units >= cap - 0.5 ? 1 : routeShare) * dt;
+    // Tower-War stream: each route pulls units out at a constant rate, one unit at a time, until the
+    // node is empty (or down to its reserve). Frozen nodes do not stream.
+    if (n.routes.length && n.frozen <= 0) {
+      n.flowAcc += streamRate * n.routes.length * dt;
       n.flowT -= dt;
       if (n.flowT <= 0) {
         n.flowT = flowInterval;
@@ -87,7 +87,7 @@ export function step(s: GameState, dt: number): void {
               launch(s, n, n.routes[(n.rr + i) % k] as number[], each + (extra-- > 0 ? 1 : 0));
           }
           n.rr++;
-        } else if (n.flowAcc > cap) n.flowAcc = cap;
+        } else if (n.flowAcc > 3) n.flowAcc = 3;
       }
     } else n.flowAcc = 0;
   }

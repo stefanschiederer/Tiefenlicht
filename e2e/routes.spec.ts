@@ -23,7 +23,7 @@ const tl = (page: Page, meId?: number) =>
     };
   }, meId);
 
-test('drawing a path sends the share and keeps a route; drawing again sends again', async ({ page }) => {
+test('drawing a line creates a route and units start streaming along it', async ({ page }) => {
   test.skip(test.info().project.name === 'mobile', 'mouse drag only');
   await page.goto('./');
   await page.getByRole('button', { name: 'Kampagne' }).click();
@@ -38,22 +38,18 @@ test('drawing a path sends the share and keeps a route; drawing again sends agai
   await page.waitForTimeout(100);
   const after = await tl(page, before.me.id);
   expect(after.me.routes).toBe(1);
-  expect(after.groups.length).toBeGreaterThanOrEqual(1);
-  expect(after.groups[0] ?? 0).toBeGreaterThanOrEqual(Math.floor(before.me.units * 0.5) - 1);
-  // Draw the same path again: sends the share of what is left, route count stays 1.
+  // No burst: units leave one at a time through the stream.
+  await page.waitForTimeout(1500);
+  const later = await tl(page, before.me.id);
+  expect(later.groups.length).toBeGreaterThanOrEqual(1);
+  expect(Math.max(...later.groups)).toBeLessThanOrEqual(1.01);
+  // Drawing the same line again keeps a single route.
   await page.mouse.move(before.me.x, before.me.y);
   await page.mouse.down();
   await page.mouse.move(before.nb.x, before.nb.y, { steps: 12 });
   await page.mouse.up();
   await page.waitForTimeout(100);
-  const again = await tl(page, before.me.id);
-  expect(again.me.routes).toBe(1);
-  const sends = await page.evaluate(
-    () =>
-      (window as unknown as { TL: { game: { state: { stats: { sends: number } } } } }).TL.game.state.stats
-        .sends,
-  );
-  expect(sends).toBe(2);
+  expect((await tl(page, before.me.id)).me.routes).toBe(1);
 });
 
 test('touch drag works underneath the HUD info block', async ({ page }) => {
@@ -99,79 +95,6 @@ test('swiping across a route cuts it', async ({ page }) => {
   await page.mouse.up();
   await page.waitForTimeout(100);
   expect((await tl(page, t.me.id)).me.routes).toBe(0);
-});
-
-test('multi-select: tapping two own nodes and dragging sends from both', async ({ page }) => {
-  test.skip(test.info().project.name === 'mobile', 'mouse only');
-  await page.goto('./');
-  await page.getByRole('button', { name: 'Kampagne' }).click();
-  await page
-    .getByRole('button', { name: /6\. Zwei Fronten|1\. Erstes Leuchten/ })
-    .first()
-    .click();
-  await startLevel(page);
-  await page.waitForTimeout(300);
-  // Capture a neighbour first so we own two nodes: send everything (shift) twice.
-  const t = await tl(page);
-  await page.keyboard.down('Shift');
-  await page.mouse.move(t.me.x, t.me.y);
-  await page.mouse.down();
-  await page.mouse.move(t.nb.x, t.nb.y, { steps: 10 });
-  await page.mouse.up();
-  await page.keyboard.up('Shift');
-  await page.waitForFunction(
-    () => (window as unknown as { TL: TL }).TL.nodes.filter((n) => n.owner === 1).length >= 2,
-    null,
-    { timeout: 30_000 },
-  );
-  const own = await page.evaluate(() => {
-    const t = (window as unknown as { TL: TL }).TL;
-    return t.nodes
-      .filter((n) => n.owner === 1)
-      .map((n) => ({ id: n.id, x: t.view.sx(n.x), y: t.view.sy(n.y) }));
-  });
-  expect(own.length).toBeGreaterThanOrEqual(2);
-  const a = own[0] as { id: number; x: number; y: number },
-    b = own[1] as { id: number; x: number; y: number };
-  await page.mouse.click(a.x, a.y);
-  await page.waitForTimeout(400);
-  await page.mouse.click(b.x, b.y);
-  await page.waitForTimeout(100);
-  const selected = await page.evaluate(
-    () => (window as unknown as { TL: { game: { ui: { selected: number[] } } } }).TL.game.ui.selected,
-  );
-  expect(selected.sort()).toEqual([a.id, b.id].sort());
-  // Drag from b to a neighbour of b that is not a: both should launch groups / set routes.
-  const target = await page.evaluate(
-    ({ bid, aid }) => {
-      const t = (window as unknown as { TL: TL }).TL;
-      const e = t.edges.find((e) => (e[0] === bid && e[1] !== aid) || (e[1] === bid && e[0] !== aid));
-      if (!e) return null;
-      const n = t.nodes[e[0] === bid ? e[1] : e[0]];
-      return n ? { x: t.view.sx(n.x), y: t.view.sy(n.y) } : null;
-    },
-    { bid: b.id, aid: a.id },
-  );
-  test.skip(!target, 'no free neighbour');
-  const before = await page.evaluate(
-    () => (window as unknown as { TL: TL }).TL.groups.filter((g) => g.owner === 1).length,
-  );
-  await page.mouse.move(b.x, b.y);
-  await page.mouse.down();
-  await page.mouse.move((target as { x: number; y: number }).x, (target as { x: number; y: number }).y, {
-    steps: 10,
-  });
-  await page.mouse.up();
-  await page.waitForTimeout(100);
-  const routes = await page.evaluate(
-    () =>
-      (window as unknown as { TL: TL }).TL.nodes.filter((n) => n.owner === 1 && n.routes.length > 0).length,
-  );
-  const after = await page.evaluate(
-    () => (window as unknown as { TL: TL }).TL.groups.filter((g) => g.owner === 1).length,
-  );
-  expect(routes).toBe(2);
-  expect(after).toBeGreaterThanOrEqual(before + 1);
 });
 
 test('on a phone in landscape no node is covered by HUD chrome', async ({ page }) => {

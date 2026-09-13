@@ -1,15 +1,6 @@
 import { CAMPAIGN } from '@/data';
 import { $ } from '@/ui/dom';
-import {
-  buildLegend,
-  initHud,
-  renderAbilities,
-  renderSendbar,
-  setGameUi,
-  setSpeedButton,
-  tip,
-  updateHud,
-} from '@/ui/hud';
+import { buildLegend, initHud, renderAbilities, setGameUi, setSpeedButton, tip, updateHud } from '@/ui/hud';
 import { positionPanel, renderPanel, updatePanel } from '@/ui/panel';
 import { hideScreen, showScreen, type ScreenActions, type ScreenKind } from '@/ui/screens';
 import { hideEditorUi, renderEditorUi } from '@/ui/editor';
@@ -61,7 +52,6 @@ export async function startApp(): Promise<Game> {
         hideEditorUi();
         game.playCustom(customDef(ed.map));
         setGameUi(true);
-        renderSendbar(game);
         showScreen(game, 'intro', actions);
       },
       close: () => {
@@ -76,7 +66,6 @@ export async function startApp(): Promise<Game> {
     play: (kind, i) => {
       game.prepareLevel(kind, i);
       setGameUi(true);
-      renderSendbar(game);
       // First level of a chapter without any stars yet: narrative chapter intro first.
       const def = game.def;
       const firstOfChapter = kind === 'campaign' && CAMPAIGN.findIndex((l) => l.ch === def.ch) === i;
@@ -99,7 +88,6 @@ export async function startApp(): Promise<Game> {
       if (game.levelKind === 'custom') {
         game.restartLevel();
         setGameUi(true);
-        renderSendbar(game);
         showScreen(game, 'intro', actions);
       } else actions.play(game.levelKind, game.levelIndex);
     },
@@ -128,7 +116,7 @@ export async function startApp(): Promise<Game> {
   const toggleSpeed = () => setSpeedButton(game.toggleSpeed());
   initHud();
   setSpeedButton(1);
-  bindInput(renderer.canvas, game, { togglePause, toggleSpeed, onSendMode: () => renderSendbar(game) });
+  bindInput(renderer.canvas, game, { togglePause, toggleSpeed });
 
   $('#legendBtn').addEventListener('click', () => {
     const b = $('#legend');

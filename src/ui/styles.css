@@ -1,17 +1,17 @@
 /* Tiefenlicht UI – glass panels over the deep sea. */
 :root {
-  --ink: #e6eef6;
-  --mist: rgba(230, 238, 246, 0.62);
-  --gold: #ffc45a;
-  --gold-soft: rgba(255, 196, 90, 0.18);
-  --line: rgba(160, 200, 230, 0.22);
-  --line-strong: rgba(160, 200, 230, 0.5);
-  --panel: rgba(8, 20, 34, 0.86);
-  --panel-2: rgba(12, 28, 46, 0.92);
-  --ok: #8ff0a4;
-  --bad: #ff7b8f;
-  --ui: 'Avenir Next', 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --title: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+  --ink: #10324a;
+  --mist: #3b6b86;
+  --gold: #ffb400;
+  --gold-soft: rgba(255, 180, 0, 0.18);
+  --line: rgba(16, 50, 74, 0.14);
+  --line-strong: rgba(16, 50, 74, 0.35);
+  --panel: rgba(255, 255, 255, 0.78);
+  --panel-2: rgba(255, 255, 255, 0.92);
+  --ok: #1d9a5a;
+  --bad: #d8244f;
+  --ui: 'Nunito', 'Trebuchet MS', 'Segoe UI', sans-serif;
+  --title: 'Baloo 2', 'Trebuchet MS', sans-serif;
   --r: 12px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -24,7 +24,7 @@ body {
   height: 100%;
   height: 100dvh;
   overscroll-behavior: none;
-  background: #050d17;
+  background: #37b7d6;
   color: var(--ink);
   font-family: var(--ui);
   overflow: hidden;
@@ -40,10 +40,12 @@ button {
   font: inherit;
   font-size: 13px;
   color: var(--ink);
-  background: rgba(8, 20, 34, 0.72);
+  background: rgba(255, 255, 255, 0.85);
   border: 1px solid var(--line);
   padding: 7px 12px;
-  border-radius: 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  box-shadow: 0 3px 0 rgba(16, 50, 74, 0.12);
   cursor: pointer;
   backdrop-filter: blur(8px);
   transition:
@@ -74,13 +76,16 @@ button[aria-pressed='true'] {
   border-color: var(--gold);
 }
 .primary {
-  background: linear-gradient(180deg, #ffd27a, #ffb83a);
-  color: #1a1205;
-  border-color: #ffd27a;
-  font-weight: 600;
-  font-size: 15px;
+  background: linear-gradient(180deg, #ffd046, #ffb400);
+  color: #3d2a00;
+  border-color: #ffd046;
+  font-family: var(--title);
+  font-weight: 800;
+  font-size: 16px;
   padding: 10px 18px;
-  box-shadow: 0 6px 24px rgba(255, 196, 90, 0.25);
+  box-shadow:
+    0 4px 0 #c9822e,
+    0 8px 20px rgba(11, 61, 92, 0.25);
 }
 .primary:hover {
   background: linear-gradient(180deg, #ffdb90, #ffc45a);
@@ -124,19 +129,27 @@ button[aria-pressed='true'] {
 }
 #hud .brand {
   pointer-events: none;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 14px;
+  padding: 8px 12px 10px;
+  box-shadow: 0 4px 14px rgba(11, 61, 92, 0.15);
 }
 .brand .t {
   font-family: var(--title);
-  font-style: italic;
-  font-size: 24px;
+  font-weight: 800;
+  font-size: 26px;
   line-height: 1;
   color: #fff;
-  text-shadow: 0 0 18px rgba(255, 196, 90, 0.45);
+  text-shadow:
+    0 3px 0 #1a89b3,
+    0 6px 16px rgba(11, 61, 92, 0.35);
 }
 .brand .l {
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--mist);
-  margin-top: 5px;
+  margin-top: 4px;
 }
 .share {
   display: flex;
@@ -145,7 +158,7 @@ button[aria-pressed='true'] {
   max-width: 40vw;
   border-radius: 3px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(16, 50, 74, 0.12);
   margin-top: 8px;
 }
 .share i {
@@ -158,12 +171,13 @@ button[aria-pressed='true'] {
   width: 220px;
   max-width: 40vw;
   font-size: 11px;
+  font-weight: 700;
   color: var(--mist);
 }
 .energy .bar {
   height: 5px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(16, 50, 74, 0.12);
   margin-top: 3px;
   overflow: hidden;
 }
@@ -171,7 +185,7 @@ button[aria-pressed='true'] {
   display: block;
   height: 100%;
   width: 0;
-  background: linear-gradient(90deg, #7fd9ff, #e6f7ff);
+  background: linear-gradient(90deg, #ffe082, #ffb400);
   box-shadow: 0 0 8px rgba(127, 217, 255, 0.6);
   transition: width 0.3s;
 }
@@ -272,15 +286,15 @@ button[aria-pressed='true'] {
 }
 #nodePanel .rb {
   position: absolute;
-  width: 44px;
-  height: 44px;
-  margin: -22px 0 0 -22px;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
   border-radius: 50%;
   padding: 0;
   justify-content: center;
   font-size: 18px;
   background: var(--panel-2);
-  border-color: var(--line-strong);
+  border: 2px solid var(--line-strong);
   pointer-events: auto;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
   animation: rb-in 0.18s var(--ease) both;
@@ -329,6 +343,9 @@ button[aria-pressed='true'] {
   border-radius: 999px;
   padding: 3px 10px;
   pointer-events: none;
+}
+#nodePanel .info {
+  font-weight: 700;
 }
 #nodePanel .info b {
   color: var(--ink);
@@ -393,7 +410,8 @@ button[aria-pressed='true'] {
   bottom: 94px;
   transform: translateX(-50%) translateY(6px);
   font-size: 13px;
-  background: rgba(8, 20, 34, 0.82);
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--line);
   padding: 8px 14px;
   border-radius: 999px;
@@ -417,8 +435,8 @@ button[aria-pressed='true'] {
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(3, 8, 14, 0.5);
-  backdrop-filter: blur(2px);
+  background: rgba(26, 137, 179, 0.25);
+  backdrop-filter: blur(3px);
   overflow: auto;
   z-index: 10;
 }
@@ -426,8 +444,8 @@ button[aria-pressed='true'] {
   width: min(560px, 100%);
   max-height: 92vh;
   overflow: auto;
-  background: linear-gradient(180deg, rgba(14, 32, 52, 0.97), rgba(8, 20, 34, 0.97));
-  border: 1px solid rgba(160, 200, 230, 0.28);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(235, 250, 255, 0.94));
+  border: 2px solid rgba(255, 255, 255, 0.9);
   border-radius: 18px;
   padding: 26px 30px;
   box-shadow:
@@ -450,20 +468,20 @@ button[aria-pressed='true'] {
 }
 .card h2 {
   font-family: var(--title);
-  font-style: italic;
-  font-weight: normal;
+  font-weight: 800;
   font-size: 34px;
   margin: 0 0 4px;
-  color: #fff;
+  color: #0b3d5c;
 }
 .card h1 {
   font-family: var(--title);
-  font-style: italic;
-  font-weight: normal;
-  font-size: 56px;
+  font-weight: 800;
+  font-size: 64px;
   margin: 0;
   color: #fff;
-  text-shadow: 0 0 30px rgba(255, 196, 90, 0.35);
+  text-shadow:
+    0 5px 0 #1a89b3,
+    0 12px 26px rgba(11, 61, 92, 0.35);
 }
 .card .sub {
   color: var(--mist);
