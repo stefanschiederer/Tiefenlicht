@@ -11,8 +11,8 @@ export interface AchievementDef {
 export const ACHIEVEMENTS: readonly AchievementDef[] = [
   {
     id: 'first_capture',
-    name: 'Erstes Licht',
-    desc: 'Erobere deinen ersten Knoten.',
+    name: 'Erster Sieg',
+    desc: 'Erobere deinen ersten Gebäude.',
     test: (s) => s.stats.captures >= 1,
   },
   {
@@ -35,38 +35,38 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
   },
   {
     id: 'chapter2',
-    name: 'Riffgänger',
+    name: 'Wüstenfuchs',
     desc: 'Schließe Kapitel 2 ab.',
     test: (s) => [6, 7, 8, 9, 10, 11].every((i) => (s.stars[i] ?? 0) > 0),
   },
   {
     id: 'chapter3',
-    name: 'Der Grund',
+    name: 'Hauptquartier',
     desc: 'Schließe die Kampagne ab.',
     test: (s) => [12, 13, 14, 15, 16, 17].every((i) => (s.stars[i] ?? 0) > 0),
   },
   {
     id: 'all_stars',
-    name: 'Goldener Abgrund',
+    name: 'Goldene Front',
     desc: 'Sammle alle 54 Sterne.',
     test: (s) => Object.values(s.stars).reduce((a, b) => a + b, 0) >= 54,
   },
   {
     id: 'captures_25',
-    name: 'Schwarmführer',
-    desc: 'Erobere 25 Knoten.',
+    name: 'Feldherr',
+    desc: 'Erobere 25 Gebäude.',
     test: (s) => s.stats.captures >= 25,
   },
   {
     id: 'captures_150',
     name: 'Tiefseeherrscher',
-    desc: 'Erobere 150 Knoten.',
+    desc: 'Erobere 150 Gebäude.',
     test: (s) => s.stats.captures >= 150,
   },
   {
     id: 'untouched',
     name: 'Unberührt',
-    desc: 'Gewinne ein Level, ohne einen Knoten zu verlieren.',
+    desc: 'Gewinne ein Level, ohne einen Gebäude zu verlieren.',
     test: (s) => s.stats.flawlessWins >= 1,
   },
   {
@@ -91,7 +91,7 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
   },
   {
     id: 'daily_5',
-    name: 'Fünf Tage Tiefe',
+    name: 'Fünf Tage Dienst',
     desc: 'Schaffe die Tages-Herausforderung an fünf Tagen in Folge.',
     test: (s) => s.stats.bestDailyStreak >= 5,
   },

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.10.0 – Tower-War-Nachbau (2026-09-14)
+
+- Komplett neue Optik nach Tower War: grüne Insel mit Sandrand und Klippe im Wasser, Straßen zwischen den Gebäuden, Bäume, Tannen, Büsche, Häuser, Steine und Zäune als Deko (deterministisch je Level, nie auf Wegen).
+- Sechs Militärgebäude in 2.5D auf einem runden Landeplatz in der Besitzerfarbe: Kaserne (Soldaten), Feldlager (Rekruten), Bunker (Panzer), Garage (Motorräder), Geschützturm (Jeeps, drehbares Geschütz), Depot (Lastwagen, drehende Radarschüssel). Jede Ausbaustufe fügt sichtbar Gebäudeteile hinzu.
+- Truppen von oben: Soldaten mit Gewehr, Rekruten, Panzer, Motorräder, Jeeps, Lastwagen; Einheiten marschieren einzeln in dichter Kolonne (3 Einheiten pro Sekunde je Linie, ein Aufbruch alle 0,33 s).
+- Linien als dicke Farblinie mit wandernden weißen Strichen und Pfeil; Zahl-Badge (weiß, Besitzerfarbe als Rand) über jedem Gebäude; Kappen-Geste rot-weiß.
+- Fraktionen: Blaue Armee (Spieler), Rote, Gelbe, Lila Armee, Neutral hellgrau. Barrikaden sind Sandsackwälle mit Stacheldraht, Minen Tellerminen.
+- Alle Texte auf das Militär-Setting umgestellt: Kapitel Grüne Ebene, Wüste, Eisfront; Level, Fähigkeiten (Verstärkung, Luftschlag, Panzerung), Skill-Zweige (Nachschub, Angriff, Verteidigung, Kommando), Erfolge, Anleitung.
+- UI im Tower-War-Stil: himmelblauer Hintergrund, weiße runde Karten, grüner Start-Knopf, blaue Akzente; Kampagnen-Karte als Straße über Wiese, Wüste und Schnee mit Bäumen, Level als runde Badges (blau = nächstes, grün = geschafft).
+- Neues App-Icon (Kaserne mit Zahl-Badge auf grüner Insel).
+- Design-Canvas mit den drei früheren Richtungen ist damit hinfällig.
+
 ## 0.9.0 – Sonnige Lagune und Tower-War-Steuerung (2026-09-14)
 
 - Steuerung exakt wie Tower War: Eine gezogene Linie ist die Verbindung, Einheiten strömen mit fester Rate hinüber, bis die Linie gekappt wird. Keine Anteile (25/50/75/Alle), keine Sofortsendung, keine Mehrfachauswahl, keine Reserve. Gegner ziehen ebenfalls Linien.

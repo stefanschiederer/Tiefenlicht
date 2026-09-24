@@ -1,18 +1,20 @@
-/* Tiefenlicht UI – glass panels over the deep sea. */
+/* Tiefenlicht UI – bright Tower-War-style cards over sky blue. */
 :root {
-  --ink: #10324a;
-  --mist: #3b6b86;
-  --gold: #ffb400;
-  --gold-soft: rgba(255, 180, 0, 0.18);
-  --line: rgba(16, 50, 74, 0.14);
-  --line-strong: rgba(16, 50, 74, 0.35);
+  --ink: #1f2d3d;
+  --mist: #5b6b7f;
+  --gold: #f5b400;
+  --gold-soft: rgba(47, 124, 246, 0.14);
+  --accent: #2f7cf6;
+  --green: #22c55e;
+  --line: rgba(31, 45, 61, 0.14);
+  --line-strong: rgba(31, 45, 61, 0.35);
   --panel: rgba(255, 255, 255, 0.78);
   --panel-2: rgba(255, 255, 255, 0.92);
   --ok: #1d9a5a;
   --bad: #d8244f;
   --ui: 'Nunito', 'Trebuchet MS', 'Segoe UI', sans-serif;
   --title: 'Baloo 2', 'Trebuchet MS', sans-serif;
-  --r: 12px;
+  --r: 16px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 * {
@@ -24,7 +26,7 @@ body {
   height: 100%;
   height: 100dvh;
   overscroll-behavior: none;
-  background: #37b7d6;
+  background: #6cc8ee;
   color: var(--ink);
   font-family: var(--ui);
   overflow: hidden;
@@ -45,7 +47,7 @@ button {
   padding: 7px 12px;
   border-radius: 12px;
   font-weight: 700;
-  box-shadow: 0 3px 0 rgba(16, 50, 74, 0.12);
+  box-shadow: 0 3px 0 rgba(31, 45, 61, 0.12);
   cursor: pointer;
   backdrop-filter: blur(8px);
   transition:
@@ -63,7 +65,7 @@ button:active {
   transform: scale(0.96);
 }
 button:focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 button:disabled {
@@ -73,22 +75,24 @@ button:disabled {
 }
 button[aria-pressed='true'] {
   background: var(--gold-soft);
-  border-color: var(--gold);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .primary {
-  background: linear-gradient(180deg, #ffd046, #ffb400);
-  color: #3d2a00;
-  border-color: #ffd046;
+  background: linear-gradient(180deg, #4ade80, #22c55e);
+  color: #fff;
+  border-color: #86efac;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
   font-family: var(--title);
   font-weight: 800;
   font-size: 16px;
   padding: 10px 18px;
   box-shadow:
-    0 4px 0 #c9822e,
-    0 8px 20px rgba(11, 61, 92, 0.25);
+    0 4px 0 #15803d,
+    0 8px 20px rgba(31, 45, 61, 0.2);
 }
 .primary:hover {
-  background: linear-gradient(180deg, #ffdb90, #ffc45a);
+  background: linear-gradient(180deg, #6ee7a0, #34d374);
 }
 .ic {
   display: inline-flex;
@@ -133,7 +137,7 @@ button[aria-pressed='true'] {
   border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: 14px;
   padding: 8px 12px 10px;
-  box-shadow: 0 4px 14px rgba(11, 61, 92, 0.15);
+  box-shadow: 0 4px 14px rgba(31, 45, 61, 0.15);
 }
 .brand .t {
   font-family: var(--title);
@@ -142,8 +146,8 @@ button[aria-pressed='true'] {
   line-height: 1;
   color: #fff;
   text-shadow:
-    0 3px 0 #1a89b3,
-    0 6px 16px rgba(11, 61, 92, 0.35);
+    0 3px 0 #2f7cf6,
+    0 6px 16px rgba(31, 45, 61, 0.35);
 }
 .brand .l {
   font-size: 12px;
@@ -158,7 +162,7 @@ button[aria-pressed='true'] {
   max-width: 40vw;
   border-radius: 3px;
   overflow: hidden;
-  background: rgba(16, 50, 74, 0.12);
+  background: rgba(31, 45, 61, 0.12);
   margin-top: 8px;
 }
 .share i {
@@ -177,7 +181,7 @@ button[aria-pressed='true'] {
 .energy .bar {
   height: 5px;
   border-radius: 3px;
-  background: rgba(16, 50, 74, 0.12);
+  background: rgba(31, 45, 61, 0.12);
   margin-top: 3px;
   overflow: hidden;
 }
@@ -435,7 +439,7 @@ button[aria-pressed='true'] {
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(26, 137, 179, 0.25);
+  background: rgba(47, 124, 246, 0.28);
   backdrop-filter: blur(3px);
   overflow: auto;
   z-index: 10;
@@ -444,7 +448,7 @@ button[aria-pressed='true'] {
   width: min(560px, 100%);
   max-height: 92vh;
   overflow: auto;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(235, 250, 255, 0.94));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(240, 247, 255, 0.96));
   border: 2px solid rgba(255, 255, 255, 0.9);
   border-radius: 18px;
   padding: 26px 30px;
@@ -471,7 +475,7 @@ button[aria-pressed='true'] {
   font-weight: 800;
   font-size: 34px;
   margin: 0 0 4px;
-  color: #0b3d5c;
+  color: #1f2d3d;
 }
 .card h1 {
   font-family: var(--title);
@@ -480,8 +484,8 @@ button[aria-pressed='true'] {
   margin: 0;
   color: #fff;
   text-shadow:
-    0 5px 0 #1a89b3,
-    0 12px 26px rgba(11, 61, 92, 0.35);
+    0 5px 0 #1d5fc4,
+    0 12px 26px rgba(31, 45, 61, 0.35);
 }
 .card .sub {
   color: var(--mist);
@@ -1008,14 +1012,14 @@ html.compact .objective {
 .menu-card {
   width: min(640px, 100%);
   text-align: center;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(217, 246, 255, 0.9));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(234, 246, 255, 0.9));
 }
 .menu-hero h1 {
   font-size: 72px;
   color: #fff;
   text-shadow:
-    0 6px 0 #1a89b3,
-    0 14px 30px rgba(11, 61, 92, 0.35);
+    0 6px 0 #1d5fc4,
+    0 14px 30px rgba(31, 45, 61, 0.35);
   letter-spacing: 1px;
 }
 .menu-hero .tagline {
@@ -1023,7 +1027,7 @@ html.compact .objective {
   font-family: var(--title);
   font-weight: 700;
   font-size: 18px;
-  color: #1a89b3;
+  color: #2f7cf6;
 }
 .primary.big {
   font-size: 19px;
@@ -1047,17 +1051,17 @@ html.compact .objective {
   padding: 14px 10px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 4px 0 #7fc8de;
-  border: 1px solid rgba(127, 200, 222, 0.6);
+  box-shadow: 0 4px 0 #c9d9ea;
+  border: 1px solid rgba(201, 217, 234, 0.9);
 }
 .tile .ic {
   font-size: 26px;
-  color: #1a89b3;
+  color: #2f7cf6;
 }
 .tile b {
   font-family: var(--title);
   font-size: 17px;
-  color: #0b3d5c;
+  color: #1f2d3d;
 }
 .tile small {
   font-size: 11.5px;
@@ -1110,11 +1114,11 @@ html.compact .objective {
   }
 }
 
-/* ---- campaign sea map (island path over the lagoon) ---- */
+/* ---- campaign map: a road across grass, desert and snow ---- */
 .seamap-card {
   padding: 0;
   overflow: hidden;
-  background: #37b7d6;
+  background: #9ed45f;
 }
 .seamap-head {
   position: sticky;
@@ -1126,9 +1130,9 @@ html.compact .objective {
   padding: 16px 24px 10px;
   background: linear-gradient(
     180deg,
-    rgba(217, 246, 255, 0.98),
-    rgba(217, 246, 255, 0.85) 70%,
-    rgba(217, 246, 255, 0)
+    rgba(234, 246, 255, 0.98),
+    rgba(234, 246, 255, 0.85) 70%,
+    rgba(234, 246, 255, 0)
   );
 }
 .seamap-head h2 {
@@ -1136,7 +1140,7 @@ html.compact .objective {
 }
 .seamap {
   position: relative;
-  background: linear-gradient(180deg, #d9f6ff 0%, #8fe3f4 25%, #37b7d6 55%, #1a89b3 85%, #0b5f8a 100%);
+  background: #9ed45f;
   overflow: hidden;
 }
 .seamap .zone {
@@ -1145,21 +1149,34 @@ html.compact .objective {
   right: 0;
   padding: 10px 20px;
   pointer-events: none;
-  border-top: 3px dotted rgba(255, 255, 255, 0.55);
+  background:
+    radial-gradient(ellipse 220px 90px at 18% 30%, rgba(255, 255, 255, 0.16), transparent 70%),
+    radial-gradient(ellipse 260px 110px at 78% 70%, rgba(0, 0, 0, 0.06), transparent 70%),
+    radial-gradient(ellipse 180px 70px at 60% 20%, rgba(255, 255, 255, 0.12), transparent 70%);
+}
+.seamap .zone.z0 {
+  background-color: #9ed45f;
+}
+.seamap .zone.z1 {
+  background-color: #e9d59b;
+  border-top: 8px solid #d8c17e;
+}
+.seamap .zone.z2 {
+  background-color: #eef4f8;
+  border-top: 8px solid #cfe0ec;
 }
 .seamap .zone b {
   display: block;
   font-family: var(--title);
   font-weight: 800;
   font-size: 20px;
-  color: #fff;
-  text-shadow: 0 2px 0 rgba(11, 61, 92, 0.35);
+  color: #1f2d3d;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.55);
 }
 .seamap .zone span {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 0 1px 2px rgba(11, 61, 92, 0.35);
+  color: rgba(31, 45, 61, 0.75);
 }
 .seamap svg.path {
   position: absolute;
@@ -1168,17 +1185,36 @@ html.compact .objective {
   height: 100%;
   pointer-events: none;
 }
-.seamap svg.path path {
+.seamap svg.path path.road {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.8);
-  stroke-width: 5;
-  stroke-dasharray: 2 12;
+  stroke: #d9c48c;
+  stroke-width: 26;
   stroke-linecap: round;
 }
-.seamap svg.path path.done {
-  stroke: var(--gold);
+.seamap svg.path path.road-edge {
+  fill: none;
+  stroke: #b89f66;
+  stroke-width: 30;
+  stroke-linecap: round;
+}
+.seamap svg.path path.mid {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 3;
+  stroke-dasharray: 10 12;
+  stroke-linecap: round;
+}
+.seamap svg.path path.mid.done {
+  stroke: var(--accent);
   stroke-dasharray: none;
-  filter: drop-shadow(0 2px 3px rgba(11, 61, 92, 0.3));
+  stroke-width: 4;
+}
+.seamap svg.path .tree circle {
+  stroke: #22303f;
+  stroke-width: 2;
+}
+.seamap svg.path .tree rect {
+  fill: #7a4b25;
 }
 .mnode-wrap {
   position: absolute;
@@ -1209,12 +1245,12 @@ html.compact .objective {
   font-family: var(--title);
   font-weight: 800;
   font-size: 22px;
-  color: #0b3d5c;
+  color: #1f2d3d;
   background: #fff;
-  border: 4px solid #7fc8de;
+  border: 4px solid #c9d9ea;
   box-shadow:
-    0 6px 0 rgba(11, 61, 92, 0.18),
-    0 10px 24px rgba(11, 61, 92, 0.25);
+    0 6px 0 rgba(31, 45, 61, 0.18),
+    0 10px 24px rgba(31, 45, 61, 0.25);
   touch-action: manipulation;
 }
 .mnode.boss {
@@ -1226,28 +1262,33 @@ html.compact .objective {
   transform: scale(0.94);
 }
 .mnode.done {
-  background: radial-gradient(circle at 35% 30%, #ffe08a, #ffb400);
+  background: radial-gradient(circle at 35% 30%, #86efac, #22c55e);
   border-color: #fff;
-  color: #3d2a00;
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
 }
 .mnode.next {
   border-color: #fff;
-  background: #fff;
+  background: radial-gradient(circle at 35% 30%, #6fa8ff, #2f7cf6);
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
   animation: next-pulse 1.6s ease-in-out infinite;
 }
 .mnode.locked {
-  opacity: 0.6;
-  background: #bfe9f5;
+  opacity: 0.75;
+  background: #e6ebf1;
   border-color: #fff;
-  color: #3b6b86;
+  color: #8a97a8;
 }
 .mnode-wrap .lbl {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  color: #fff;
-  text-shadow: 0 2px 6px rgba(11, 61, 92, 0.55);
+  color: #1f2d3d;
+  text-shadow:
+    0 1px 0 #fff,
+    0 0 6px rgba(255, 255, 255, 0.8);
 }
 .mnode-wrap .lbl b {
   font-family: var(--title);
@@ -1259,25 +1300,25 @@ html.compact .objective {
 }
 .mnode-wrap .stars .ic {
   font-size: 13px;
-  filter: drop-shadow(0 1px 2px rgba(11, 61, 92, 0.5));
+  filter: drop-shadow(0 1px 2px rgba(31, 45, 61, 0.5));
 }
 @keyframes next-pulse {
   0%,
   100% {
     box-shadow:
-      0 0 0 4px rgba(255, 255, 255, 0.5),
-      0 10px 24px rgba(11, 61, 92, 0.25);
+      0 0 0 4px rgba(47, 124, 246, 0.35),
+      0 10px 24px rgba(31, 45, 61, 0.25);
   }
   50% {
     box-shadow:
-      0 0 0 12px rgba(255, 255, 255, 0.15),
-      0 10px 24px rgba(11, 61, 92, 0.25);
+      0 0 0 12px rgba(47, 124, 246, 0.1),
+      0 10px 24px rgba(31, 45, 61, 0.25);
   }
 }
 .actions.sticky {
   position: sticky;
   bottom: 0;
-  background: rgba(217, 246, 255, 0.96);
+  background: rgba(234, 246, 255, 0.96);
   padding: 12px 20px 14px;
   justify-content: space-between;
   margin: 0;

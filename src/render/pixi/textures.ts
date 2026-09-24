@@ -2,6 +2,19 @@ import { Texture } from 'pixi.js';
 import type { NodeType, UnitType } from '@/data';
 import type { Rock } from '@/sim/state';
 
+/* ------------------------------------------------------------------ Tower-War-style art
+ * Every texture is generated on a 2D canvas (no foreign assets). The look is a bright, flat
+ * cartoon battlefield: grass island on water, oblique 2.5D military buildings on a coloured
+ * pad, tiny soldiers / bikes / tanks, trees and rocks as decoration.
+ *
+ * Node art layers (all anchored at the node centre = ground point):
+ *   base     tinted  – the round landing pad in the owner colour
+ *   platform untinted – walls, crates, towers (material colours)
+ *   detail   tinted  – roofs, doors, flags, tents in the owner colour
+ *   rotor    tinted  – animated part (turret, radar dish, fan), placed at ROTOR_Y
+ * Tinted textures are grey-shaded white art multiplied with the owner colour (see tintedTexture).
+ */
+
 const TAU = Math.PI * 2;
 /** Texture pixel size per world unit (crisp when zoomed). */
 export const TEX_SCALE = 2;
@@ -11,30 +24,36 @@ type Level = 1 | 2 | 3;
 const R = NODE_R * TEX_SCALE;
 const SIZE = R * 3;
 const C = SIZE / 2;
-/** Dark outline colour of the lagoon style. */
-export const INK = '#10324a';
+/** Dark outline colour of the cartoon style. */
+export const INK = '#22303f';
+/** Oblique projection: ground depth v maps to (v*KX, -v*KY). */
+const KX = 0.45,
+  KY = 0.5;
+/** Pad ellipse (ground disc) vertical squash. */
+export const PAD_RY = 0.62;
+/** Vertical offset (texture px) of the rotor sprite above the node centre, per type. */
+export const ROTOR_Y: Record<NodeType, number> = {
+  nest: 0,
+  brut: 0,
+  bastion: 0,
+  strom: -R * 0.78,
+  waechter: -R * 0.72,
+  quelle: -R * 0.7,
+};
+
+type Mat = { top: string; front: string; side: string };
+const CONCRETE: Mat = { top: '#f4f6f8', front: '#d7dde4', side: '#b6bfc9' };
+const STEEL: Mat = { top: '#98a2ad', front: '#6f7985', side: '#525b66' };
+const WOOD: Mat = { top: '#e5b77e', front: '#c48f58', side: '#9c6a3c' };
+const SAND: Mat = { top: '#ebd9a8', front: '#cfb57e', side: '#b09462' };
+/** Grey-shaded white: after multiply-tinting these become light / mid / dark owner colour. */
+const TINT: Mat = { top: '#ffffff', front: '#cfcfcf', side: '#a3a3a3' };
 
 function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement('canvas');
   c.width = Math.ceil(w);
   c.height = Math.ceil(h);
   return [c, c.getContext('2d') as CanvasRenderingContext2D];
-}
-function poly(
-  g: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  r: number,
-  sides: number,
-  rot: number,
-): void {
-  g.beginPath();
-  for (let k = 0; k < sides; k++) {
-    const a = rot + (k * TAU) / sides;
-    if (k) g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
-    else g.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
-  }
-  g.closePath();
 }
 const cache = new Map<string, Texture>();
 function cached(key: string, make: () => HTMLCanvasElement): Texture {
@@ -45,26 +64,151 @@ function cached(key: string, make: () => HTMLCanvasElement): Texture {
   }
   return t;
 }
-function radial(
-  g: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  r: number,
-  inner: string,
-  outer: string,
-  ox = -0.3,
-  oy = -0.35,
-): CanvasGradient {
-  const grd = g.createRadialGradient(x + r * ox, y + r * oy, r * 0.1, x, y, r * 1.05);
-  grd.addColorStop(0, inner);
-  grd.addColorStop(1, outer);
-  return grd;
+function lcg(seed: number): () => number {
+  let s = (seed | 1) & 0x7fffffff;
+  return () => {
+    s = (s * 1103515245 + 12345) & 0x7fffffff;
+    return s / 0x7fffffff;
+  };
 }
-function shadow(g: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number): void {
-  g.fillStyle = 'rgba(16,50,74,0.22)';
-  g.beginPath();
-  g.ellipse(x, y, rx, ry, 0, 0, TAU);
-  g.fill();
+
+/* ------------------------------------------------------------------ 2.5D drawing helpers */
+class Draw {
+  constructor(
+    readonly g: CanvasRenderingContext2D,
+    readonly ox: number,
+    readonly oy: number,
+    readonly lw: number,
+  ) {
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+    g.strokeStyle = INK;
+    g.lineWidth = lw;
+  }
+  /** Ground point (u right, v back, z up) → canvas. */
+  p(u: number, v: number, z = 0): [number, number] {
+    return [this.ox + u + v * KX, this.oy - v * KY - z];
+  }
+  face(pts: [number, number][], fill: string, outline = true): void {
+    const g = this.g;
+    g.beginPath();
+    pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    g.closePath();
+    g.fillStyle = fill;
+    g.fill();
+    if (outline) g.stroke();
+  }
+  /** Box with footprint w×d centred at (cu, cv), height h. */
+  box(cu: number, cv: number, w: number, d: number, h: number, m: Mat, z0 = 0): void {
+    const u0 = cu - w / 2,
+      u1 = cu + w / 2,
+      v0 = cv - d / 2,
+      v1 = cv + d / 2;
+    this.face(
+      [this.p(u0, v0, z0), this.p(u1, v0, z0), this.p(u1, v0, z0 + h), this.p(u0, v0, z0 + h)],
+      m.front,
+    );
+    this.face(
+      [this.p(u1, v0, z0), this.p(u1, v1, z0), this.p(u1, v1, z0 + h), this.p(u1, v0, z0 + h)],
+      m.side,
+    );
+    this.face(
+      [this.p(u0, v0, z0 + h), this.p(u1, v0, z0 + h), this.p(u1, v1, z0 + h), this.p(u0, v1, z0 + h)],
+      m.top,
+    );
+  }
+  /** Flat rectangle on a horizontal plane at height z. */
+  slab(cu: number, cv: number, w: number, d: number, z: number, fill: string, outline = false): void {
+    const u0 = cu - w / 2,
+      u1 = cu + w / 2,
+      v0 = cv - d / 2,
+      v1 = cv + d / 2;
+    this.face([this.p(u0, v0, z), this.p(u1, v0, z), this.p(u1, v1, z), this.p(u0, v1, z)], fill, outline);
+  }
+  /** Rectangle on the front wall (plane v = const) between heights z0..z1. */
+  wall(u0: number, u1: number, v: number, z0: number, z1: number, fill: string, outline = false): void {
+    this.face([this.p(u0, v, z0), this.p(u1, v, z0), this.p(u1, v, z1), this.p(u0, v, z1)], fill, outline);
+  }
+  /** Tent: triangular prism with the ridge along v. */
+  tent(cu: number, cv: number, w: number, d: number, h: number, m: Mat, flap = true): void {
+    const u0 = cu - w / 2,
+      u1 = cu + w / 2,
+      v0 = cv - d / 2,
+      v1 = cv + d / 2;
+    // left slope (lit), right slope (shade), front gable
+    this.face([this.p(u0, v0), this.p(cu, v0, h), this.p(cu, v1, h), this.p(u0, v1)], m.top);
+    this.face([this.p(cu, v0, h), this.p(u1, v0), this.p(u1, v1), this.p(cu, v1, h)], m.side);
+    this.face([this.p(u0, v0), this.p(u1, v0), this.p(cu, v0, h)], m.front);
+    if (flap)
+      this.face([this.p(cu - w * 0.16, v0), this.p(cu + w * 0.16, v0), this.p(cu, v0, h * 0.55)], '#6b6b6b');
+  }
+  /** Cylinder (tower) of radius r and height h standing at (cu, cv). */
+  cylinder(cu: number, cv: number, r: number, h: number, m: Mat, z0 = 0): void {
+    const g = this.g;
+    const [x, y] = this.p(cu, cv, z0);
+    const ry = r * PAD_RY;
+    g.beginPath();
+    g.moveTo(x - r, y);
+    g.lineTo(x - r, y - h);
+    g.ellipse(x, y - h, r, ry, 0, Math.PI, 0, true);
+    g.lineTo(x + r, y);
+    g.ellipse(x, y, r, ry, 0, 0, Math.PI);
+    g.closePath();
+    const grd = g.createLinearGradient(x - r, 0, x + r, 0);
+    grd.addColorStop(0, m.front);
+    grd.addColorStop(0.55, m.front);
+    grd.addColorStop(1, m.side);
+    g.fillStyle = grd;
+    g.fill();
+    g.stroke();
+    g.beginPath();
+    g.ellipse(x, y - h, r, ry, 0, 0, TAU);
+    g.fillStyle = m.top;
+    g.fill();
+    g.stroke();
+  }
+  /** Flag on a pole at (cu, cv): pole untinted (platform), cloth tinted (detail). */
+  pole(cu: number, cv: number, h: number): void {
+    const g = this.g;
+    const [x, y] = this.p(cu, cv);
+    g.strokeStyle = '#4a5563';
+    g.lineWidth = this.lw * 0.9;
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x, y - h);
+    g.stroke();
+    g.strokeStyle = INK;
+    g.lineWidth = this.lw;
+  }
+  flag(cu: number, cv: number, h: number, w: number): void {
+    const [x, y] = this.p(cu, cv, h);
+    this.face(
+      [
+        [x, y],
+        [x + w, y + w * 0.3],
+        [x, y + w * 0.6],
+      ],
+      '#f4f4f4',
+    );
+  }
+  shadow(cu: number, cv: number, rx: number, ry: number, a = 0.18): void {
+    const g = this.g;
+    const [x, y] = this.p(cu, cv);
+    g.fillStyle = `rgba(20,40,30,${a})`;
+    g.beginPath();
+    g.ellipse(x, y, rx, ry, 0, 0, TAU);
+    g.fill();
+  }
+  dot(x: number, y: number, r: number, fill: string): void {
+    const g = this.g;
+    g.fillStyle = fill;
+    g.beginPath();
+    g.arc(x, y, r, 0, TAU);
+    g.fill();
+  }
+}
+function nodeDraw(g: CanvasRenderingContext2D): Draw {
+  return new Draw(g, C, C + R * 0.12, 2.6);
 }
 
 /** Soft radial glow (white, tinted at use). */
@@ -80,7 +224,7 @@ export function glowTexture(): Texture {
     return c;
   });
 }
-/** Tiny soft dot for particles and plankton. */
+/** Tiny soft dot for particles. */
 export function dotTexture(): Texture {
   return cached('dot', () => {
     const [c, g] = canvas(16, 16);
@@ -94,499 +238,434 @@ export function dotTexture(): Texture {
   });
 }
 
-/* ------------------------------------------------------------------ nodes: lagoon style
- * platform = the coloured body of the building (its own material colour, dark outline), untinted.
- * detail   = white parts tinted with the owner colour (base ring, cap, lights, eggs, pearl glow).
- * rotor    = white, tinted, animated (fish, blades, light beam, orbiting pearls).
- */
+/* ------------------------------------------------------------------ node: base pad (tinted) */
+export function baseTexture(type: NodeType, level: Level = 1): Texture {
+  return cached(`base:${type}:${level}`, () => {
+    const [c, g] = canvas(SIZE, SIZE);
+    const d = nodeDraw(g);
+    const [x, y] = d.p(0, 0);
+    const rx = R * (0.96 + (level - 1) * 0.03),
+      ry = rx * PAD_RY,
+      th = 7;
+    // pad thickness (dark rim below) + top disc
+    g.fillStyle = '#8c8c8c';
+    g.beginPath();
+    g.ellipse(x, y + th, rx, ry, 0, 0, TAU);
+    g.fill();
+    g.strokeStyle = INK;
+    g.lineWidth = 2.6;
+    g.stroke();
+    g.fillStyle = '#e2e2e2';
+    g.beginPath();
+    g.ellipse(x, y, rx, ry, 0, 0, TAU);
+    g.fill();
+    g.stroke();
+    g.fillStyle = '#ffffff';
+    g.beginPath();
+    g.ellipse(x, y, rx * 0.82, ry * 0.82, 0, 0, TAU);
+    g.fill();
+    // level chevrons on the front of the pad
+    for (let i = 0; i < level - 1; i++) {
+      const px = x + (i - (level - 2) / 2) * 16,
+        py = y + ry * 0.55;
+      g.fillStyle = '#7a7a7a';
+      g.beginPath();
+      g.moveTo(px - 6, py - 3);
+      g.lineTo(px, py + 3);
+      g.lineTo(px + 6, py - 3);
+      g.lineTo(px, py);
+      g.closePath();
+      g.fill();
+    }
+    return c;
+  });
+}
+
+/* ------------------------------------------------------------------ node: walls (untinted) */
 export function platformTexture(type: NodeType, level: Level = 1): Texture {
   return cached(`platform:${type}:${level}`, () => {
     const [c, g] = canvas(SIZE, SIZE);
-    g.lineJoin = 'round';
-    g.lineCap = 'round';
-    const s = R / 24;
-    shadow(g, C, C + R * 0.95, R * 1.05, R * 0.24);
+    const d = nodeDraw(g);
+    const L = level;
     if (type === 'nest') {
-      // coral dome with spore vents; more vents with level
-      g.fillStyle = radial(g, C, C + R * 0.1, R, '#ffd46a', '#e88a1a');
-      g.strokeStyle = '#8a4a10';
-      g.lineWidth = 4 * s;
-      g.beginPath();
-      g.moveTo(C - R * 0.95, C + R * 0.8);
-      g.bezierCurveTo(C - R * 1.1, C - R * 0.2, C - R * 0.55, C - R * 0.85, C, C - R * 0.9);
-      g.bezierCurveTo(C + R * 0.55, C - R * 0.85, C + R * 1.1, C - R * 0.2, C + R * 0.95, C + R * 0.8);
-      g.closePath();
-      g.fill();
-      g.stroke();
-      const vents = 2 + level;
-      for (let k = 0; k < vents; k++) {
-        const a = -Math.PI / 2 + (k - (vents - 1) / 2) * 0.75;
-        const vx = C + Math.cos(a) * R * 0.5,
-          vy = C + R * 0.05 + Math.sin(a) * R * 0.45;
-        g.fillStyle = '#5a2d08';
-        g.beginPath();
-        g.ellipse(vx, vy, R * 0.17, R * 0.13, 0, 0, TAU);
-        g.fill();
-      }
-      // small coral branches on top (pink)
-      g.strokeStyle = '#ff8fa8';
-      g.lineWidth = 5 * s;
-      for (const [dx, dir] of [
-        [-0.55, -1],
-        [0.55, 1],
-      ] as [number, number][]) {
-        g.beginPath();
-        g.moveTo(C + R * dx, C - R * 0.55);
-        g.quadraticCurveTo(C + R * (dx + dir * 0.15), C - R * 0.95, C + R * (dx + dir * 0.05), C - R * 1.2);
-        g.stroke();
-      }
+      // barracks: long hut, annex from level 2, second storey at level 3
+      d.shadow(0, 0, R * 0.8, R * 0.42);
+      if (L >= 2) d.box(-R * 0.62, R * 0.05, R * 0.34, R * 0.4, R * 0.28, CONCRETE);
+      d.box(0.06 * R, 0, R * 0.98, R * 0.5, R * 0.4, CONCRETE);
+      if (L >= 3) d.box(0.06 * R, 0.02 * R, R * 0.6, R * 0.36, R * 0.26, CONCRETE, R * 0.4);
+      // windows + door
+      const v = -R * 0.25;
+      d.wall(-R * 0.3, -R * 0.14, v, R * 0.16, R * 0.3, '#7aa7d8', true);
+      d.wall(R * 0.28, R * 0.44, v, R * 0.16, R * 0.3, '#7aa7d8', true);
+      d.wall(-R * 0.04, R * 0.14, v, 0, R * 0.26, '#3f4854', true);
+      if (L >= 3) d.wall(-R * 0.16, R * 0.28, v + R * 0.07, R * 0.52, R * 0.6, '#7aa7d8', true);
+      d.pole(R * 0.5, R * 0.28, R * (L >= 3 ? 0.98 : 0.72));
+      if (L >= 2) d.pole(-R * 0.66, R * 0.3, R * 0.5);
     } else if (type === 'brut') {
-      // jellyfish colony: translucent pink bell, tentacles hanging
-      g.strokeStyle = '#ff6fa3';
-      g.lineWidth = 4 * s;
-      g.globalAlpha = 0.85;
-      for (let k = 0; k < 4; k++) {
-        const x = C - R * 0.6 + k * R * 0.4;
-        g.beginPath();
-        g.moveTo(x, C + R * 0.45);
-        g.bezierCurveTo(x + R * 0.1, C + R * 0.75, x - R * 0.12, C + R * 0.95, x + R * 0.05, C + R * 1.25);
-        g.stroke();
+      // training camp: crates, campfire, sandbags (tents are tinted → detail)
+      d.shadow(0, 0, R * 0.82, R * 0.42);
+      d.box(R * 0.62, -R * 0.1, R * 0.2, R * 0.2, R * 0.2, WOOD);
+      d.box(R * 0.66, R * 0.18, R * 0.2, R * 0.2, R * 0.2, WOOD);
+      if (L >= 2) d.box(R * 0.62, -R * 0.1, R * 0.18, R * 0.18, R * 0.18, WOOD, R * 0.2);
+      if (L >= 3) {
+        // campfire
+        const [fx, fy] = d.p(-R * 0.62, -R * 0.2);
+        d.dot(fx, fy, 9, '#6b7280');
+        d.dot(fx, fy - 2, 6, '#f6a623');
+        d.dot(fx, fy - 5, 3.5, '#ffe08a');
       }
-      g.globalAlpha = 1;
-      g.fillStyle = radial(g, C, C - R * 0.1, R, '#ffe0ef', '#ff6fa3');
-      g.strokeStyle = '#c2336d';
-      g.beginPath();
-      g.moveTo(C - R, C + R * 0.35);
-      g.bezierCurveTo(C - R, C - R * 0.75, C - R * 0.5, C - R * 1.05, C, C - R * 1.05);
-      g.bezierCurveTo(C + R * 0.5, C - R * 1.05, C + R, C - R * 0.75, C + R, C + R * 0.35);
-      g.quadraticCurveTo(C, C + R * 0.7, C - R, C + R * 0.35);
-      g.closePath();
-      g.fill();
-      g.stroke();
+      d.pole(-R * 0.1, R * 0.4, R * 0.9);
     } else if (type === 'bastion') {
-      // shell fortress: plated hexagon with spikes
-      g.strokeStyle = '#2d4257';
-      g.lineWidth = 6 * s;
-      for (let k = 0; k < 4; k++) {
-        const a = Math.PI / 4 + (k * Math.PI) / 2;
-        g.beginPath();
-        g.moveTo(C + Math.cos(a) * R * 0.95, C + Math.sin(a) * R * 0.95);
-        g.lineTo(C + Math.cos(a) * R * 1.25, C + Math.sin(a) * R * 1.25);
-        g.stroke();
-      }
-      g.fillStyle = radial(g, C, C, R, '#d6dfe8', '#5f7a94');
-      g.lineWidth = 5 * s;
-      poly(g, C, C, R * 1.02, 6, Math.PI / 6);
+      // bunker: wide concrete block with a dome, gun slits, sandbags (L2), corner towers (L3)
+      d.shadow(0, 0, R * 0.88, R * 0.46);
+      d.box(0, 0, R * 1.15, R * 0.62, R * 0.34, CONCRETE);
+      const [dx, dy] = d.p(0.05 * R, 0.02 * R, R * 0.34);
+      const dr = R * 0.34;
+      g.beginPath();
+      g.ellipse(dx, dy, dr, dr * 0.8, 0, Math.PI, 0);
+      g.closePath();
+      const grd = g.createLinearGradient(dx - dr, 0, dx + dr, 0);
+      grd.addColorStop(0, CONCRETE.top);
+      grd.addColorStop(1, CONCRETE.side);
+      g.fillStyle = grd;
       g.fill();
       g.stroke();
-      for (let k = 0; k < level; k++) {
-        g.strokeStyle = 'rgba(45,66,87,0.55)';
-        g.lineWidth = 3 * s;
-        poly(g, C, C, R * (0.82 - k * 0.2), 6, Math.PI / 6);
-        g.stroke();
+      const v = -R * 0.31;
+      d.wall(-R * 0.42, -R * 0.24, v, R * 0.14, R * 0.22, '#2f3742', true);
+      d.wall(R * 0.24, R * 0.42, v, R * 0.14, R * 0.22, '#2f3742', true);
+      if (L >= 2)
+        for (let i = -3; i <= 3; i++) d.box(i * R * 0.18, -R * 0.5, R * 0.17, R * 0.12, R * 0.09, SAND);
+      if (L >= 3) {
+        d.box(-R * 0.64, -R * 0.3, R * 0.24, R * 0.24, R * 0.5, CONCRETE);
+        d.box(R * 0.64, -R * 0.3, R * 0.24, R * 0.24, R * 0.5, CONCRETE);
       }
     } else if (type === 'strom') {
-      // whirlpool turbine: turquoise ring around a deep-blue eye
-      g.fillStyle = radial(g, C, C, R, '#bff3ff', '#1a89b3');
-      g.strokeStyle = INK;
-      g.lineWidth = 5 * s;
-      g.beginPath();
-      g.arc(C, C, R, 0, TAU);
-      g.fill();
-      g.stroke();
-      g.fillStyle = '#0b3d5c';
-      g.beginPath();
-      g.arc(C, C, R * 0.62, 0, TAU);
-      g.fill();
-      g.strokeStyle = 'rgba(255,255,255,0.7)';
-      g.lineWidth = 3 * s;
-      for (let k = 0; k < 2 + level; k++) {
-        const a0 = (k * TAU) / (2 + level);
-        g.beginPath();
-        g.arc(C, C, R * 0.82, a0, a0 + 0.8);
-        g.stroke();
+      // motor pool: garage hall, fuel pump, tyre stack; taller at L3
+      d.shadow(0, 0, R * 0.84, R * 0.44);
+      d.box(-0.02 * R, 0, R * (L >= 2 ? 1.1 : 0.92), R * 0.56, R * 0.46, CONCRETE);
+      if (L >= 3) d.box(R * 0.36, 0.06 * R, R * 0.3, R * 0.3, R * 0.3, STEEL, R * 0.46);
+      // fuel pump (red) and tyres
+      d.box(R * 0.7, -R * 0.12, R * 0.12, R * 0.12, R * 0.26, {
+        top: '#f2a29a',
+        front: '#e2574a',
+        side: '#b53f34',
+      });
+      const [tx, ty] = d.p(-R * 0.7, -R * 0.1);
+      d.dot(tx, ty, 8, '#3a3f47');
+      d.dot(tx, ty, 3.5, '#8a929c');
+      if (L >= 2) {
+        d.dot(tx, ty - 6, 8, '#3a3f47');
+        d.dot(tx, ty - 6, 3.5, '#8a929c');
       }
     } else if (type === 'waechter') {
-      // lighthouse turret: cream tower with red stripes, lamp on top
-      g.fillStyle = '#f7f1e3';
-      g.strokeStyle = '#2d4257';
-      g.lineWidth = 4 * s;
-      g.beginPath();
-      g.moveTo(C - R * 0.5, C + R * 0.9);
-      g.lineTo(C - R * 0.38, C - R * 0.55);
-      g.lineTo(C + R * 0.38, C - R * 0.55);
-      g.lineTo(C + R * 0.5, C + R * 0.9);
-      g.closePath();
-      g.fill();
-      g.stroke();
-      g.strokeStyle = '#ff4f7d';
-      g.lineWidth = 9 * s;
-      for (let k = 0; k < 1 + level; k++) {
-        const y = C + R * 0.55 - k * R * 0.45;
-        g.beginPath();
-        g.moveTo(C - R * 0.4, y);
-        g.lineTo(C + R * 0.4, y);
-        g.stroke();
+      // gun tower: sandbag ring, round tower, second tier from L2
+      d.shadow(0, 0, R * 0.7, R * 0.38);
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * TAU + 0.3;
+        d.box(Math.cos(a) * R * 0.62, Math.sin(a) * R * 0.62, R * 0.2, R * 0.13, R * 0.1, SAND);
       }
-      g.fillStyle = '#2d4257';
-      g.beginPath();
-      g.roundRect(C - R * 0.55, C - R * 0.72, R * 1.1, R * 0.18, 3 * s);
-      g.fill();
-      g.fillStyle = '#fff5a8';
-      g.strokeStyle = '#2d4257';
-      g.lineWidth = 4 * s;
-      g.beginPath();
-      g.roundRect(C - R * 0.4, C - R * 1.05, R * 0.8, R * 0.36, 4 * s);
-      g.fill();
-      g.stroke();
-      g.fillStyle = '#2d4257';
-      g.beginPath();
-      g.moveTo(C - R * 0.14, C - R * 1.05);
-      g.lineTo(C + R * 0.14, C - R * 1.05);
-      g.lineTo(C, C - R * 1.28);
-      g.closePath();
-      g.fill();
-    } else {
-      // giant clam: orange scalloped shell, open
-      g.fillStyle = '#ff9a5c';
-      g.strokeStyle = '#b0451a';
-      g.lineWidth = 4 * s;
-      g.beginPath();
-      g.moveTo(C - R * 1.05, C + R * 0.35);
-      g.bezierCurveTo(C - R * 1.05, C - R * 0.15, C - R * 0.5, C - R * 0.25, C, C - R * 0.25);
-      g.bezierCurveTo(C + R * 0.5, C - R * 0.25, C + R * 1.05, C - R * 0.15, C + R * 1.05, C + R * 0.35);
-      g.quadraticCurveTo(C, C + R * 0.8, C - R * 1.05, C + R * 0.35);
-      g.closePath();
-      g.fill();
-      g.stroke();
-      g.fillStyle = '#ffc48a';
-      g.beginPath();
-      g.moveTo(C - R * 0.98, C + R * 0.28);
-      g.bezierCurveTo(C - R * 0.7, C - R * 0.5, C - R * 0.2, C - R * 1.05, C, C - R * 1.1);
-      g.bezierCurveTo(C + R * 0.2, C - R * 1.05, C + R * 0.7, C - R * 0.5, C + R * 0.98, C + R * 0.28);
-      g.quadraticCurveTo(C, C + R * 0.05, C - R * 0.98, C + R * 0.28);
-      g.closePath();
-      g.fill();
-      g.stroke();
-      g.strokeStyle = 'rgba(176,69,26,0.55)';
-      g.lineWidth = 2 * s;
-      for (let k = 0; k < 3 + level; k++) {
-        const t = (k + 1) / (4 + level);
-        g.beginPath();
-        g.moveTo(C - R * 0.98 + R * 1.96 * t, C + R * 0.2);
-        g.quadraticCurveTo(C - R * 0.98 + R * 1.96 * t * 0.9 + R * 0.1, C - R * 0.5, C, C - R * 1.05);
-        g.stroke();
-      }
+      d.cylinder(0, 0, R * 0.34, R * (L >= 2 ? 0.5 : 0.4), CONCRETE);
+      if (L >= 2) d.cylinder(0, 0, R * 0.28, R * 0.16, STEEL, R * 0.5);
+      if (L >= 3) d.cylinder(0, 0, R * 0.36, R * 0.08, STEEL, R * 0.66);
+      d.wall(-R * 0.08, R * 0.08, -R * 0.34, R * 0.12, R * 0.24, '#2f3742', true);
+    } else if (type === 'quelle') {
+      // supply depot: warehouse, crates, barrels; second hall at L3
+      d.shadow(0, 0, R * 0.86, R * 0.44);
+      if (L >= 3) d.box(-R * 0.5, R * 0.22, R * 0.5, R * 0.36, R * 0.32, CONCRETE);
+      d.box(0.1 * R, 0, R * 0.9, R * 0.5, R * 0.42, CONCRETE);
+      d.box(-R * 0.62, -R * 0.14, R * 0.2, R * 0.2, R * 0.2, WOOD);
+      if (L >= 2) d.box(-R * 0.62, -R * 0.14, R * 0.18, R * 0.18, R * 0.18, WOOD, R * 0.2);
+      d.cylinder(R * 0.7, -R * 0.08, R * 0.09, R * 0.22, STEEL);
+      if (L >= 2) d.cylinder(R * 0.72, R * 0.16, R * 0.09, R * 0.22, STEEL);
+      d.wall(-R * 0.1, R * 0.3, -R * 0.25, 0, R * 0.3, '#3f4854', true);
+      d.pole(R * 0.1, R * 0.05, R * 0.92);
     }
     return c;
   });
 }
 
+/* ------------------------------------------------------------------ node: tinted details */
 export function detailTexture(type: NodeType, level: Level = 1): Texture {
   return cached(`detail:${type}:${level}`, () => {
     const [c, g] = canvas(SIZE, SIZE);
-    const s = R / 24;
-    g.lineJoin = 'round';
-    g.lineCap = 'round';
-    g.fillStyle = '#fff';
-    g.strokeStyle = '#fff';
-    // owner base ring under every building
-    g.globalAlpha = 0.95;
-    g.lineWidth = 5 * s;
-    g.beginPath();
-    g.ellipse(C, C + R * 0.95, R * 1.15, R * 0.3, 0, 0, TAU);
-    g.stroke();
-    g.globalAlpha = 1;
+    const d = nodeDraw(g);
+    const L = level;
     if (type === 'nest') {
-      const vents = 2 + level;
-      for (let k = 0; k < vents; k++) {
-        const a = -Math.PI / 2 + (k - (vents - 1) / 2) * 0.75;
-        g.beginPath();
-        g.arc(C + Math.cos(a) * R * 0.5, C + R * 0.05 + Math.sin(a) * R * 0.45, R * 0.075, 0, TAU);
-        g.fill();
-      }
+      d.slab(0.06 * R, 0, R * 1.02, R * 0.54, R * 0.4, TINT.top, true);
+      if (L >= 3) d.slab(0.06 * R, 0.02 * R, R * 0.64, R * 0.4, R * 0.66, TINT.top, true);
+      if (L >= 2) d.slab(-R * 0.62, R * 0.05, R * 0.38, R * 0.44, R * 0.28, TINT.front, true);
+      d.wall(-R * 0.43, R * 0.55, -R * 0.25, R * 0.31, R * 0.36, TINT.front);
+      d.flag(R * 0.5, R * 0.28, R * (L >= 3 ? 0.98 : 0.72), R * 0.3);
+      if (L >= 2) d.flag(-R * 0.66, R * 0.3, R * 0.5, R * 0.22);
     } else if (type === 'brut') {
-      const eggs = 3 + level * 2;
-      for (let k = 0; k < eggs; k++) {
-        const a = (k / eggs) * TAU,
-          r = R * (0.3 + 0.15 * (k % 2));
-        g.beginPath();
-        g.arc(C + Math.cos(a) * r, C - R * 0.15 + Math.sin(a) * r * 0.6, R * 0.1, 0, TAU);
-        g.fill();
-      }
+      if (L >= 2) d.tent(R * 0.3, R * 0.3, R * 0.5, R * 0.42, R * 0.34, TINT);
+      if (L >= 3) d.tent(-R * 0.56, R * 0.3, R * 0.46, R * 0.4, R * 0.32, TINT);
+      d.tent(-R * 0.08, -R * 0.06, R * (L >= 3 ? 0.9 : 0.8), R * 0.6, R * (L >= 3 ? 0.58 : 0.5), TINT);
+      d.flag(-R * 0.1, R * 0.4, R * 0.9, R * 0.28);
     } else if (type === 'bastion') {
+      // hangar door with rails, stripe on the dome, tower tops
+      d.wall(-R * 0.17, R * 0.17, -R * 0.31, 0, R * 0.28, TINT.front, true);
+      for (let z = 0.07; z < 0.28; z += 0.07)
+        d.wall(-R * 0.15, R * 0.15, -R * 0.31, R * z, R * z + 1.5, TINT.side);
+      const [dx, dy] = d.p(0.05 * R, 0.02 * R, R * 0.34);
+      g.strokeStyle = '#ffffff';
+      g.lineWidth = 5;
       g.beginPath();
-      g.arc(C, C, R * 0.24, 0, TAU);
-      g.fill();
-      for (let k = 0; k < 6; k++) {
-        const a = Math.PI / 6 + (k * Math.PI) / 3;
-        g.beginPath();
-        g.arc(C + Math.cos(a) * R * 0.82, C + Math.sin(a) * R * 0.82, 3 * s, 0, TAU);
-        g.fill();
+      g.ellipse(dx, dy - 2, R * 0.3, R * 0.24, 0, Math.PI * 1.1, Math.PI * 1.9);
+      g.stroke();
+      g.strokeStyle = INK;
+      g.lineWidth = 2.6;
+      if (L >= 3) {
+        d.slab(-R * 0.64, -R * 0.3, R * 0.26, R * 0.26, R * 0.5, TINT.top, true);
+        d.slab(R * 0.64, -R * 0.3, R * 0.26, R * 0.26, R * 0.5, TINT.top, true);
       }
     } else if (type === 'strom') {
-      g.beginPath();
-      g.arc(C, C, R * 0.12, 0, TAU);
-      g.fill();
-    } else if (type === 'waechter') {
-      g.beginPath();
-      g.arc(C, C - R * 0.87, R * 0.13, 0, TAU);
-      g.fill();
-    } else {
-      const grd = g.createRadialGradient(C - R * 0.05, C + R * 0.15, 0, C, C + R * 0.2, R * 0.32);
-      grd.addColorStop(0, 'rgba(255,255,255,1)');
-      grd.addColorStop(0.7, 'rgba(255,255,255,0.9)');
-      grd.addColorStop(1, 'rgba(255,255,255,0.4)');
-      g.fillStyle = grd;
-      g.beginPath();
-      g.arc(C, C + R * 0.2, R * 0.32, 0, TAU);
-      g.fill();
-    }
-    return c;
-  });
-}
-
-export function rotorTexture(type: NodeType, level: Level = 1): Texture | null {
-  if (type === 'bastion' || type === 'brut') return null;
-  return cached(`rotor:${type}:${level}`, () => {
-    const [c, g] = canvas(SIZE, SIZE);
-    const s = R / 24;
-    g.fillStyle = '#fff';
-    g.strokeStyle = '#fff';
-    g.lineCap = 'round';
-    if (type === 'nest') {
-      // small fish circling the dome
-      for (let k = 0; k < 2 + level; k++) {
-        const a = (k * TAU) / (2 + level);
-        const x = C + Math.cos(a) * R * 1.1,
-          y = C + Math.sin(a) * R * 1.1;
-        g.save();
-        g.translate(x, y);
-        g.rotate(a + Math.PI / 2);
-        g.beginPath();
-        g.moveTo(-5 * s, 0);
-        g.quadraticCurveTo(0, -3.5 * s, 5 * s, 0);
-        g.quadraticCurveTo(0, 3.5 * s, -5 * s, 0);
-        g.moveTo(-5 * s, 0);
-        g.lineTo(-8 * s, -3 * s);
-        g.lineTo(-8 * s, 3 * s);
-        g.closePath();
-        g.fill();
-        g.restore();
+      const w = L >= 2 ? 1.1 : 0.92;
+      d.slab(-0.02 * R, 0, R * (w + 0.06), R * 0.6, R * 0.46, TINT.top, true);
+      // rolling doors with lines
+      const doors = L >= 2 ? [-R * 0.3, R * 0.26] : [-0.02 * R];
+      for (const du of doors) {
+        d.wall(du - R * 0.2, du + R * 0.2, -R * 0.28, 0, R * 0.34, TINT.front, true);
+        for (let z = 0.08; z < 0.34; z += 0.08)
+          d.wall(du - R * 0.18, du + R * 0.18, -R * 0.28, R * z, R * z + 1.5, TINT.side);
       }
-    } else if (type === 'strom') {
-      const blades = 3 + (level - 1);
-      for (let k = 0; k < blades; k++) {
-        const a = (k * TAU) / blades;
+      // speed chevrons on the pad
+      const [px, py] = d.p(0, -R * 0.78);
+      for (let i = 0; i < 3; i++) {
+        g.fillStyle = i ? '#cfcfcf' : '#ffffff';
         g.beginPath();
-        g.moveTo(C + Math.cos(a) * R * 0.12, C + Math.sin(a) * R * 0.12);
-        g.quadraticCurveTo(
-          C + Math.cos(a + 0.5) * R * 0.4,
-          C + Math.sin(a + 0.5) * R * 0.4,
-          C + Math.cos(a + 0.9) * R * 0.56,
-          C + Math.sin(a + 0.9) * R * 0.56,
-        );
-        g.lineTo(C + Math.cos(a + 0.6) * R * 0.56, C + Math.sin(a + 0.6) * R * 0.56);
-        g.quadraticCurveTo(
-          C + Math.cos(a + 0.25) * R * 0.32,
-          C + Math.sin(a + 0.25) * R * 0.32,
-          C + Math.cos(a - 0.2) * R * 0.12,
-          C + Math.sin(a - 0.2) * R * 0.12,
-        );
+        g.moveTo(px - 40 + i * 30, py + 5);
+        g.lineTo(px - 30 + i * 30, py);
+        g.lineTo(px - 40 + i * 30, py - 5);
+        g.lineTo(px - 34 + i * 30, py);
         g.closePath();
         g.fill();
       }
     } else if (type === 'waechter') {
-      // rotating light beam from the lamp
-      const len = R * (1.1 + level * 0.15);
-      g.globalAlpha = 0.55;
+      // tinted band around the tower base
+      const [x, y] = d.p(0, 0);
+      g.fillStyle = TINT.front;
       g.beginPath();
-      g.moveTo(C, C - R * 0.87);
-      g.lineTo(C + len, C - R * 0.87 - R * 0.22);
-      g.lineTo(C + len, C - R * 0.87 + R * 0.22);
+      g.ellipse(x, y - R * 0.1, R * 0.35, R * 0.35 * PAD_RY, 0, 0, Math.PI);
+      g.lineTo(x - R * 0.35, y - R * 0.18);
+      g.ellipse(x, y - R * 0.18, R * 0.35, R * 0.35 * PAD_RY, 0, Math.PI, 0, true);
       g.closePath();
       g.fill();
+      g.stroke();
     } else if (type === 'quelle') {
-      for (let k = 0; k < 2 + level; k++) {
-        const a = (k * TAU) / (2 + level);
-        g.beginPath();
-        g.arc(C + Math.cos(a) * R * 0.85, C + Math.sin(a) * R * 0.85, 2.8 * s, 0, TAU);
-        g.fill();
-      }
+      d.slab(0.1 * R, 0, R * 0.94, R * 0.54, R * 0.42, TINT.top, true);
+      if (L >= 3) d.slab(-R * 0.5, R * 0.22, R * 0.54, R * 0.4, R * 0.32, TINT.front, true);
+      d.wall(-R * 0.35, R * 0.55, -R * 0.25, R * 0.32, R * 0.38, TINT.front);
+      d.flag(R * 0.1, R * 0.05, R * 0.92, R * 0.28);
     }
     return c;
   });
 }
 
-/** Level ring (white, tinted). */
+/* ------------------------------------------------------------------ node: animated part (tinted) */
+export function rotorTexture(type: NodeType, level: Level = 1): Texture | null {
+  if (type !== 'waechter' && type !== 'quelle' && type !== 'strom') return null;
+  return cached(`rotor:${type}:${level}`, () => {
+    const [c, g] = canvas(SIZE, SIZE);
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+    g.strokeStyle = INK;
+    g.lineWidth = 2.6;
+    if (type === 'waechter') {
+      // turret cap with one (L1–2) or two (L3) barrels
+      const barrels = level >= 3 ? [-6, 6] : [0];
+      for (const off of barrels) {
+        g.fillStyle = '#7a7a7a';
+        g.beginPath();
+        g.roundRect(C, C + off - 3.5, R * 0.62, 7, 3);
+        g.fill();
+        g.stroke();
+        g.fillStyle = '#4c4c4c';
+        g.beginPath();
+        g.roundRect(C + R * 0.5, C + off - 4.5, 10, 9, 2);
+        g.fill();
+        g.stroke();
+      }
+      g.fillStyle = '#d8d8d8';
+      g.beginPath();
+      g.ellipse(C, C, R * 0.26, R * 0.26 * 0.85, 0, 0, TAU);
+      g.fill();
+      g.stroke();
+      g.fillStyle = '#ffffff';
+      g.beginPath();
+      g.ellipse(C - 2, C - 3, R * 0.14, R * 0.11, 0, 0, TAU);
+      g.fill();
+    } else if (type === 'quelle') {
+      // radar dish seen from above: mast + half disc
+      g.fillStyle = '#5a5a5a';
+      g.beginPath();
+      g.roundRect(C - 3, C - 3, R * 0.4, 6, 3);
+      g.fill();
+      g.fillStyle = '#e6e6e6';
+      g.beginPath();
+      g.ellipse(C, C, R * 0.3, R * 0.3, 0, Math.PI * 0.55, Math.PI * 1.45);
+      g.closePath();
+      g.fill();
+      g.stroke();
+      g.fillStyle = '#ffffff';
+      g.beginPath();
+      g.ellipse(C, C, R * 0.2, R * 0.2, 0, Math.PI * 0.6, Math.PI * 1.4);
+      g.closePath();
+      g.fill();
+      g.fillStyle = '#4c4c4c';
+      g.beginPath();
+      g.arc(C, C, 5, 0, TAU);
+      g.fill();
+    } else {
+      // rooftop fan / beacon
+      for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * TAU;
+        g.fillStyle = i ? '#cfcfcf' : '#ffffff';
+        g.beginPath();
+        g.moveTo(C, C);
+        g.lineTo(C + Math.cos(a - 0.35) * R * 0.22, C + Math.sin(a - 0.35) * R * 0.22);
+        g.lineTo(C + Math.cos(a + 0.35) * R * 0.22, C + Math.sin(a + 0.35) * R * 0.22);
+        g.closePath();
+        g.fill();
+        g.stroke();
+      }
+      g.fillStyle = '#4c4c4c';
+      g.beginPath();
+      g.arc(C, C, 4, 0, TAU);
+      g.fill();
+    }
+    return c;
+  });
+}
+
+/** Level ring (tinted) around the pad. */
 export function ringTexture(): Texture {
   return cached('ring', () => {
     const [c, g] = canvas(SIZE, SIZE);
     g.strokeStyle = '#fff';
-    g.lineWidth = 2 * (R / 24);
+    g.lineWidth = 3;
     g.beginPath();
-    g.ellipse(C, C + R * 0.95, R * 1.3, R * 0.36, 0, 0, TAU);
+    g.ellipse(C, C + R * 0.12, R * 1.12, R * 1.12 * PAD_RY, 0, 0, TAU);
     g.stroke();
     return c;
   });
 }
 
-/* ------------------------------------------------------------------ units: sea creatures
- * White fill (tinted with the owner colour) with a dark outline and a white eye.
- */
+/* ------------------------------------------------------------------ units (top-down, facing +x, tinted) */
 export function unitTexture(unit: UnitType): Texture {
   return cached('unit:' + unit, () => {
-    const size = 40,
-      cx = 20,
-      cy = 20;
+    const size = 48,
+      cx = 24,
+      cy = 24;
     const [c, g] = canvas(size, size);
     g.lineJoin = 'round';
     g.lineCap = 'round';
     g.translate(cx, cy);
-    g.fillStyle = '#fff';
     g.strokeStyle = INK;
-    g.lineWidth = 2.2;
-    const eye = (x: number, y: number) => {
-      g.fillStyle = '#fff';
+    g.lineWidth = 2;
+    const rr = (x: number, y: number, w: number, h: number, r: number, fill: string, outline = true) => {
+      g.fillStyle = fill;
       g.beginPath();
-      g.arc(x, y, 2.2, 0, TAU);
+      g.roundRect(x, y, w, h, r);
       g.fill();
-      g.fillStyle = INK;
-      g.beginPath();
-      g.arc(x + 0.6, y, 1.1, 0, TAU);
-      g.fill();
-      g.fillStyle = '#fff';
+      if (outline) g.stroke();
     };
+    const dot = (x: number, y: number, r: number, fill: string, outline = true) => {
+      g.fillStyle = fill;
+      g.beginPath();
+      g.arc(x, y, r, 0, TAU);
+      g.fill();
+      if (outline) g.stroke();
+    };
+    const wheel = (x: number, y: number, w: number, h: number) =>
+      rr(x - w / 2, y - h / 2, w, h, 2, '#3a3a3a');
     if (unit === 'sporen') {
-      // fish
+      // soldier: shoulders, helmet, rifle
+      g.fillStyle = '#4a4a4a';
       g.beginPath();
-      g.moveTo(-8, 0);
-      g.quadraticCurveTo(0, -7, 9, 0);
-      g.quadraticCurveTo(0, 7, -8, 0);
-      g.closePath();
+      g.roundRect(-2, -1.5, 18, 3, 1.5);
       g.fill();
       g.stroke();
-      g.beginPath();
-      g.moveTo(-8, 0);
-      g.lineTo(-14, -6);
-      g.lineTo(-13, 6);
-      g.closePath();
-      g.fill();
-      g.stroke();
-      eye(4, -1.5);
+      rr(-8, -8, 12, 16, 5, '#d6d6d6');
+      dot(0, 0, 6, '#ffffff');
+      dot(-1.5, -1.5, 2.6, '#cfcfcf', false);
     } else if (unit === 'drohnen') {
-      // jellyfish
+      // recruit: smaller, cap, pistol
+      g.fillStyle = '#4a4a4a';
       g.beginPath();
-      g.moveTo(-9, 2);
-      g.bezierCurveTo(-9, -9, 9, -9, 9, 2);
-      g.quadraticCurveTo(0, 5, -9, 2);
-      g.closePath();
+      g.roundRect(0, -1.2, 10, 2.4, 1.2);
       g.fill();
       g.stroke();
-      g.lineWidth = 1.6;
-      for (const x of [-6, -2, 2, 6]) {
-        g.beginPath();
-        g.moveTo(x, 3);
-        g.quadraticCurveTo(x + 2, 8, x - 1, 13);
-        g.stroke();
-      }
-      g.lineWidth = 2.2;
-      eye(-2, -2);
+      rr(-7, -6.5, 10, 13, 4, '#d6d6d6');
+      dot(0, 0, 5, '#ffffff');
+      rr(-5, -3, 5, 6, 2, '#bdbdbd', false);
     } else if (unit === 'panzer') {
-      // armoured crab
+      // tank: tracks, hull, turret, barrel
+      wheel(0, -9, 30, 6);
+      wheel(0, 9, 30, 6);
+      rr(-14, -7, 28, 14, 3, '#cfcfcf');
+      g.fillStyle = '#5a5a5a';
       g.beginPath();
-      g.ellipse(0, 1, 10, 7, 0, 0, TAU);
+      g.roundRect(2, -2, 20, 4, 2);
       g.fill();
       g.stroke();
-      g.lineWidth = 3;
-      for (const [x, y, dx, dy] of [
-        [-8, 0, -6, -5],
-        [8, 0, 6, -5],
-        [-7, 5, -5, 6],
-        [7, 5, 5, 6],
-      ]) {
-        g.beginPath();
-        g.moveTo(x as number, y as number);
-        g.lineTo((x as number) + (dx as number), (y as number) + (dy as number));
-        g.stroke();
-      }
-      g.lineWidth = 2.2;
-      for (const sx of [-1, 1]) {
-        g.beginPath();
-        g.moveTo(sx * 12, -5);
-        g.lineTo(sx * 16, -11);
-        g.lineTo(sx * 11, -9);
-        g.closePath();
-        g.fill();
-        g.stroke();
-      }
-      eye(-3, -2);
-      eye(3, -2);
+      dot(-2, 0, 7, '#ffffff');
+      dot(-3, -1, 3, '#d0d0d0', false);
     } else if (unit === 'pfeile') {
-      // manta ray
+      // motorbike with rider
+      wheel(10, 0, 9, 4.5);
+      wheel(-10, 0, 9, 4.5);
+      rr(-9, -3, 18, 6, 3, '#e0e0e0');
+      g.strokeStyle = '#4a4a4a';
+      g.lineWidth = 2.5;
       g.beginPath();
-      g.moveTo(0, -8);
-      g.bezierCurveTo(10, -8, 17, -1, 16, 1);
-      g.bezierCurveTo(8, 1, 4, 6, 0, 8);
-      g.bezierCurveTo(-4, 6, -8, 1, -16, 1);
-      g.bezierCurveTo(-17, -1, -10, -8, 0, -8);
-      g.closePath();
-      g.fill();
+      g.moveTo(6, -6);
+      g.lineTo(6, 6);
       g.stroke();
-      g.lineWidth = 1.6;
-      g.beginPath();
-      g.moveTo(0, 8);
-      g.quadraticCurveTo(2, 13, 4, 17);
-      g.stroke();
-      g.lineWidth = 2.2;
-      eye(-3, -3);
+      g.strokeStyle = INK;
+      g.lineWidth = 2;
+      dot(-1, 0, 4.5, '#ffffff');
     } else if (unit === 'stachel') {
-      // pufferfish
+      // jeep with mounted gun
+      wheel(7, -8, 7, 4);
+      wheel(-7, -8, 7, 4);
+      wheel(7, 8, 7, 4);
+      wheel(-7, 8, 7, 4);
+      rr(-12, -6.5, 24, 13, 3, '#d9d9d9');
+      rr(3, -5, 4, 10, 1, '#8fb3d9', true);
+      g.fillStyle = '#4a4a4a';
       g.beginPath();
-      g.arc(0, 0, 8, 0, TAU);
+      g.roundRect(-4, -1.5, 16, 3, 1.5);
       g.fill();
       g.stroke();
-      g.lineWidth = 2.4;
-      for (let k = 0; k < 8; k++) {
-        const a = (k * TAU) / 8;
-        g.beginPath();
-        g.moveTo(Math.cos(a) * 8, Math.sin(a) * 8);
-        g.lineTo(Math.cos(a) * 13, Math.sin(a) * 13);
-        g.stroke();
-      }
-      g.lineWidth = 2.2;
-      eye(-2.5, -2);
+      dot(-5, 0, 4.5, '#ffffff');
     } else {
-      // pearl
-      const grd = g.createRadialGradient(-2, -2, 0, 0, 0, 8);
-      grd.addColorStop(0, '#fff');
-      grd.addColorStop(1, 'rgba(255,255,255,0.6)');
-      g.fillStyle = grd;
-      g.beginPath();
-      g.arc(0, 0, 8, 0, TAU);
-      g.fill();
-      g.strokeStyle = 'rgba(16,50,74,0.5)';
-      g.stroke();
-      g.fillStyle = '#fff';
-      g.beginPath();
-      g.arc(-3, -3, 2, 0, TAU);
-      g.fill();
+      // supply truck: cab + cargo box
+      wheel(9, -8, 6, 4);
+      wheel(-9, -8, 6, 4);
+      wheel(-2, -8, 6, 4);
+      wheel(9, 8, 6, 4);
+      wheel(-9, 8, 6, 4);
+      wheel(-2, 8, 6, 4);
+      rr(-15, -7, 20, 14, 2, '#f0f0f0');
+      rr(6, -6, 9, 12, 3, '#cfcfcf');
+      rr(9, -5, 3, 10, 1, '#8fb3d9');
+      g.fillStyle = '#c4c4c4';
+      g.fillRect(-13, -7, 1.5, 14);
+      g.fillRect(-7, -7, 1.5, 14);
+      g.fillRect(-1, -7, 1.5, 14);
     }
     return c;
   });
 }
 
-/** Renders a rock cluster (world units) into a texture; returns its world-space top-left. */
+/* ------------------------------------------------------------------ rocks (obstacles): grey boulders */
 export function rockClusterTexture(
   cluster: Rock[],
   seed: number,
 ): { texture: Texture; x: number; y: number; w: number; h: number } {
-  let rnd = seed | 1;
-  const rand = () => {
-    rnd = (rnd * 1103515245 + 12345) & 0x7fffffff;
-    return rnd / 0x7fffffff;
-  };
-  const pad = 40;
+  const rand = lcg(seed);
+  const pad = 30;
   const minX = Math.min(...cluster.map((p) => p.x - p.r)) - pad,
     minY = Math.min(...cluster.map((p) => p.y - p.r)) - pad,
     maxX = Math.max(...cluster.map((p) => p.x + p.r)) + pad,
@@ -596,349 +675,358 @@ export function rockClusterTexture(
   const [c, g] = canvas(w * TEX_SCALE, h * TEX_SCALE);
   g.scale(TEX_SCALE, TEX_SCALE);
   g.translate(-minX, -minY);
-  const unionPath = (padR: number) => {
+  g.lineJoin = 'round';
+  g.strokeStyle = INK;
+  g.lineWidth = 1.6;
+  const blob = (p: Rock, scale: number, dy: number) => {
     g.beginPath();
-    for (const p of cluster) {
-      g.moveTo(p.x + p.r + padR, p.y);
-      g.arc(p.x, p.y, p.r + padR, 0, TAU);
+    const n = 9;
+    for (let k = 0; k <= n; k++) {
+      const a = (k / n) * TAU,
+        rr = p.r * scale * (0.86 + 0.14 * Math.sin(a * 3 + p.x * 0.1)),
+        x = p.x + Math.cos(a) * rr,
+        y = p.y + dy + Math.sin(a) * rr * 0.8;
+      if (k) g.lineTo(x, y);
+      else g.moveTo(x, y);
     }
+    g.closePath();
   };
-  const cx = cluster.reduce((s, p) => s + p.x, 0) / cluster.length,
-    cy = cluster.reduce((s, p) => s + p.y, 0) / cluster.length,
-    ext = Math.max(...cluster.map((p) => Math.hypot(p.x - cx, p.y - cy) + p.r));
-  g.fillStyle = 'rgba(16,50,74,0.22)';
-  g.beginPath();
+  // ground shadow, dark base, lit top
   for (const p of cluster) {
-    g.moveTo(p.x + p.r * 1.05 + 6, p.y + 8);
-    g.ellipse(p.x + 6, p.y + 8, p.r * 1.05, p.r * 0.7, 0, 0, TAU);
+    blob(p, 1.08, p.r * 0.3);
+    g.fillStyle = 'rgba(20,40,30,0.18)';
+    g.fill();
   }
-  g.fill();
-  const rg = g.createRadialGradient(cx - ext * 0.35, cy - ext * 0.4, ext * 0.05, cx, cy, ext);
-  rg.addColorStop(0, '#c9b58e');
-  rg.addColorStop(1, '#7d6a4f');
-  g.fillStyle = rg;
-  unionPath(0);
-  g.fill();
-  g.strokeStyle = '#4a3b2a';
-  g.lineWidth = 4;
-  unionPath(0);
-  g.stroke();
-  g.save();
-  unionPath(0);
-  g.clip();
   for (const p of cluster) {
-    for (let i = 0; i < 14; i++) {
-      const a = rand() * TAU,
-        d = rand() * p.r * 0.9;
-      g.fillStyle = rand() < 0.6 ? 'rgba(74,59,42,0.25)' : 'rgba(255,255,255,0.35)';
-      g.beginPath();
-      g.arc(p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, 1.5 + rand() * 4, 0, TAU);
-      g.fill();
-    }
-    // pink coral tuft on top
-    g.strokeStyle = '#ff7ea8';
-    g.lineWidth = 3;
-    g.beginPath();
-    g.moveTo(p.x - p.r * 0.2, p.y - p.r * 0.5);
-    g.quadraticCurveTo(p.x - p.r * 0.35, p.y - p.r * 0.9, p.x - p.r * 0.15, p.y - p.r * 1.05);
-    g.moveTo(p.x + p.r * 0.1, p.y - p.r * 0.55);
-    g.quadraticCurveTo(p.x + p.r * 0.3, p.y - p.r * 0.85, p.x + p.r * 0.2, p.y - p.r * 1.1);
+    blob(p, 1, p.r * 0.12);
+    g.fillStyle = '#7d8793';
+    g.fill();
     g.stroke();
   }
-  g.restore();
+  for (const p of cluster) {
+    blob(p, 0.82, -p.r * 0.12);
+    g.fillStyle = '#b9c2cc';
+    g.fill();
+    g.stroke();
+    blob(p, 0.4, -p.r * 0.32);
+    g.fillStyle = '#dfe5eb';
+    g.fill();
+  }
+  // grass tufts
+  g.strokeStyle = '#4f9a3a';
+  g.lineWidth = 1.4;
+  for (const p of cluster)
+    for (let i = 0; i < 4; i++) {
+      const a = rand() * TAU,
+        x = p.x + Math.cos(a) * p.r * 1.05,
+        y = p.y + Math.sin(a) * p.r * 0.85 + p.r * 0.3;
+      g.beginPath();
+      g.moveTo(x, y);
+      g.lineTo(x - 2, y - 5);
+      g.moveTo(x, y);
+      g.lineTo(x + 2, y - 5);
+      g.stroke();
+    }
   return { texture: Texture.from(c, true), x: minX, y: minY, w, h };
 }
 
-/** Screen background gradient: bright lagoon from surface to sand. */
+/* ------------------------------------------------------------------ terrain */
+/** Screen background: soft sky-blue water gradient. */
 export function backgroundTexture(): Texture {
   return cached('bg', () => {
     const [c, g] = canvas(64, 512);
     const bg = g.createLinearGradient(0, 0, 0, 512);
-    bg.addColorStop(0, '#d9f6ff');
-    bg.addColorStop(0.25, '#8fe3f4');
-    bg.addColorStop(0.6, '#37b7d6');
-    bg.addColorStop(1, '#1a89b3');
+    bg.addColorStop(0, '#8fdcf7');
+    bg.addColorStop(1, '#5dbde9');
     g.fillStyle = bg;
     g.fillRect(0, 0, 64, 512);
     return c;
   });
 }
-
-/** Soft sun shaft (white, additive). */
-export function shaftTexture(): Texture {
-  return cached('shaft', () => {
-    const [c, g] = canvas(128, 512);
-    const grd = g.createLinearGradient(0, 0, 0, 512);
-    grd.addColorStop(0, 'rgba(255,255,255,0.7)');
-    grd.addColorStop(0.7, 'rgba(255,255,255,0.15)');
-    grd.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = grd;
-    g.beginPath();
-    g.moveTo(44, 0);
-    g.lineTo(84, 0);
-    g.lineTo(128, 512);
-    g.lineTo(0, 512);
-    g.closePath();
-    g.fill();
-    const soft = g.createLinearGradient(0, 0, 128, 0);
-    soft.addColorStop(0, 'rgba(0,0,0,1)');
-    soft.addColorStop(0.3, 'rgba(0,0,0,0)');
-    soft.addColorStop(0.7, 'rgba(0,0,0,0)');
-    soft.addColorStop(1, 'rgba(0,0,0,1)');
-    g.globalCompositeOperation = 'destination-out';
-    g.fillStyle = soft;
-    g.fillRect(0, 0, 128, 512);
-    return c;
-  });
-}
-
-/** Sand floor strip with a wavy top edge (world width, tiled). */
-export function sandTexture(): Texture {
-  return cached('sand', () => {
-    const w = 512,
-      h = 160;
-    const [c, g] = canvas(w, h);
-    g.fillStyle = '#f2dfb2';
-    g.beginPath();
-    g.moveTo(0, 40);
-    for (let x = 0; x <= w; x += 32) g.quadraticCurveTo(x + 16, x % 64 ? 24 : 56, x + 32, 40);
-    g.lineTo(w, h);
-    g.lineTo(0, h);
-    g.closePath();
-    g.fill();
-    g.fillStyle = 'rgba(255,255,255,0.35)';
-    g.beginPath();
-    g.moveTo(0, 46);
-    for (let x = 0; x <= w; x += 32) g.quadraticCurveTo(x + 16, x % 64 ? 30 : 62, x + 32, 46);
-    g.lineTo(w, 60);
-    g.lineTo(0, 60);
-    g.closePath();
-    g.fill();
-    for (let i = 0; i < 60; i++) {
-      g.fillStyle = i % 3 ? 'rgba(201,181,142,0.45)' : 'rgba(255,255,255,0.5)';
+/** Tileable water with small wave strokes (world space, under the island). */
+export function waterTexture(): Texture {
+  return cached('water', () => {
+    const s = 256;
+    const [c, g] = canvas(s, s);
+    g.fillStyle = '#6cc8ee';
+    g.fillRect(0, 0, s, s);
+    const rand = lcg(77);
+    g.strokeStyle = 'rgba(255,255,255,0.55)';
+    g.lineWidth = 2;
+    g.lineCap = 'round';
+    for (let i = 0; i < 14; i++) {
+      const x = rand() * s,
+        y = rand() * s,
+        w = 10 + rand() * 16;
       g.beginPath();
-      g.arc(Math.random() * w, 60 + Math.random() * 90, 1 + Math.random() * 2, 0, TAU);
-      g.fill();
+      g.moveTo(x, y);
+      g.quadraticCurveTo(x + w / 2, y - 3, x + w, y);
+      g.stroke();
     }
     return c;
   });
 }
+/**
+ * The island: grass plateau with a sand rim and an earth cliff below, sized for the world plus a
+ * margin. Returned with its world-space top-left so the renderer can place it.
+ */
+export function landTexture(
+  worldW: number,
+  worldH: number,
+  seed: number,
+): { texture: Texture; x: number; y: number; w: number; h: number } {
+  const M = 110,
+    CLIFF = 30,
+    w = worldW + 2 * M,
+    h = worldH + 2 * M + CLIFF;
+  const [c, g] = canvas(w, h);
+  const rand = lcg(seed * 7 + 3);
+  const plate = (dy: number, inset: number) => {
+    g.beginPath();
+    g.roundRect(inset, inset + dy, w - 2 * inset, h - CLIFF - 2 * inset, 140);
+  };
+  plate(CLIFF, 0);
+  g.fillStyle = '#b48a58';
+  g.fill();
+  plate(CLIFF * 0.55, 0);
+  g.fillStyle = '#c9a06a';
+  g.fill();
+  plate(0, 0);
+  g.fillStyle = '#e8d8a0';
+  g.fill();
+  plate(0, 12);
+  g.fillStyle = '#9ed45f';
+  g.fill();
+  g.save();
+  plate(0, 12);
+  g.clip();
+  for (let i = 0; i < 90; i++) {
+    g.fillStyle = i % 3 ? '#93cb55' : '#adde72';
+    g.beginPath();
+    g.ellipse(rand() * w, rand() * h, 40 + rand() * 120, 24 + rand() * 60, rand() * Math.PI, 0, TAU);
+    g.fill();
+  }
+  g.fillStyle = 'rgba(255,255,255,0.35)';
+  for (let i = 0; i < 260; i++) {
+    const x = rand() * w,
+      y = rand() * h;
+    g.fillRect(x, y, 3, 1.5);
+  }
+  g.strokeStyle = 'rgba(70,140,50,0.35)';
+  g.lineWidth = 1.5;
+  for (let i = 0; i < 160; i++) {
+    const x = rand() * w,
+      y = rand() * h;
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x - 2, y - 5);
+    g.moveTo(x, y);
+    g.lineTo(x + 2, y - 5);
+    g.stroke();
+  }
+  g.restore();
+  return { texture: Texture.from(c), x: -M, y: -M, w, h };
+}
 
-/** Colourful reef flora for the sand floor and sides. */
-export function plantTexture(kind: 'fan' | 'kelp' | 'brain' | 'tube', seed: number): Texture {
-  return cached(`plant:${kind}:${seed}`, () => {
-    let rnd = seed | 1;
-    const rand = () => {
-      rnd = (rnd * 1103515245 + 12345) & 0x7fffffff;
-      return rnd / 0x7fffffff;
-    };
-    const w = 160,
-      h = 200;
+export type DecoKind = 'tree' | 'pine' | 'bush' | 'house' | 'stone' | 'fence';
+/** Decorative props (anchor bottom-centre), drawn 96×110 with light from the top-left. */
+export function decoTexture(kind: DecoKind, seed: number): Texture {
+  return cached(`deco:${kind}:${seed}`, () => {
+    const w = 96,
+      h = 110;
     const [c, g] = canvas(w, h);
-    g.lineCap = 'round';
-    g.lineJoin = 'round';
-    if (kind === 'fan') {
-      const col = ['#ff7ea8', '#ff9a5c', '#c86bff'][seed % 3] as string;
-      g.strokeStyle = col;
-      const branch = (x: number, y: number, a: number, len: number, depth: number) => {
-        if (depth === 0 || len < 4) return;
-        const nx = x + Math.cos(a) * len,
-          ny = y + Math.sin(a) * len;
-        g.lineWidth = depth * 2.2;
-        g.beginPath();
-        g.moveTo(x, y);
-        g.lineTo(nx, ny);
-        g.stroke();
-        const n = 2 + (rand() < 0.4 ? 1 : 0);
-        for (let i = 0; i < n; i++)
-          branch(nx, ny, a + (rand() - 0.5) * 1.3, len * (0.62 + rand() * 0.2), depth - 1);
-      };
-      branch(w / 2, h - 4, -Math.PI / 2, 48, 5);
-      g.fillStyle = col;
-      for (let i = 0; i < 24; i++) {
-        g.beginPath();
-        g.arc(30 + rand() * 100, 30 + rand() * 110, 2 + rand() * 2.5, 0, TAU);
-        g.fill();
-      }
-    } else if (kind === 'kelp') {
-      for (let k = 0; k < 3; k++) {
-        const x0 = w * (0.3 + k * 0.2);
-        g.strokeStyle = '#3fbf7f';
-        g.lineWidth = 6 - k;
-        g.beginPath();
-        g.moveTo(x0, h);
-        let x = x0;
-        for (let y = h; y > 20 + k * 30; y -= 12) {
-          x += (rand() - 0.5) * 10;
-          g.lineTo(x, y);
-        }
-        g.stroke();
-        g.fillStyle = '#7fe0a8';
-        for (let y = h - 20; y > 40 + k * 30; y -= 22) {
-          const dir = rand() < 0.5 ? -1 : 1;
-          g.beginPath();
-          g.ellipse(x0 + dir * 11, y, 13, 5, dir * 0.6, 0, TAU);
-          g.fill();
-        }
-      }
-    } else if (kind === 'brain') {
-      g.fillStyle = '#ffb457';
-      g.strokeStyle = '#c96d1a';
-      g.lineWidth = 3;
+    const rand = lcg(seed);
+    const d = new Draw(g, w / 2, h - 12, 2.4);
+    const [gx, gy] = d.p(0, 0);
+    if (kind === 'tree') {
+      d.shadow(0, 0, 22, 9);
+      g.fillStyle = '#7a4b25';
       g.beginPath();
-      g.ellipse(w / 2, h - 50, 62, 46, 0, Math.PI, 0);
-      g.closePath();
+      g.roundRect(gx - 4, gy - 30, 8, 30, 3);
       g.fill();
       g.stroke();
-      g.strokeStyle = 'rgba(201,109,26,0.7)';
-      g.lineWidth = 3;
-      for (let i = 0; i < 9; i++) {
+      const r = 22 + rand() * 6;
+      d.dot(gx, gy - 40, r, '#3e9c48');
+      g.stroke();
+      d.dot(gx - r * 0.2, gy - 46, r * 0.7, '#5cc16a');
+      d.dot(gx - r * 0.35, gy - 52, r * 0.3, '#8ddb8e');
+    } else if (kind === 'pine') {
+      d.shadow(0, 0, 18, 8);
+      g.fillStyle = '#7a4b25';
+      g.fillRect(gx - 3, gy - 14, 6, 14);
+      for (let i = 0; i < 3; i++) {
+        const y = gy - 10 - i * 18,
+          rw = 24 - i * 5;
+        d.face(
+          [
+            [gx - rw, y],
+            [gx + rw, y],
+            [gx, y - 26],
+          ],
+          i % 2 ? '#3e9c48' : '#4fb35b',
+        );
+      }
+    } else if (kind === 'bush') {
+      d.shadow(0, 0, 18, 7);
+      d.dot(gx + 8, gy - 8, 11, '#3e9c48');
+      g.stroke();
+      d.dot(gx - 8, gy - 9, 12, '#4fb35b');
+      g.stroke();
+      d.dot(gx, gy - 14, 12, '#5cc16a');
+      g.stroke();
+      d.dot(gx - 4, gy - 18, 5, '#8ddb8e');
+    } else if (kind === 'house') {
+      d.shadow(0, 2, 26, 11);
+      d.box(0, 0, 34, 26, 22, CONCRETE);
+      // roof prism
+      const m: Mat = { top: '#f0965a', front: '#e07a45', side: '#b95d31' };
+      d.tent(0, 0, 40, 30, 16, m, false);
+      // the tent helper sits on the ground; lift it: redraw at z via a translate
+    } else if (kind === 'stone') {
+      d.shadow(0, 0, 14, 6);
+      g.beginPath();
+      g.moveTo(gx - 12, gy);
+      g.lineTo(gx - 10, gy - 10);
+      g.lineTo(gx - 2, gy - 15);
+      g.lineTo(gx + 9, gy - 11);
+      g.lineTo(gx + 12, gy - 2);
+      g.lineTo(gx + 6, gy + 1);
+      g.closePath();
+      g.fillStyle = '#9aa4af';
+      g.fill();
+      g.stroke();
+      g.beginPath();
+      g.moveTo(gx - 8, gy - 9);
+      g.lineTo(gx - 2, gy - 13);
+      g.lineTo(gx + 6, gy - 10);
+      g.lineTo(gx - 3, gy - 6);
+      g.closePath();
+      g.fillStyle = '#cfd7df';
+      g.fill();
+    } else {
+      // fence: three posts and two rails
+      g.fillStyle = '#c48f58';
+      for (let i = -1; i <= 1; i++) {
         g.beginPath();
-        let x = 30 + i * 12,
-          y = h - 52;
-        g.moveTo(x, y);
-        for (let k = 0; k < 6; k++) {
-          x += (rand() - 0.5) * 12;
-          y -= 6;
-          g.lineTo(x, y);
-        }
+        g.roundRect(gx + i * 22 - 3, gy - 20, 6, 20, 2);
+        g.fill();
         g.stroke();
       }
-    } else {
-      for (let k = 0; k < 4; k++) {
-        const x = 30 + k * 32 + rand() * 10,
-          th = 60 + rand() * 90,
-          r = 9 + rand() * 5;
-        g.fillStyle = ['#c86bff', '#ff7ea8', '#3fa9d8', '#ffb457'][k] as string;
-        g.strokeStyle = INK;
-        g.lineWidth = 2.5;
+      for (const z of [8, 15]) {
         g.beginPath();
-        g.moveTo(x - r, h);
-        g.lineTo(x - r * 0.8, h - th);
-        g.arc(x, h - th, r * 0.8, Math.PI, 0);
-        g.lineTo(x + r, h);
-        g.closePath();
+        g.roundRect(gx - 26, gy - z - 2, 52, 4, 2);
+        g.fillStyle = '#e5b77e';
         g.fill();
         g.stroke();
-        g.fillStyle = 'rgba(16,50,74,0.7)';
-        g.beginPath();
-        g.ellipse(x, h - th, r * 0.45, r * 0.25, 0, 0, TAU);
-        g.fill();
       }
     }
     return c;
   });
 }
 
-/** Reef barrier: a jagged coral wall segment (drawn vertical, rotated to the edge normal). */
+/** Sandbag barricade across a road (drawn along +x, rotated to the edge). */
 export function barrierTexture(): Texture {
   return cached('barrier', () => {
-    const w = 60,
-      h = 140;
+    const w = 70,
+      h = 70;
     const [c, g] = canvas(w, h);
-    const body = g.createLinearGradient(0, 0, w, 0);
-    body.addColorStop(0, '#c2336d');
-    body.addColorStop(0.5, '#ff7ea8');
-    body.addColorStop(1, '#c2336d');
-    g.fillStyle = body;
-    g.strokeStyle = INK;
-    g.lineWidth = 3;
+    const d = new Draw(g, w / 2, h / 2 + 8, 2.2);
+    d.shadow(0, 0, 30, 10, 0.2);
+    for (let row = 0; row < 3; row++)
+      for (let i = -2; i <= 2; i++) {
+        if (row === 2 && Math.abs(i) > 1) continue;
+        const off = row % 2 ? 6 : 0;
+        d.box(i * 12 + off, 0, 12, 9, 7, SAND, row * 6.5);
+      }
+    // barbed wire on top
+    g.strokeStyle = '#4a5563';
+    g.lineWidth = 1.5;
     g.beginPath();
-    g.moveTo(w * 0.35, 6);
-    for (let i = 0; i <= 10; i++) {
-      const y = 6 + (i / 10) * (h - 12);
-      g.lineTo(w * (0.62 + 0.18 * Math.sin(i * 2.1)), y);
+    for (let x = 6; x < w - 6; x += 8) {
+      const [px, py] = d.p(x - w / 2, 0, 24);
+      g.moveTo(px, py);
+      g.lineTo(px + 8, py - 3);
+      g.moveTo(px + 4, py - 4);
+      g.lineTo(px + 4, py + 1);
     }
-    g.lineTo(w * 0.35, h - 6);
-    for (let i = 10; i >= 0; i--) {
-      const y = 6 + (i / 10) * (h - 12);
-      g.lineTo(w * (0.38 - 0.18 * Math.sin(i * 1.7 + 1)), y);
-    }
-    g.closePath();
-    g.fill();
     g.stroke();
-    for (let i = 0; i < 18; i++) {
-      const x = w * (0.3 + Math.random() * 0.4),
-        y = 10 + Math.random() * (h - 20);
-      g.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,0.5)' : 'rgba(120,30,70,0.5)';
-      g.beginPath();
-      g.arc(x, y, 1.5 + Math.random() * 2.5, 0, TAU);
-      g.fill();
-    }
     return c;
   });
 }
 
-/** Mine: dark spiky urchin with a red core. */
+/** Land mine: dark disc with a red light. */
 export function mineTexture(): Texture {
   return cached('mine', () => {
     const size = 48,
       cx = 24,
       cy = 24;
     const [c, g] = canvas(size, size);
-    g.fillStyle = '#2a1a3a';
-    for (let i = 0; i < 12; i++) {
-      const a = (i * TAU) / 12;
+    g.strokeStyle = INK;
+    g.lineWidth = 2;
+    g.fillStyle = 'rgba(20,40,30,0.2)';
+    g.beginPath();
+    g.ellipse(cx, cy + 4, 18, 9, 0, 0, TAU);
+    g.fill();
+    g.fillStyle = '#3d4552';
+    g.beginPath();
+    g.ellipse(cx, cy + 2, 17, 10, 0, 0, TAU);
+    g.fill();
+    g.stroke();
+    g.fillStyle = '#5b6573';
+    g.beginPath();
+    g.ellipse(cx, cy - 2, 17, 10, 0, 0, TAU);
+    g.fill();
+    g.stroke();
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU;
+      g.fillStyle = '#8b96a5';
       g.beginPath();
-      g.moveTo(cx + Math.cos(a - 0.15) * 11, cy + Math.sin(a - 0.15) * 11);
-      g.lineTo(cx + Math.cos(a) * 23, cy + Math.sin(a) * 23);
-      g.lineTo(cx + Math.cos(a + 0.15) * 11, cy + Math.sin(a + 0.15) * 11);
-      g.closePath();
+      g.arc(cx + Math.cos(a) * 11, cy - 2 + Math.sin(a) * 6, 2, 0, TAU);
       g.fill();
     }
-    g.fillStyle = radial(g, cx, cy, 13, '#6a3a7a', '#2a1a3a');
+    g.fillStyle = '#ff4b4b';
     g.beginPath();
-    g.arc(cx, cy, 13, 0, TAU);
+    g.arc(cx, cy - 3, 4.5, 0, TAU);
     g.fill();
-    g.fillStyle = '#ff4f7d';
+    g.stroke();
+    g.fillStyle = '#ffd0d0';
     g.beginPath();
-    g.arc(cx, cy, 4.5, 0, TAU);
+    g.arc(cx - 1.5, cy - 4.5, 1.6, 0, TAU);
     g.fill();
     return c;
   });
 }
 
 /** Composes the node art into a small DOM canvas icon in the given colour (legend, intros, menus). */
-export function nodeIcon(type: NodeType, level: Level = 1, color = '#ffb400', size = 40): HTMLCanvasElement {
+export function nodeIcon(type: NodeType, level: Level = 1, color = '#3b82f6', size = 40): HTMLCanvasElement {
   const out = document.createElement('canvas');
   out.width = out.height = size * 2;
   out.style.width = out.style.height = size + 'px';
   const g = out.getContext('2d') as CanvasRenderingContext2D;
-  const tinted = (tex: Texture): HTMLCanvasElement => {
-    const src = tex.source.resource as HTMLCanvasElement;
-    const t = document.createElement('canvas');
-    t.width = src.width;
-    t.height = src.height;
-    const tg = t.getContext('2d') as CanvasRenderingContext2D;
-    tg.drawImage(src, 0, 0);
-    tg.globalCompositeOperation = 'source-in';
-    tg.fillStyle = color;
-    tg.fillRect(0, 0, t.width, t.height);
-    return t;
+  const src = (t: Texture) => t.source.resource as HTMLCanvasElement;
+  const draw = (c: HTMLCanvasElement, dy = 0) => {
+    g.drawImage(c, 0, 0, c.width, c.height, size * 0.05, size * 0.05 + dy, size * 1.9, size * 1.9);
   };
-  const platform = platformTexture(type, level).source.resource as HTMLCanvasElement;
-  const draw = (c: HTMLCanvasElement, alpha = 1) => {
-    g.globalAlpha = alpha;
-    g.drawImage(c, 0, 0, c.width, c.height, size * 0.1, size * 0.1, size * 1.8, size * 1.8);
-    g.globalAlpha = 1;
-  };
-  draw(tinted(detailTexture(type, level)));
-  draw(platform);
+  draw(src(tintedTexture(baseTexture(type, level), color)));
+  draw(src(platformTexture(type, level)));
+  draw(src(tintedTexture(detailTexture(type, level), color)));
   const rt = rotorTexture(type, level);
-  if (rt) draw(tinted(rt), 0.95);
+  if (rt) draw(src(tintedTexture(rt, color)), (ROTOR_Y[type] * size * 1.9) / SIZE);
   return out;
 }
 
-/** Pre-tinted copy of a white texture (composited on canvas), cached per colour — avoids runtime tint. */
+/** Pre-tinted copy of a grey-shaded white texture: multiply by the colour, keep the alpha. */
 export function tintedTexture(base: Texture, color: string): Texture {
   const key = `tint:${base.uid}:${color}`;
   return cached(key, () => {
     const src = base.source.resource as HTMLCanvasElement;
     const [c, g] = canvas(src.width, src.height);
     g.drawImage(src, 0, 0);
-    g.globalCompositeOperation = 'source-in';
+    g.globalCompositeOperation = 'multiply';
     g.fillStyle = color;
     g.fillRect(0, 0, c.width, c.height);
+    g.globalCompositeOperation = 'destination-in';
+    g.drawImage(src, 0, 0);
     return c;
   });
 }

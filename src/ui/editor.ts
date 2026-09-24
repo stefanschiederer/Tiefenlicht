@@ -27,7 +27,7 @@ export function renderEditorUi(editor: Editor, act: EditorActions): void {
     const problems = editor.validate();
     const t = EDITOR_TOOLS.find((x) => x.id === editor.tool);
     $('#edHint').innerHTML =
-      `${t?.hint ?? ''}${problems.length ? ` · <span class="bad">${problems.join(' ')}</span>` : ` · ${editor.map.nodes.length} Knoten, ${editor.map.edges.length} Kanten`}`;
+      `${t?.hint ?? ''}${problems.length ? ` · <span class="bad">${problems.join(' ')}</span>` : ` · ${editor.map.nodes.length} Gebäude, ${editor.map.edges.length} Kanten`}`;
     $<HTMLButtonElement>('#edPlay').disabled = problems.length > 0;
   };
   root.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach((b) =>

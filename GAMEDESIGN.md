@@ -36,13 +36,13 @@ Vom Spieler als Referenz gewünscht. Was Tower War richtig macht und wie Tiefenl
 - **Typspezifischer Ausbau.** Brutnest → Produktion, Bastion → Verteidigung, Wächter → Reichweite/Feuerrate, Strömung → Tempo, Quelle → Verstärkung, Nest → Vorrat und Routen.
 - **Ausbau als sichtbarer Sprung** (Turm wächst). Tiefenlicht: Ausbaustufen mit Ringen und größerem Sprite; Umbau in andere Arten als zusätzliche Tiefe, die Tower War nicht hat.
 
-## Stand 2026-09-14: Lagune und Linien
+## Stand 2026-09-14: Tower-War-Nachbau
 
-Auf Wunsch des Besitzers komplett auf Tower War umgestellt: Linien statt Sende-Anteile, fester Strom, Kappen per Wischen, Gegner mit Linien. Art Direction „Sonnige Lagune“ (siehe Design-Canvas): helles Wasser, Korallen und Muscheln als Gebäude, Meerestiere als Truppen. Skill-Baum auf 32 Fähigkeiten erweitert.
+Auf Wunsch des Besitzers komplett auf Tower War umgestellt: Linien statt Sende-Anteile, fester Strom (3 Einheiten/s je Linie, Einheiten marschieren einzeln in einer Kolonne), Kappen per Wischen, Gegner mit Linien. Die Optik ist ein Tower-War-Nachbau: grüne Insel im Wasser, Straßen zwischen den Gebäuden, Bäume, Felsen und Häuser als Deko, Militärgebäude (Kaserne, Feldlager, Bunker, Garage, Geschützturm, Depot) auf einem Landeplatz in der Besitzerfarbe, Soldaten, Motorräder, Panzer, Jeeps und Lastwagen als Truppen, Zahl-Badge über jedem Gebäude. Blau ist der Spieler, Rot der erste Gegner. Alles prozedural gezeichnet, keine fremden Assets.
 
 ## Regeln, die bewusst bleiben
 
-- Eine Linie ist die Verbindung; Einheiten strömen mit fester Rate (1,6/s je Linie), Produktion läuft weiter. Linien pro Gebäude: 1/2/3 nach Stufe.
+- Eine Linie ist die Verbindung; Einheiten strömen mit fester Rate (3/s je Linie), Produktion läuft weiter. Linien pro Gebäude: 1/2/3 nach Stufe.
 - Linien kappt man mit einer Wisch-Geste quer über die Linie, alternativ im Gebäudemenü.
 - Ausbau (typspezifisch), Umbau, Energie und Fähigkeiten bleiben.
 

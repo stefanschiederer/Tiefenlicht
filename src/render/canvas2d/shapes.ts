@@ -73,7 +73,7 @@ export function pill(
   g.fillStyle = 'rgba(255,255,255,.9)';
   roundRect(g, x - w / 2, y - h / 2, w, h, h / 2);
   g.fill();
-  g.fillStyle = color && color !== '#fff' ? color : '#10324a';
+  g.fillStyle = color && color !== '#fff' ? color : '#22303f';
   g.fillText(text, x, y + 0.5);
 }
 export function poly(
@@ -135,8 +135,8 @@ export function drawTower(
     g.stroke();
   }
   const body = g.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.1, x, y, r);
-  body.addColorStop(0, '#12263a');
-  body.addColorStop(1, '#06101b');
+  body.addColorStop(0, '#f1f3f5');
+  body.addColorStop(1, '#c3ccd6');
   g.fillStyle = body;
   shapePath(g, x, y, r, T);
   g.fill();
@@ -236,7 +236,7 @@ export function drawTower(
     g.fillStyle = rgba(C, 0.95);
     roundRect(g, 0, -2.2 * s, r * 0.85, 4.4 * s, 2 * s);
     g.fill();
-    g.fillStyle = '#07111c';
+    g.fillStyle = '#3f4854';
     g.beginPath();
     g.arc(0, 0, r * 0.24, 0, TAU);
     g.fill();

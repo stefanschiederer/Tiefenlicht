@@ -30,40 +30,40 @@ export interface UnitDef {
 
 export const TYPES: Record<NodeType, NodeTypeDef> = {
   nest: {
-    name: 'Nest',
+    name: 'Kaserne',
     unit: 'sporen',
     r: 24,
     cap: [40, 65, 95],
     rate: [0.8, 1.05, 1.35],
     def: [1, 1.1, 1.2],
     value: 20,
-    desc: 'Erzeugt stetig Sporen. Das Rückgrat jedes Schwarms – günstig und ausbaufähig.',
-    upgrade: 'Vorrat und Routen',
+    desc: 'Bildet stetig Soldaten aus. Das Rückgrat jeder Armee – günstig und ausbaufähig.',
+    upgrade: 'Vorrat und Linien',
   },
   brut: {
-    name: 'Brutnest',
+    name: 'Feldlager',
     unit: 'drohnen',
     r: 30,
     cap: [70, 90, 115],
     rate: [1.6, 2.6, 3.8],
     def: [0.75, 0.8, 0.85],
     value: 32,
-    desc: 'Doppelte Produktion, großer Vorrat, dafür verwundbar. Seine Drohnen sind schnell, aber schwach.',
+    desc: 'Doppelte Produktion, großer Vorrat, dafür verwundbar. Seine Rekruten sind schnell, aber schwach.',
     upgrade: 'Produktion',
   },
   bastion: {
-    name: 'Bastion',
+    name: 'Bunker',
     unit: 'panzer',
     r: 26,
     cap: [50, 60, 75],
     rate: [0.4, 0.45, 0.5],
     def: [2, 3, 4.5],
     value: 24,
-    desc: 'Angreifer zählen nur halb. Produziert langsam schwere Panzer, die viel aushalten und langsam ziehen.',
+    desc: 'Angreifer zählen nur halb. Baut langsam schwere Panzer, die viel aushalten und langsam fahren.',
     upgrade: 'Verteidigung',
   },
   strom: {
-    name: 'Strömung',
+    name: 'Garage',
     unit: 'pfeile',
     r: 22,
     cap: [30, 40, 50],
@@ -71,11 +71,11 @@ export const TYPES: Record<NodeType, NodeTypeDef> = {
     def: [1, 1.05, 1.1],
     value: 18,
     speedMul: [2, 2.75, 3.5],
-    desc: 'Alles, was von hier aufbricht, ist doppelt so schnell. Erzeugt flinke Pfeile.',
+    desc: 'Alles, was von hier aufbricht, ist doppelt so schnell. Baut flinke Motorräder.',
     upgrade: 'Tempo',
   },
   waechter: {
-    name: 'Wächter',
+    name: 'Geschützturm',
     unit: 'stachel',
     r: 24,
     cap: [35, 40, 45],
@@ -84,11 +84,11 @@ export const TYPES: Record<NodeType, NodeTypeDef> = {
     value: 28,
     zapRange: [150, 200, 260],
     zapRate: [2.5, 4.5, 7],
-    desc: 'Ein Turm: beschießt feindliche Schwärme in Reichweite, auch solche, die nur vorbeiziehen. Ausbau erhöht Reichweite und Feuerrate.',
+    desc: 'Beschießt feindliche Truppen in Reichweite, auch solche, die nur vorbeifahren. Ausbau erhöht Reichweite und Feuerrate.',
     upgrade: 'Reichweite und Feuerrate',
   },
   quelle: {
-    name: 'Quelle',
+    name: 'Depot',
     unit: 'orbs',
     r: 24,
     cap: [35, 40, 45],
@@ -96,18 +96,18 @@ export const TYPES: Record<NodeType, NodeTypeDef> = {
     def: [1, 1.05, 1.1],
     value: 30,
     boost: [0.5, 0.8, 1.2],
-    desc: 'Verstärkt die Produktion aller direkt verbundenen eigenen Knoten um 50 %, ausgebaut bis 120 %.',
-    upgrade: 'Verstärkung der Nachbarn',
+    desc: 'Versorgt alle direkt verbundenen eigenen Gebäude: +50 % Produktion, ausgebaut bis +120 %.',
+    upgrade: 'Versorgung der Nachbarn',
   },
 };
 
 export const UNITS: Record<UnitType, UnitDef> = {
-  sporen: { name: 'Sporen', str: 1.0, speed: 1.0 },
-  drohnen: { name: 'Drohnen', str: 0.85, speed: 1.25 },
+  sporen: { name: 'Soldaten', str: 1.0, speed: 1.0 },
+  drohnen: { name: 'Rekruten', str: 0.85, speed: 1.25 },
   panzer: { name: 'Panzer', str: 1.7, speed: 0.7 },
-  pfeile: { name: 'Pfeile', str: 0.9, speed: 1.6 },
-  stachel: { name: 'Stachel', str: 1.25, speed: 0.95 },
-  orbs: { name: 'Lichtkugeln', str: 1.0, speed: 1.05 },
+  pfeile: { name: 'Motorräder', str: 0.9, speed: 1.6 },
+  stachel: { name: 'Jeeps', str: 1.25, speed: 0.95 },
+  orbs: { name: 'Lastwagen', str: 1.0, speed: 1.05 },
 };
 
 export const TYPE_WEIGHTS: Record<NodeType, number> = {
@@ -126,10 +126,10 @@ export interface Faction {
   color: string;
 }
 export const FACTIONS: readonly Faction[] = [
-  { name: 'Wilde Knoten', color: '#dff3f8' },
-  { name: 'Goldschwarm', color: '#ffb400' },
-  { name: 'Korallenschwarm', color: '#ff4f7d' },
-  { name: 'Algenschwarm', color: '#4fd35a' },
-  { name: 'Tintenschwarm', color: '#9b6bff' },
+  { name: 'Neutral', color: '#e3e7ec' },
+  { name: 'Blaue Armee', color: '#3b82f6' },
+  { name: 'Rote Armee', color: '#ef4444' },
+  { name: 'Gelbe Armee', color: '#f5b400' },
+  { name: 'Lila Armee', color: '#a855f7' },
 ];
 export const PLAYER = 1;

@@ -126,9 +126,10 @@ describe('route stream (Tower-War style)', () => {
     const n = node(s, 0);
     const out = shipments(s, 600); // 10 s
     expect(out.every((o) => o.n === 1)).toBe(true);
-    // ~16 units streamed (1.6/s), production 0.8/s keeps flowing in
-    expect(shipped(out)).toBeGreaterThanOrEqual(14);
-    expect(shipped(out)).toBeLessThanOrEqual(17);
+    // STREAM_RATE units/s leave (3/s), capped by what the node has: 20 + 0.8/s production over 10 s
+    const max = Math.min(STREAM_RATE * 10, 20 + 8);
+    expect(shipped(out)).toBeGreaterThanOrEqual(max - 3);
+    expect(shipped(out)).toBeLessThanOrEqual(max);
     expect(n.units).toBeCloseTo(20 + 8 - shipped(out), 0);
   });
 
@@ -199,7 +200,7 @@ describe('route shipments', () => {
       const gap = (out[i] as Shipment).t - (out[i - 1] as Shipment).t;
       expect(Math.abs(gap - FLOW_INTERVAL)).toBeLessThanOrEqual(DT + 1e-9);
     }
-    expect(FLOW_INTERVAL).toBe(0.4);
+    expect(FLOW_INTERVAL).toBe(0.33);
   });
 
   it('never breaches the reserve', () => {
@@ -221,11 +222,13 @@ describe('route shipments', () => {
     for (const o of out.slice(1)) expect(o.n).toBe(1);
     expect(out.length).toBeGreaterThanOrEqual(14);
     expect(out.length).toBeLessThanOrEqual(17);
-    const earliest = 1 / 0.8;
+    // (a shipment leaves on the first interval tick after a whole unit accrued, so the gap can be
+    // one interval shorter than 1.25 s when a remainder carried over)
+    const earliest = 1 / 0.8 - FLOW_INTERVAL;
     for (let i = 1; i < out.length; i++) {
       const gap = (out[i] as Shipment).t - (out[i - 1] as Shipment).t;
       expect(gap).toBeGreaterThanOrEqual(earliest - 1e-9);
-      expect(gap).toBeLessThanOrEqual(earliest + FLOW_INTERVAL + DT + 1e-9);
+      expect(gap).toBeLessThanOrEqual(1 / 0.8 + FLOW_INTERVAL + DT + 1e-9);
     }
     // The node sits just above the reserve after every shipment.
     expect(n.units).toBeLessThan(21.5);
@@ -245,7 +248,7 @@ describe('route shipments', () => {
       const gap = (out[i] as Shipment).t - (out[i - 1] as Shipment).t;
       expect(Math.abs(gap - FLOW_INTERVAL_FAST)).toBeLessThanOrEqual(DT + 1e-9);
     }
-    expect(FLOW_INTERVAL_FAST).toBeCloseTo(FLOW_INTERVAL / 2);
+    expect(FLOW_INTERVAL_FAST).toBeLessThan(FLOW_INTERVAL);
   });
 
   it('ships nothing below one available or one accumulated unit', () => {

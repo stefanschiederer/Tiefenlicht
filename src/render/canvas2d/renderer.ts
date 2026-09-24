@@ -209,8 +209,8 @@ export class CanvasRenderer {
     const g = c.getContext('2d') as CanvasRenderingContext2D;
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     const bg = g.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#bff0ff');
-    bg.addColorStop(1, '#1a89b3');
+    bg.addColorStop(0, '#a8d96b');
+    bg.addColorStop(1, '#8fc955');
     g.fillStyle = bg;
     g.fillRect(0, 0, W, H);
     const lg = g.createRadialGradient(W * 0.5, -H * 0.25, 0, W * 0.5, -H * 0.25, H * 1.05);
@@ -270,7 +270,7 @@ export class CanvasRenderer {
       g.save();
       g.shadowColor = 'rgba(0,0,0,.8)';
       g.shadowBlur = 30 * S;
-      g.fillStyle = '#07111c';
+      g.fillStyle = '#7d8793';
       unionPath(cl, 5);
       g.fill();
       g.restore();
@@ -278,8 +278,8 @@ export class CanvasRenderer {
       unionPath(cl, 2.5);
       g.fill();
       const rg = g.createRadialGradient(cx - ext * 0.35, cy - ext * 0.4, ext * 0.05, cx, cy, ext);
-      rg.addColorStop(0, '#152c44');
-      rg.addColorStop(1, '#091522');
+      rg.addColorStop(0, '#c3ccd6');
+      rg.addColorStop(1, '#8b95a1');
       g.fillStyle = rg;
       unionPath(cl, 0);
       g.fill();
@@ -326,7 +326,7 @@ export class CanvasRenderer {
         W * (0.5 + 0.32 * Math.sin(t * 0.06 + k * 2.1)),
         H * (0.45 + 0.3 * Math.cos(t * 0.045 + k * 1.7)),
         Math.min(W, H) * 0.55,
-        '#2f7fb3',
+        '#e9dcae',
         0.08,
       );
     ctx.globalCompositeOperation = 'source-over';

@@ -23,25 +23,25 @@ export interface AbilityDef {
 }
 export const ABILITIES: Record<AbilityId, AbilityDef> = {
   stoss: {
-    name: 'Lichtstoß',
+    name: 'Verstärkung',
     icon: '✦',
     cost: 35,
     target: 'own',
-    desc: '12 Einheiten erscheinen sofort an einem eigenen Knoten.',
+    desc: '12 Einheiten treffen sofort bei einem eigenen Gebäude ein.',
   },
   frost: {
-    name: 'Frostwelle',
+    name: 'Luftschlag',
     icon: '❄',
     cost: 60,
     target: 'enemy',
-    desc: 'Ein fremder Knoten friert 10 Sekunden ein und verliert 30 % seiner Einheiten.',
+    desc: 'Ein fremdes Gebäude ist 10 Sekunden lahmgelegt und verliert 30 % seiner Einheiten.',
   },
   schild: {
-    name: 'Schild',
+    name: 'Panzerung',
     icon: '⬡',
     cost: 45,
     target: 'own',
-    desc: 'Ein eigener Knoten verteidigt 8 Sekunden lang dreifach.',
+    desc: 'Ein eigenes Gebäude verteidigt 8 Sekunden lang dreifach.',
   },
 };
 export const ABILITY_ORDER: readonly AbilityId[] = ['stoss', 'frost', 'schild'];
@@ -57,13 +57,13 @@ export const MAX_ROUTES = 3;
 /** Routes a node may hold per upgrade level (Tower-War style: more lines with a higher tower). */
 export const ROUTES_PER_LEVEL: readonly number[] = [1, 2, 3];
 /** Seconds between route shipments (halved with the "flow" perk). */
-export const FLOW_INTERVAL = 0.4;
+export const FLOW_INTERVAL = 0.33;
 export const FLOW_INTERVAL_FAST = 0.2;
 /**
  * Tower-War stream: every route carries units out of its node at this constant rate (units per second),
  * one unit at a time, as long as the node has units. Production may outpace it on upgraded nodes.
  */
-export const STREAM_RATE = 1.6;
+export const STREAM_RATE = 3;
 /** Stream rate multiplier with the "flow" perk. */
 export const STREAM_RATE_FAST = 1.5;
 /** Minimum units per route shipment. 1 = continuous stream of single units (Tower-War style). */

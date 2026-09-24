@@ -1,6 +1,6 @@
 # Tiefenlicht
 
-Echtzeit-Strategie um leuchtende Knoten in der Tiefsee. Browser- und Mobile-Spiel als PWA, spielbar unter **https://stefanschiederer.github.io/Tiefenlicht/**.
+Taktische Echtzeit-Eroberung im Stil von Tower War: Linien ziehen, Gebäude ausbauen, die Karte erobern. Browser- und Mobile-Spiel als PWA, spielbar unter **https://stefanschiederer.github.io/Tiefenlicht/**.
 
 ![Spielszene](docs/game-desktop.png)
 
@@ -10,7 +10,7 @@ Echtzeit-Strategie um leuchtende Knoten in der Tiefsee. Browser- und Mobile-Spie
 
 ## Spielprinzip
 
-Ziehe von einem eigenen Gebäude eine Linie zu einem Ziel: Deine Einheiten strömen dann laufend hinüber, bis du die Linie kappst (quer darüber wischen). Wie in Tower War, nur unter Wasser. Sechs Knotenarten (Nest, Brutnest, Bastion, Strömung, Wächter, Quelle) mit eigenen Truppen und typspezifischem Ausbau, Riffbarrieren und Minen auf den Wegen, Gegner mit sichtbaren Versorgungslinien. 18 Kampagnenlevel in drei Kapiteln mit Sternen, Endlosmodus, Tages-Herausforderung, Skill-Baum, Erfolge und ein Karten-Editor.
+Ziehe von einem eigenen Gebäude eine Linie zu einem Ziel: Deine Einheiten strömen dann laufend hinüber, bis du die Linie kappst (quer darüber wischen). Genau wie in Tower War. Sechs Gebäudearten (Kaserne, Feldlager, Bunker, Garage, Geschützturm, Depot) mit eigenen Truppen (Soldaten, Rekruten, Panzer, Motorräder, Jeeps, Lastwagen) und typspezifischem Ausbau, Barrikaden und Minen auf den Straßen, Gegner mit sichtbaren Linien. 18 Kampagnenlevel in drei Kapiteln mit Sternen, Endlosmodus, Tages-Herausforderung, Skill-Baum, Erfolge und ein Karten-Editor.
 
 ## Entwicklung
 
@@ -29,11 +29,11 @@ npm run balance    # spielt alle Level headless mit dem Bot durch, schreibt BALA
 
 Struktur:
 
-- `src/data` – Knotenarten, Truppen, Fraktionen, Fähigkeiten, Skills, Kampagne, Regeln (Weltgröße 1600 × 800).
+- `src/data` – Gebäudearten, Truppen, Fraktionen, Fähigkeiten, Skills, Kampagne, Regeln (Weltgröße 1600 × 800).
 - `src/sim` – reine Simulation ohne DOM: RNG, Graph, Kartengenerator, Levelaufbau, Aktionen, `step()`; gibt Ereignisse aus.
 - `src/ai` – Gegner-KI (`bot.ts`) und Heuristik-Bot für den Balance-Harness (`playerBot.ts`).
 - `src/render/canvas2d` – Renderer (liest den Zustand, hält nur visuelle Effekte), `src/render/view.ts` bildet Welt auf Bildschirm ab.
-- `src/ui` – HUD, Knotenmenü, Bildschirme. `src/app` – Spielsitzung, Eingabe, Spielstand, PWA.
+- `src/ui` – HUD, Gebäudemenü, Bildschirme. `src/app` – Spielsitzung, Eingabe, Spielstand, PWA.
 - `src/audio` – synthetische Sounds. `tests/` – Vitest. `e2e/` – Playwright. `scripts/` – Icons, Balance.
 
 Der ursprüngliche Prototyp liegt als Referenz in `tiefenlicht.html`. Designentscheidungen und offene Punkte stehen in `GAMEDESIGN.md`, der Phasenplan in `PLAN.md`.

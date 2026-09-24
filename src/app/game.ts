@@ -217,8 +217,8 @@ export class Game {
       const L = this.def;
       this.listeners.onTip(
         this.levelKind === 'campaign' && this.levelIndex === 0
-          ? 'Ziehe vom goldenen Gebäude eine Linie zu einem Nachbarn – deine Einheiten strömen dann hinüber.'
-          : `${L.name}: ${this.state.nodes.length} Knoten, ${L.enemies === 1 ? 'ein Gegner' : L.enemies + ' Gegner'}. Zielzeit ${fmtTime(L.par)}.`,
+          ? 'Ziehe vom blauen Gebäude eine Linie zu einem Nachbarn – deine Soldaten marschieren dann hinüber.'
+          : `${L.name}: ${this.state.nodes.length} Gebäude, ${L.enemies === 1 ? 'ein Gegner' : L.enemies + ' Gegner'}. Zielzeit ${fmtTime(L.par)}.`,
         4500,
       );
     }
@@ -319,7 +319,7 @@ export class Game {
         if (e.by === PLAYER) {
           if (this.save.haptics) vibrate(25);
           if (this.state.stats.captured === 1)
-            this.listeners.onTip('Erobert! Der Knoten produziert jetzt für dich.', 3000);
+            this.listeners.onTip('Erobert! Das Gebäude produziert jetzt für dich.', 3000);
         } else if (e.prev === PLAYER) {
           this.lostThisLevel++;
           if (this.save.haptics) vibrate([40, 40, 40]);
@@ -563,7 +563,7 @@ export class Game {
     else if (this.state.energy >= this.abilityCost(id)) {
       this.ui.abilityMode = id;
       this.listeners.onTip(
-        `${ABILITIES[id].name}: ${ABILITIES[id].target === 'own' ? 'Wähle einen eigenen Knoten.' : 'Wähle einen fremden Knoten.'}`,
+        `${ABILITIES[id].name}: ${ABILITIES[id].target === 'own' ? 'Wähle ein eigenes Gebäude.' : 'Wähle ein fremdes Gebäude.'}`,
         3000,
       );
     } else {

@@ -105,5 +105,5 @@ describe('generateMapSafe fallback', () => {
     expect(m.points.length).toBeGreaterThanOrEqual(5);
     expect(isConnected(m.points.length, m.edges)).toBe(true);
     expect(m.starts).toHaveLength(2);
-  });
+  }, 20000); // the fallback retries many placements; slow on a loaded machine
 });

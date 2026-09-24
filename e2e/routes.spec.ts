@@ -27,7 +27,7 @@ test('drawing a line creates a route and units start streaming along it', async 
   test.skip(test.info().project.name === 'mobile', 'mouse drag only');
   await page.goto('./');
   await page.getByRole('button', { name: 'Kampagne' }).click();
-  await page.getByRole('button', { name: /1\. Erstes Leuchten/ }).click();
+  await page.getByRole('button', { name: /1\. Erster Vorstoß/ }).click();
   await startLevel(page);
   await page.waitForTimeout(300);
   const before = await tl(page);
@@ -56,7 +56,7 @@ test('touch drag works underneath the HUD info block', async ({ page }) => {
   test.skip(test.info().project.name !== 'mobile', 'touch only');
   await page.goto('./');
   await page.getByRole('button', { name: 'Kampagne' }).tap();
-  await page.getByRole('button', { name: /1\. Erstes Leuchten/ }).tap();
+  await page.getByRole('button', { name: /1\. Erster Vorstoß/ }).tap();
   await startLevel(page);
   await page.waitForTimeout(300);
   // The brand block (title, level, energy) must not intercept pointer events.
@@ -71,7 +71,7 @@ test('swiping across a route cuts it', async ({ page }) => {
   test.skip(test.info().project.name === 'mobile', 'mouse drag only');
   await page.goto('./');
   await page.getByRole('button', { name: 'Kampagne' }).click();
-  await page.getByRole('button', { name: /1\. Erstes Leuchten/ }).click();
+  await page.getByRole('button', { name: /1\. Erster Vorstoß/ }).click();
   await startLevel(page);
   await page.waitForTimeout(300);
   const t = await tl(page);
@@ -101,7 +101,7 @@ test('on a phone in landscape no node is covered by HUD chrome', async ({ page }
   test.skip(test.info().project.name !== 'mobile', 'phone layout only');
   await page.goto('./');
   await page.getByRole('button', { name: 'Kampagne' }).tap();
-  await page.getByRole('button', { name: /1\. Erstes Leuchten/ }).tap();
+  await page.getByRole('button', { name: /1\. Erster Vorstoß/ }).tap();
   await startLevel(page);
   await page.waitForTimeout(300);
   const covered = await page.evaluate(() => {

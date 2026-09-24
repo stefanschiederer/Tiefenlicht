@@ -95,7 +95,7 @@ export function renderPanel(game: Game): void {
     `<div class="info"><b>${TYPES[n.type].name}</b> · Stufe ${n.level} · ${Math.floor(n.units)}/${Math.floor(capOf(s, n))} ${UNITS[TYPES[n.type].unit].name}${` · Routen ${n.routes.length}/${routeLimit(n, s)}`}${n.level < 3 ? ` · Ausbau: ${upgradePreview(n)}` : ''}</div>`;
   panel
     .querySelectorAll<HTMLElement>('[data-icon]')
-    .forEach((el) => el.replaceWith(nodeIcon(el.dataset.icon as NodeType, 1, '#ffc45a', 30)));
+    .forEach((el) => el.replaceWith(nodeIcon(el.dataset.icon as NodeType, 1, '#3b82f6', 30)));
   positionPanel(game);
   panel.querySelector('#pUp')?.addEventListener('click', () => {
     if (game.act((st) => doUpgrade(st, n))) {

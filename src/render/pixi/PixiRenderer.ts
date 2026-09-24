@@ -7,6 +7,7 @@ import {
   Particle,
   ParticleContainer,
   Sprite,
+  TilingSprite,
 } from 'pixi.js';
 import { AdvancedBloomFilter } from 'pixi-filters';
 import { FACTIONS, PLAYER, WORLD_H, WORLD_W, type NodeType } from '@/data';
@@ -17,42 +18,48 @@ import type { GraphicsQuality, Renderer, UiState } from '../renderer';
 import { View } from '../view';
 import {
   NODE_R,
+  ROTOR_Y,
   TEX_SCALE,
   backgroundTexture,
+  baseTexture,
+  barrierTexture,
+  decoTexture,
   detailTexture,
   dotTexture,
   glowTexture,
+  landTexture,
+  mineTexture,
   platformTexture,
   ringTexture,
   rockClusterTexture,
   rotorTexture,
-  shaftTexture,
-  unitTexture,
-  plantTexture,
-  barrierTexture,
-  mineTexture,
-  sandTexture,
   tintedTexture,
+  unitTexture,
+  waterTexture,
+  type DecoKind,
 } from './textures';
-import { CausticsFilter } from './caustics';
 
 const TAU = Math.PI * 2;
 const colorNum = (hex: string): number => parseInt(hex.slice(1), 16);
 const FACTION_COLORS = FACTIONS.map((f) => colorNum(f.color));
 const LABEL_FONT = 'TiefenlichtLabel';
+const INK = 0x22303f;
+/** Buildings are drawn larger than their hit radius (Tower-War-like chunky towers). */
+const ART_SCALE = 1.8;
 const ROTOR_SPEED: Record<NodeType, number> = {
-  nest: 0.4,
-  brut: 0.6,
+  nest: 0,
+  brut: 0,
   bastion: 0,
-  strom: 2.6,
-  waechter: 1.8,
-  quelle: 1.2,
+  strom: 3.2,
+  waechter: 0.9,
+  quelle: 1.1,
 };
 
 interface NodeView {
   root: Container;
   glow: Sprite;
   aura: Sprite;
+  base: Sprite;
   platform: Sprite;
   detail: Sprite;
   rotor: Sprite | null;
@@ -89,15 +96,8 @@ interface Zap {
   life: number;
   color: number;
 }
-interface Mote {
-  p: Particle;
-  vy: number;
-  ph: number;
-  depth: number;
-  a: number;
-}
 
-/** PixiJS (WebGL) renderer: world container under a camera, generated sprites, additive glow + bloom. */
+/** PixiJS renderer: water + grass island under a camera, generated cartoon sprites, light bloom. */
 export class PixiRenderer implements Renderer {
   readonly view = new View();
   readonly kind = 'pixi' as const;
@@ -114,11 +114,9 @@ export class PixiRenderer implements Renderer {
   // layers
   private bg = new Container();
   private bgSprite!: Sprite;
-  private shafts: Sprite[] = [];
-  private fogs: Sprite[] = [];
-  private motes: Mote[] = [];
-  private moteLayer!: ParticleContainer;
   private world = new Container();
+  private water!: TilingSprite;
+  private land = new Container();
   private rocks = new Container();
   private edges = new Graphics();
   private routes = new Graphics();
@@ -130,6 +128,7 @@ export class PixiRenderer implements Renderer {
   private overlay = new Container();
   private cutG = new Graphics();
   private labels = new Container();
+  private labelBg = new Graphics();
   private dragLabel!: BitmapText;
   private dragPill = new Graphics();
   // state
@@ -139,9 +138,7 @@ export class PixiRenderer implements Renderer {
   private zaps: Zap[] = [];
   private levelFor: GameState | null = null;
   private reducedMotion = false;
-  private caustics: CausticsFilter | null = null;
-  private plants: { s: Sprite; ph: number; base: number }[] = [];
-  private plantLayer = new Container();
+  private decoLayer = new Container();
   private obstacles = new Container();
   private barrierViews: { s: Sprite; hp: Graphics; ref: Barrier }[] = [];
   private mineViews: { s: Sprite; ref: Mine; ph: number }[] = [];
@@ -160,7 +157,7 @@ export class PixiRenderer implements Renderer {
       resolution: Math.min(2, window.devicePixelRatio || 1),
       autoDensity: true,
       backgroundAlpha: 1,
-      background: 0x37b7d6,
+      background: 0x6cc8ee,
       powerPreference: 'high-performance',
     });
     app.ticker.stop();
@@ -179,11 +176,11 @@ export class PixiRenderer implements Renderer {
     BitmapFont.install({
       name: LABEL_FONT,
       style: {
-        fontFamily: 'Avenir Next, Segoe UI, Helvetica Neue, Arial, sans-serif',
+        fontFamily: 'Baloo 2, Avenir Next, Segoe UI, Helvetica Neue, Arial, sans-serif',
         fontSize: 28,
-        fontWeight: '600',
-        fill: '#ffffff',
-        stroke: { color: '#04101c', width: 5 },
+        fontWeight: '800',
+        fill: '#1f2d3d',
+        stroke: { color: '#ffffff', width: 4 },
       },
       chars: [['a', 'z'], ['A', 'Z'], ['0', '9'], ' .,:;!?%()+-→✓✗äöüÄÖÜß×'],
       resolution: 2,
@@ -192,40 +189,19 @@ export class PixiRenderer implements Renderer {
     // background (screen space)
     this.bgSprite = new Sprite(backgroundTexture());
     this.bg.addChild(this.bgSprite);
-    for (let i = 0; i < 3; i++) {
-      const f = new Sprite(glowTexture());
-      f.anchor.set(0.5);
-      f.tint = 0xffffff;
-      f.alpha = 0.1;
-      f.blendMode = 'add';
-      this.fogs.push(f);
-      this.bg.addChild(f);
-    }
-    for (let i = 0; i < 4; i++) {
-      const s = new Sprite(shaftTexture());
-      s.anchor.set(0.5, 0);
-      s.tint = 0xffffff;
-      s.alpha = 0.06 + i * 0.015;
-      s.blendMode = 'add';
-      this.shafts.push(s);
-      this.bg.addChild(s);
-    }
-    this.moteLayer = new ParticleContainer({ dynamicProperties: { position: true, color: true } });
-    this.moteLayer.blendMode = 'add';
-    this.bg.addChild(this.moteLayer);
     stage.addChild(this.bg);
-    if (this.quality === 'hoch' && this.app.renderer.type === 1) {
-      this.caustics = new CausticsFilter(0.1);
-      this.bg.filters = [this.caustics];
-    }
-    // world
+    // world: water (tiled, huge), island, roads, props, buildings
+    this.water = new TilingSprite({ texture: waterTexture(), width: WORLD_W + 6000, height: WORLD_H + 6000 });
+    this.water.position.set(-3000, -3000);
     this.world.addChild(
-      this.plantLayer,
-      this.rocks,
+      this.water,
+      this.land,
       this.edges,
+      this.rocks,
       this.routes,
       this.obstacles,
       this.lights,
+      this.decoLayer,
       this.nodesLayer,
       this.groupsLayer,
     );
@@ -236,11 +212,11 @@ export class PixiRenderer implements Renderer {
     stage.addChild(this.world);
     if (this.quality === 'hoch') {
       this.bloom = new AdvancedBloomFilter({
-        threshold: 0.45,
-        bloomScale: 0.9,
+        threshold: 0.92,
+        bloomScale: 0.35,
         brightness: 1.0,
-        blur: 6,
-        quality: 4,
+        blur: 4,
+        quality: 3,
       });
       this.bloom.resolution = 0.5;
       this.world.filters = [this.bloom];
@@ -248,7 +224,7 @@ export class PixiRenderer implements Renderer {
     // overlay (screen space)
     this.dragLabel = new BitmapText({ text: '', style: { fontFamily: LABEL_FONT, fontSize: 14 } });
     this.dragLabel.anchor.set(0.5);
-    this.overlay.addChild(this.labels, this.cutG, this.dragPill, this.dragLabel);
+    this.overlay.addChild(this.labelBg, this.labels, this.cutG, this.dragPill, this.dragLabel);
     stage.addChild(this.overlay);
   }
 
@@ -257,44 +233,7 @@ export class PixiRenderer implements Renderer {
     this.view.resize(width, height, insets);
     this.bgSprite.width = width;
     this.bgSprite.height = height;
-    this.fogs.forEach((f) => (f.width = f.height = Math.min(width, height) * 1.4));
-    this.shafts.forEach((s, i) => {
-      s.height = height * 1.3;
-      s.width = 90 + i * 40;
-      s.position.set(width * (0.15 + i * 0.22), -20);
-      s.rotation = (i % 2 ? -1 : 1) * 0.12;
-    });
-    this.initMotes();
     this.syncCamera();
-  }
-
-  private initMotes(): void {
-    this.moteLayer.removeParticles();
-    this.motes = [];
-    const { width: W, height: H } = this.view;
-    const n = this.quality === 'hoch' ? 160 : 80;
-    for (let i = 0; i < n; i++) {
-      const depth = 0.3 + Math.random() * 0.7;
-      const p = new Particle({
-        texture: dotTexture(),
-        x: Math.random() * W,
-        y: Math.random() * H,
-        anchorX: 0.5,
-        anchorY: 0.5,
-        scaleX: 0.12 * depth,
-        scaleY: 0.12 * depth,
-        tint: 0xaad7f5,
-        alpha: 0.15 + Math.random() * 0.3 * depth,
-      });
-      this.moteLayer.addParticle(p);
-      this.motes.push({
-        p,
-        vy: (4 + Math.random() * 10) * depth,
-        ph: Math.random() * TAU,
-        depth,
-        a: p.alpha,
-      });
-    }
   }
 
   private syncCamera(): void {
@@ -311,6 +250,7 @@ export class PixiRenderer implements Renderer {
     this.lights.removeChildren().forEach((c) => c.destroy());
     this.labels.removeChildren().forEach((c) => c.destroy());
     this.rocks.removeChildren().forEach((c) => c.destroy({ texture: true, textureSource: true }));
+    this.land.removeChildren().forEach((c) => c.destroy({ texture: true, textureSource: true }));
     this.fx.removeParticles();
     this.particles = [];
     this.zaps = [];
@@ -330,67 +270,105 @@ export class PixiRenderer implements Renderer {
       s.height = t.h;
       this.rocks.addChild(s);
     }
-    // edges: dotted paths; blocked edges as faint red dashes
+    // island
+    {
+      const t = landTexture(WORLD_W, WORLD_H, state.def.seed);
+      const s = new Sprite(t.texture);
+      s.position.set(t.x, t.y);
+      this.land.addChild(s);
+    }
+    // edges: dirt roads between buildings; blocked edges as faint dashes
     const g = this.edges.clear();
+    for (const [a, b] of state.edges) {
+      const na = state.nodes[a] as SimNode,
+        nb = state.nodes[b] as SimNode;
+      g.moveTo(na.x, na.y).lineTo(nb.x, nb.y);
+    }
+    g.stroke({ width: 18, color: 0xc9b37c, alpha: 0.9, cap: 'round' });
+    for (const [a, b] of state.edges) {
+      const na = state.nodes[a] as SimNode,
+        nb = state.nodes[b] as SimNode;
+      g.moveTo(na.x, na.y).lineTo(nb.x, nb.y);
+    }
+    g.stroke({ width: 13, color: 0xe9dcae, alpha: 1, cap: 'round' });
     for (const [a, b] of state.blocked) {
       const na = state.nodes[a] as SimNode,
         nb = state.nodes[b] as SimNode;
       dashed(g, na.x, na.y, nb.x, nb.y, 4, 12, 0);
-      g.stroke({ width: 2, color: 0xff4f7d, alpha: 0.45, cap: 'round' });
+      g.stroke({ width: 2, color: 0x7a8a6a, alpha: 0.35, cap: 'round' });
     }
-    for (const [a, b] of state.edges) {
-      const na = state.nodes[a] as SimNode,
-        nb = state.nodes[b] as SimNode;
-      const len = Math.hypot(nb.x - na.x, nb.y - na.y),
-        n = Math.max(2, Math.round(len / 11));
-      for (let i = 1; i < n; i++) {
-        const t = i / n;
-        g.circle(na.x + (nb.x - na.x) * t, na.y + (nb.y - na.y) * t, 2.2);
-      }
-    }
-    g.fill({ color: 0xffffff, alpha: 0.75 });
-    // border flora: kelp and corals along the bottom, sea fans on the sides (world space, behind everything)
-    this.plantLayer.removeChildren().forEach((c) => c.destroy());
-    this.plants = [];
-    {
-      // sand floor strip along the bottom of the world
-      const sand = new Sprite(sandTexture());
-      sand.anchor.set(0, 0);
-      sand.position.set(-200, WORLD_H - 60);
-      sand.width = WORLD_W + 400;
-      sand.height = 160;
-      this.plantLayer.addChild(sand);
-    }
+    // props: trees, bushes, houses, stones, fences on free ground (deterministic per level)
+    this.decoLayer.removeChildren().forEach((c) => c.destroy());
     if (this.quality !== 'niedrig') {
       let seed = state.def.seed * 17 + 5;
       const rand = () => {
         seed = (seed * 1103515245 + 12345) & 0x7fffffff;
         return seed / 0x7fffffff;
       };
-      const place = (
-        x: number,
-        y: number,
-        kind: 'fan' | 'kelp' | 'brain' | 'tube',
-        scale: number,
-        flip: boolean,
-      ) => {
-        const sp = new Sprite(plantTexture(kind, Math.floor(rand() * 1000)));
+      const segs = state.edges.map(([a, b]) => {
+        const na = state.nodes[a] as SimNode,
+          nb = state.nodes[b] as SimNode;
+        return [na.x, na.y, nb.x, nb.y] as const;
+      });
+      const free = (x: number, y: number, r: number): boolean => {
+        for (const n of state.nodes) if (Math.hypot(n.x - x, n.y - y) < nodeRadius(n) * 2.4 + r) return false;
+        for (const k of state.rocks) if (Math.hypot(k.x - x, k.y - y) < k.r + r) return false;
+        for (const [ax, ay, bx, by] of segs) {
+          const dx = bx - ax,
+            dy = by - ay,
+            l2 = dx * dx + dy * dy || 1,
+            t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
+          if (Math.hypot(ax + dx * t - x, ay + dy * t - y) < 22 + r) return false;
+        }
+        return true;
+      };
+      const props: { s: Sprite; y: number }[] = [];
+      const place = (x: number, y: number, kind: DecoKind, scale: number) => {
+        const sp = new Sprite(decoTexture(kind, Math.floor(rand() * 1000)));
         sp.anchor.set(0.5, 1);
         sp.position.set(x, y);
-        sp.scale.set(scale * (flip ? -1 : 1), scale);
-        sp.alpha = 0.95;
-        this.plantLayer.addChild(sp);
-        this.plants.push({ s: sp, ph: rand() * TAU, base: sp.rotation });
+        sp.scale.set(scale * (rand() < 0.5 ? -1 : 1), scale);
+        props.push({ s: sp, y });
       };
-      for (let x = 30; x < WORLD_W; x += 70 + rand() * 90) {
+      // border ring outside the playfield
+      for (let i = 0; i < 70; i++) {
+        const side = rand();
+        const x =
+          side < 0.5
+            ? rand() * (WORLD_W + 160) - 80
+            : rand() < 0.5
+              ? -70 + rand() * 40
+              : WORLD_W + 30 + rand() * 40;
+        const y =
+          side < 0.5 ? (rand() < 0.5 ? -60 + rand() * 40 : WORLD_H + 20 + rand() * 40) : rand() * WORLD_H;
+        if (!free(x, y, 10)) continue;
         const r = rand();
-        const kind = r < 0.35 ? 'kelp' : r < 0.6 ? 'fan' : r < 0.8 ? 'brain' : 'tube';
-        place(x, WORLD_H - 10 + rand() * 24, kind, 0.5 + rand() * 0.5, rand() < 0.5);
+        place(x, y, r < 0.5 ? 'tree' : r < 0.75 ? 'pine' : r < 0.9 ? 'bush' : 'stone', 0.55 + rand() * 0.35);
       }
-      for (let y = 120; y < WORLD_H - 60; y += 140 + rand() * 120) {
-        place(-10 + rand() * 30, y, 'fan', 0.4 + rand() * 0.4, false);
-        place(WORLD_W + 10 - rand() * 30, y + 60, 'fan', 0.4 + rand() * 0.4, true);
+      // interior: sparse, only where nothing is in the way
+      for (let i = 0; i < 70; i++) {
+        const x = 40 + rand() * (WORLD_W - 80),
+          y = 40 + rand() * (WORLD_H - 80);
+        if (!free(x, y, 44)) continue;
+        const r = rand();
+        place(
+          x,
+          y,
+          r < 0.35
+            ? 'tree'
+            : r < 0.55
+              ? 'bush'
+              : r < 0.72
+                ? 'stone'
+                : r < 0.86
+                  ? 'house'
+                  : r < 0.94
+                    ? 'pine'
+                    : 'fence',
+          0.45 + rand() * 0.3,
+        );
       }
+      props.sort((a, b) => a.y - b.y).forEach((p) => this.decoLayer.addChild(p.s));
     }
     // obstacles
     this.obstacles.removeChildren().forEach((c) => c.destroy());
@@ -402,8 +380,8 @@ export class PixiRenderer implements Renderer {
       const sp = new Sprite(barrierTexture());
       sp.anchor.set(0.5);
       sp.position.set(b.x, b.y);
-      sp.rotation = Math.atan2(nb.y - na.y, nb.x - na.x);
-      sp.scale.set(0.6);
+      sp.rotation = Math.atan2(nb.y - na.y, nb.x - na.x) + Math.PI / 2;
+      sp.scale.set(0.7);
       const hp = new Graphics();
       this.obstacles.addChild(sp, hp);
       this.barrierViews.push({ s: sp, hp, ref: b });
@@ -430,13 +408,18 @@ export class PixiRenderer implements Renderer {
     aura.anchor.set(0.5);
     aura.blendMode = 'add';
     aura.visible = false;
+    const base = new Sprite(baseTexture(n.type, n.level));
+    base.anchor.set(0.5);
     const platform = new Sprite(platformTexture(n.type, n.level));
     platform.anchor.set(0.5);
     const detail = new Sprite(detailTexture(n.type, n.level));
     detail.anchor.set(0.5);
     const rt = rotorTexture(n.type, n.level);
     const rotor = rt ? new Sprite(rt) : null;
-    if (rotor) rotor.anchor.set(0.5);
+    if (rotor) {
+      rotor.anchor.set(0.5);
+      rotor.position.set(0, ROTOR_Y[n.type]);
+    }
     const rings = [0, 1].map(() => {
       const s = new Sprite(ringTexture());
       s.anchor.set(0.5);
@@ -448,11 +431,12 @@ export class PixiRenderer implements Renderer {
     this.lights.addChild(glow, aura);
     root.addChild(
       range,
+      rings[0] as Sprite,
+      rings[1] as Sprite,
+      base,
       platform,
       detail,
       ...(rotor ? [rotor] : []),
-      rings[0] as Sprite,
-      rings[1] as Sprite,
       status,
     );
     this.nodesLayer.addChild(root);
@@ -463,6 +447,7 @@ export class PixiRenderer implements Renderer {
       root,
       glow,
       aura,
+      base,
       platform,
       detail,
       rotor,
@@ -598,45 +583,21 @@ export class PixiRenderer implements Renderer {
     }
   }
 
-  private updateBackground(dt: number): void {
-    const { width: W, height: H } = this.view,
-      t = this.elapsed;
-    this.fogs.forEach((f, k) =>
-      f.position.set(
-        W * (0.5 + 0.32 * Math.sin(t * 0.06 + k * 2.1)),
-        H * (0.45 + 0.3 * Math.cos(t * 0.045 + k * 1.7)),
-      ),
-    );
-    this.shafts.forEach((s, i) => {
-      s.alpha = 0.05 + 0.04 * (0.5 + 0.5 * Math.sin(t * 0.25 + i * 1.3));
-      s.skew.x = 0.05 * Math.sin(t * 0.1 + i);
-    });
-    // parallax: motes drift with a fraction of the camera offset
-    const px = (this.view.cx - WORLD_W / 2) * this.view.scale,
-      py = (this.view.cy - WORLD_H / 2) * this.view.scale;
-    for (const m of this.motes) {
-      m.p.y -= m.vy * dt;
-      m.p.x += Math.sin(t * 0.5 + m.ph) * 6 * dt;
-      if (m.p.y < -6) {
-        m.p.y = H + 6;
-        m.p.x = Math.random() * W;
-      }
-      this.moteLayer.update();
-      m.p.x -= px * 0.002 * m.depth * dt;
-      m.p.y -= py * 0.002 * m.depth * dt;
-      m.p.alpha = m.a * (0.7 + 0.3 * Math.sin(t * 1.3 + m.ph));
-    }
-    this.moteLayer.update();
+  private updateBackground(): void {
+    // slow water drift
+    if (this.reducedMotion) return;
+    this.water.tilePosition.set(this.elapsed * 4, Math.sin(this.elapsed * 0.3) * 6);
   }
 
   private updateNodes(state: GameState, ui: UiState, dt: number): void {
     const t = this.elapsed;
+    const lg = this.labelBg.clear();
     const dragEnd = ui.drag ? (ui.drag.path[ui.drag.path.length - 1] as number) : null;
     for (const n of state.nodes) {
       const nv = this.nodeViews.get(n.id);
       if (!nv) continue;
       const r = nodeRadius(n) * this.view.nodeScale,
-        k = r / NODE_R / TEX_SCALE,
+        k = (r / NODE_R / TEX_SCALE) * ART_SCALE,
         C = FACTION_COLORS[n.owner] ?? 0xffffff,
         own = n.owner > 0,
         pulse = 0.5 + 0.5 * Math.sin(t * 2 + nv.phase),
@@ -647,6 +608,7 @@ export class PixiRenderer implements Renderer {
       if (nv.color !== hex) {
         // Pre-tinted textures instead of runtime tint (identical on WebGL and the canvas fallback).
         nv.color = hex;
+        nv.base.texture = tintedTexture(baseTexture(n.type, n.level), hex);
         nv.detail.texture = tintedTexture(detailTexture(n.type, n.level), hex);
         const rt = rotorTexture(n.type, n.level);
         if (nv.rotor && rt) nv.rotor.texture = tintedTexture(rt, hex);
@@ -660,10 +622,10 @@ export class PixiRenderer implements Renderer {
       if (nv.rotor && !this.reducedMotion) nv.rotor.rotation = t * ROTOR_SPEED[n.type] + nv.phase;
       nv.rings.forEach((rs, i) => {
         rs.visible = n.level > i + 1;
-        rs.alpha = 0.6;
+        rs.alpha = 0.8;
         rs.scale.set(1 + i * 0.07);
       });
-      // glows are off in the lagoon theme (they wash out on bright water)
+      // glows are off in the cartoon theme
       nv.glow.visible = false;
       nv.glow.position.set(n.x, n.y);
       nv.glow.width = nv.glow.height = r * (own ? 3.6 : 2.6);
@@ -684,13 +646,16 @@ export class PixiRenderer implements Renderer {
       const R = NODE_R * TEX_SCALE;
       const sg = nv.status.clear();
       if (n.frozen > 0) {
-        polygon(sg, 0, 0, R * 1.12, 6, t * 0.4);
-        sg.stroke({ width: 3, color: 0xaae6ff, alpha: 0.5 + 0.3 * pulse });
-        sg.circle(0, 0, R).fill({ color: 0xaae6ff, alpha: 0.18 });
+        sg.ellipse(0, R * 0.12, R * 1.15, R * 1.15 * 0.62).fill({ color: 0x333a44, alpha: 0.35 });
+        sg.circle(0, -R * 0.3, R * 0.55).fill({ color: 0x333a44, alpha: 0.25 + 0.15 * pulse });
       }
       if (n.shield > 0) {
-        polygon(sg, 0, 0, R * 1.3, 6, -t * 0.8);
-        sg.stroke({ width: 3.5, color: 0xa0e6ff, alpha: 0.6 + 0.3 * pulse });
+        sg.ellipse(0, -R * 0.2, R * 1.2, R * 1.05).stroke({
+          width: 4,
+          color: 0x9fe4ff,
+          alpha: 0.6 + 0.3 * pulse,
+        });
+        sg.ellipse(0, -R * 0.2, R * 1.2, R * 1.05).fill({ color: 0x9fe4ff, alpha: 0.12 });
       }
       if (nv.flash > 0) {
         sg.circle(0, 0, R + (1 - nv.flash) * 60);
@@ -698,20 +663,29 @@ export class PixiRenderer implements Renderer {
       }
       const selected = ui.selected.includes(n.id) || (ui.drag && ui.drag.src === n.id);
       if (selected) {
-        dashedCircle(sg, R + 12, 14, -t * 24);
-        sg.stroke({ width: 3, color: 0x10324a, alpha: 0.9 });
+        dashedCircle(sg, R + 14, 14, -t * 24);
+        sg.stroke({ width: 4, color: 0xffffff, alpha: 0.95 });
       } else if (
         (dragEnd !== null && dragEnd !== n.id && ui.hover === n.id) ||
         (ui.abilityMode && ui.hover === n.id)
       ) {
-        sg.circle(0, 0, R + 12);
-        sg.stroke({ width: 3, color: 0x10324a, alpha: 0.7 });
+        sg.circle(0, 0, R + 14);
+        sg.stroke({ width: 4, color: 0xffffff, alpha: 0.85 });
       }
-      // label (screen space)
+      // number badge above the building (screen space)
+      const S = this.view.S;
       nv.label.text = String(Math.floor(n.units));
-      nv.label.position.set(this.view.sx(n.x), this.view.sy(n.y) + r * this.view.scale + 11 * this.view.S);
-      nv.label.scale.set(this.view.S * 0.95);
-      nv.label.alpha = n.owner === PLAYER && !state.demo ? 1 : 0.85;
+      const lx = this.view.sx(n.x),
+        ly = this.view.sy(n.y) - r * this.view.scale * 1.9 - 10 * S;
+      nv.label.position.set(lx, ly);
+      nv.label.scale.set(S * 0.9);
+      nv.label.alpha = 1;
+      const bw = nv.label.width + 14 * S,
+        bh = nv.label.height + 4 * S;
+      lg.roundRect(lx - bw / 2, ly - bh / 2 + 2 * S, bw, bh, bh / 2).fill({ color: 0x000000, alpha: 0.18 });
+      lg.roundRect(lx - bw / 2, ly - bh / 2, bw, bh, bh / 2)
+        .fill({ color: 0xffffff, alpha: 0.96 })
+        .stroke({ width: 1.5 * S, color: C, alpha: n.owner ? 0.9 : 0.35 });
     }
   }
 
@@ -743,7 +717,7 @@ export class PixiRenderer implements Renderer {
       gv.root.position.set(g.x, g.y);
       gv.root.rotation = ang;
       const big = g.unit === 'panzer' || g.unit === 'stachel',
-        gap = big ? 8 : 6,
+        gap = big ? 11 : 8,
         n = Math.max(1, Math.round(g.n)),
         count = Math.min(n, big ? 14 : 18),
         traveled = g.t * nodeDist(a, b) + nodeRadius(a) * this.view.nodeScale * 0.5;
@@ -791,10 +765,10 @@ export class PixiRenderer implements Renderer {
     const root = new Container();
     const tex = unitTexture(g.unit);
     const units: Sprite[] = [];
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < Math.min(18, Math.max(1, Math.ceil(g.n))); i++) {
       const s = new Sprite(tex);
       s.anchor.set(0.5);
-      s.scale.set(0.42);
+      s.scale.set(0.62);
       s.visible = false;
       units.push(s);
       root.addChild(s);
@@ -820,20 +794,26 @@ export class PixiRenderer implements Renderer {
           b = state.nodes[ids[i + 1] as number] as SimNode;
         g.moveTo(a.x, a.y).lineTo(b.x, b.y);
       }
-      g.stroke({ width: 7, color: 0x10324a, alpha: 0.25 * alpha, cap: 'round', join: 'round' });
+      g.stroke({ width: 9, color: INK, alpha: 0.35 * alpha, cap: 'round', join: 'round' });
       for (let i = 0; i < ids.length - 1; i++) {
         const a = state.nodes[ids[i] as number] as SimNode,
           b = state.nodes[ids[i + 1] as number] as SimNode;
-        dashed(g, a.x, a.y, b.x, b.y, 10, 9, off + offset);
+        g.moveTo(a.x, a.y).lineTo(b.x, b.y);
       }
-      g.stroke({ width: 3, color: C, alpha: 0.95 * alpha, cap: 'round' });
+      g.stroke({ width: 6, color: C, alpha: 0.95 * alpha, cap: 'round', join: 'round' });
+      for (let i = 0; i < ids.length - 1; i++) {
+        const a = state.nodes[ids[i] as number] as SimNode,
+          b = state.nodes[ids[i + 1] as number] as SimNode;
+        dashed(g, a.x, a.y, b.x, b.y, 8, 12, off + offset);
+      }
+      g.stroke({ width: 2.2, color: 0xffffff, alpha: 0.85 * alpha, cap: 'round' });
       for (let i = 0; i < ids.length - 1; i++) {
         const a = state.nodes[ids[i] as number] as SimNode,
           b = state.nodes[ids[i + 1] as number] as SimNode;
         const ang = Math.atan2(b.y - a.y, b.x - a.x),
           mx = a.x + (b.x - a.x) * 0.58,
           my = a.y + (b.y - a.y) * 0.58,
-          s = 6;
+          s = 9;
         const px = (dx: number, dy: number) =>
           [
             mx + dx * Math.cos(ang) - dy * Math.sin(ang),
@@ -848,7 +828,8 @@ export class PixiRenderer implements Renderer {
           .lineTo(p2[0], p2[1])
           .lineTo(p3[0], p3[1])
           .closePath()
-          .fill({ color: C, alpha });
+          .fill({ color: 0xffffff, alpha })
+          .stroke({ width: 1.5, color: C, alpha });
       }
     };
     const PC = FACTION_COLORS[PLAYER] ?? 0xffffff;
@@ -863,8 +844,8 @@ export class PixiRenderer implements Renderer {
       drawPath(ui.drag.path, 0.75, 0, PC);
       const lastN = state.nodes[ui.drag.path[ui.drag.path.length - 1] as number] as SimNode;
       if (ui.hover === null) {
-        dashed(g, lastN.x, lastN.y, this.view.wx(ui.pointer.x), this.view.wy(ui.pointer.y), 4, 6, 0);
-        g.stroke({ width: 1.5, color: PC, alpha: 0.45 });
+        dashed(g, lastN.x, lastN.y, this.view.wx(ui.pointer.x), this.view.wy(ui.pointer.y), 6, 8, 0);
+        g.stroke({ width: 3, color: PC, alpha: 0.5, cap: 'round' });
       }
     }
   }
@@ -875,7 +856,9 @@ export class PixiRenderer implements Renderer {
     const cg = this.cutG.clear();
     if (ui.cut && ui.cut.length > 1) {
       ui.cut.forEach((q, i) => (i ? cg.lineTo(q.x, q.y) : cg.moveTo(q.x, q.y)));
-      cg.stroke({ width: 3 * S, color: 0x10324a, alpha: 0.7, cap: 'round', join: 'round' });
+      cg.stroke({ width: 4 * S, color: 0xffffff, alpha: 0.9, cap: 'round', join: 'round' });
+      ui.cut.forEach((q, i) => (i ? cg.lineTo(q.x, q.y) : cg.moveTo(q.x, q.y)));
+      cg.stroke({ width: 2 * S, color: 0xff4b4b, alpha: 0.9, cap: 'round', join: 'round' });
     }
     const pg = this.dragPill.clear();
     if (ui.drag) {
@@ -961,8 +944,6 @@ export class PixiRenderer implements Renderer {
     if (q === this.quality || q === 'niedrig') return;
     this.quality = q;
     this.world.filters = q === 'hoch' && this.bloom ? [this.bloom] : null;
-    this.bg.filters = q === 'hoch' && this.caustics ? [this.caustics] : null;
-    this.initMotes();
   }
 
   /** Frame budget: if rendering stays above ~28 ms per frame for two seconds on 'hoch', drop to 'mittel'. */
@@ -987,11 +968,8 @@ export class PixiRenderer implements Renderer {
     this.watchFrameBudget(dt);
     if (this.levelFor !== state) this.setLevel(state);
     this.syncCamera();
-    if (this.caustics) this.caustics.time = this.elapsed;
-    if (!this.reducedMotion)
-      for (const p of this.plants) p.s.rotation = p.base + Math.sin(this.elapsed * 0.6 + p.ph) * 0.06;
     this.updateTrails(state, dt);
-    this.updateBackground(dt);
+    this.updateBackground();
     this.updateRoutes(state, ui);
     this.updateNodes(state, ui, dt);
     this.updateGroups(state);
@@ -1037,12 +1015,4 @@ function dashedCircle(g: Graphics, r: number, dash: number, offset: number): voi
       a1 = a0 + (dash / circ) * TAU;
     g.moveTo(Math.cos(a0) * r, Math.sin(a0) * r).arc(0, 0, r, a0, a1);
   }
-}
-function polygon(g: Graphics, x: number, y: number, r: number, sides: number, rot: number): void {
-  for (let k = 0; k < sides; k++) {
-    const a = rot + (k * TAU) / sides;
-    if (k) g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
-    else g.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
-  }
-  g.closePath();
 }

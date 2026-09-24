@@ -55,7 +55,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     const next = unlocked;
     const nextName = CAMPAIGN[next]?.name ?? '';
     const anyStars = stars > 0;
-    h = `<div class="menu-hero"><h1>Tiefenlicht</h1><p class="tagline">Erobere die Lagune</p></div>
+    h = `<div class="menu-hero"><h1>Tiefenlicht</h1><p class="tagline">Taktische Eroberung</p></div>
       <button class="primary big" data-play="${next}">${icon('play')} ${anyStars ? `Weiter spielen · Level ${next + 1}: ${nextName}` : 'Spiel starten'}</button>
       <div class="tiles">
         <button class="tile" data-go="campaign">${icon('campaign')}<b>Kampagne</b><small>${stars} / ${CAMPAIGN.length * 3} Sterne</small></button>
@@ -85,7 +85,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
         hh = count * STEP;
       h += `<div class="zone z${ci}" style="top:${y0}px;height:${hh}px"><b>${c.name}</b><span>${c.desc}</span></div>`;
     });
-    h += `<svg class="path" viewBox="0 0 1000 ${height}" preserveAspectRatio="none"></svg>`;
+    h += `<svg class="path" viewBox="0 0 1000 ${height}" preserveAspectRatio="none" aria-hidden="true"></svg>`;
     CAMPAIGN.forEach((lv, i) => {
       const locked = i > unlocked,
         st = save.stars[i],
@@ -99,7 +99,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
         <div class="lbl"><b>${lv.name}</b>${st ? starIcons(st) : `<small>${locked ? 'Gesperrt' : 'Nächstes Level'}</small>`}<small>${lv.enemies} Gegner${bt ? ` · ${fmtTime(bt)}` : ''}</small></div>
       </div>`;
     });
-    h += `</div><div class="actions sticky"><button data-go="menu">${icon('back')}Zurück</button><span class="meta">Tippe auf eine Boje, um das Level zu starten</span></div>`;
+    h += `</div><div class="actions sticky"><button data-go="menu">${icon('back')}Zurück</button><span class="meta">Tippe auf ein Level, um es zu starten</span></div>`;
   } else if (kind === 'skills') {
     card.className = 'card wide';
     const branches = [...new Set(SKILLS.map((s) => s.branch))];
@@ -134,31 +134,31 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
       <li><b>Kappen:</b> Quer über eine Linie wischen. Alternativ im Gebäudemenü oder per Rechtsklick auf das Gebäude.</li>
       
       <li><b>Gebäudemenü:</b> Eigenes Gebäude antippen: Ausbau bis Stufe 3 (jede Art wird anders stärker), Umbau in eine andere Art, Linien löschen.</li>
-      <li><b>Hindernisse:</b> Riffbarrieren müssen durchbrochen werden (kostet Einheiten), Minen zerstören einen Teil des ersten Schwarms, der vorbeizieht. Felsen versperren Wege ganz.</li>
-      <li><b>Kampf:</b> Angriffsstärke der Truppen gegen Einheiten × Verteidigung des Knotens. Bleibt etwas übrig, wechselt der Knoten die Seite.</li>
-      <li><b>Truppen:</b> Jede Knotenart erzeugt eigene Truppen: Drohnen sind schnell und schwach, Panzer stark und langsam, Pfeile am schnellsten.</li>
+      <li><b>Hindernisse:</b> Barrikaden müssen durchbrochen werden (kostet Einheiten), Minen zerstören einen Teil des ersten Trupps, der vorbeifährt. Felsen versperren Wege ganz.</li>
+      <li><b>Kampf:</b> Angriffsstärke der Truppen gegen Einheiten × Verteidigung des Gebäudes. Bleibt etwas übrig, wechselt das Gebäude die Seite. Truppen, die sich auf einer Straße begegnen, kämpfen dort.</li>
+      <li><b>Truppen:</b> Jede Gebäudeart bildet eigene Truppen aus: Rekruten sind schnell und schwach, Panzer stark und langsam, Motorräder am schnellsten.</li>
       <li><b>Energie</b> entsteht, wenn Einheiten fallen. Damit zündest du Fähigkeiten (Tasten <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>).</li>
       <li><b>Tasten:</b> <kbd>Leertaste</kbd> Pause, <kbd>F</kbd> Tempo, <kbd>1</kbd>–<kbd>3</kbd> Fähigkeiten, <kbd>Esc</kbd> Abbrechen.</li></ul>
       <div class="actions"><button data-go="menu">Zurück</button></div>`;
   } else if (kind === 'intro') {
     h = `<h2>${L.name}</h2><p class="sub">${game.levelKind === 'campaign' ? `Kapitel ${L.ch + 1}: ${CHAPTERS[L.ch]?.name ?? ''}, Level ${game.levelIndex + 1} von ${CAMPAIGN.length}` : game.levelKind === 'daily' ? 'Heute für alle gleich' : game.levelKind === 'custom' ? 'Eigene Karte' : 'Endlos'} · ${L.enemies === 1 ? 'ein Gegner' : L.enemies + ' Gegner'} · Zielzeit ${fmtTime(L.par)}</p>`;
     if (game.levelKind === 'campaign' && game.levelIndex === 0)
-      h += `<ul><li>Ziehe vom goldenen Gebäude zu einem Nachbarn: Die Linie bleibt, und deine Einheiten strömen laufend hinüber. Wische quer über die Linie, um sie zu kappen.</li><li>Fremde Knoten werden angegriffen; ist deine Stärke größer, gehören sie dir.</li><li>Nur gepunktete Linien sind Wege. Felsen trennen das Netz.</li></ul>`;
+      h += `<ul><li>Ziehe vom blauen Gebäude zu einem Nachbarn: Die Linie bleibt, und deine Soldaten marschieren laufend hinüber. Wische quer über die Linie, um sie zu kappen.</li><li>Fremde Gebäude werden angegriffen; ist deine Stärke größer, gehören sie dir.</li><li>Nur Straßen sind Wege. Felsen trennen das Netz.</li></ul>`;
     else h += `<p>${L.text}</p>`;
     if (L.objective)
       h += `<div class="new"><div><b>${icon('target')} Sonderziel</b><span>${L.objective.label}. Gelingt das, ist das Level sofort gewonnen – oder du besiegst alle Gegner.</span></div></div>`;
     if (L.newType)
       h += `<div class="new"><div class="icon"></div><div><b>Neu: ${TYPES[L.newType].name}</b><span>${TYPES[L.newType].desc}</span></div></div>`;
     if (L.feature === 'upgrade')
-      h += `<div class="new"><div class="icon" data-lv="3"></div><div><b>Neu: Ausbau</b><span>Tippe einen eigenen Knoten an und zahle Einheiten, um ihn auf Stufe 2 und 3 zu bringen: mehr Produktion, mehr Vorrat, mehr Verteidigung.</span></div></div>`;
+      h += `<div class="new"><div class="icon" data-lv="3"></div><div><b>Neu: Ausbau</b><span>Tippe ein eigenes Gebäude an und zahle Einheiten, um es auf Stufe 2 und 3 zu bringen: mehr Linien, mehr Vorrat, und jede Art wird auf ihre Weise stärker.</span></div></div>`;
     if (L.feature === 'split')
       h += `<div class="new"><div><b>Neu: Geteilte Routen und Reserve</b><span>Ein Gebäude hält je nach Ausbaustufe eine, zwei oder drei Linien; der Strom teilt sich gleichmäßig auf. Kappe Linien rechtzeitig, damit ein Gebäude nicht leerläuft.</span></div></div>`;
     if (L.feature === 'barrier')
-      h += `<div class="new"><div><b>Neu: Riffbarrieren</b><span>Manche Verbindungen sind von einer Barriere versperrt. Truppen, die dort ankommen, verbrauchen sich beim Durchbrechen: Erst wenn die Barriere fällt, kommen die nächsten hindurch. Das gilt auch für die Gegner.</span></div></div>`;
+      h += `<div class="new"><div><b>Neu: Barrikaden</b><span>Manche Straßen sind von einer Barrikade versperrt. Truppen, die dort ankommen, verbrauchen sich beim Durchbrechen: Erst wenn die Barrikade fällt, kommen die nächsten hindurch. Das gilt auch für die Gegner.</span></div></div>`;
     if (L.feature === 'mine')
-      h += `<div class="new"><div><b>Neu: Minen</b><span>Minen liegen auf Verbindungen und zerstören bis zu ${MINE_UNITS} Einheiten des ersten Schwarms, der vorbeizieht. Danach sind sie verbraucht. Schicke einen kleinen Trupp voraus oder lass den Gegner sie auslösen.</span></div></div>`;
+      h += `<div class="new"><div><b>Neu: Minen</b><span>Minen liegen auf Verbindungen und zerstören bis zu ${MINE_UNITS} Einheiten des ersten Trupps, der vorbeifährt. Danach sind sie verbraucht. Schicke einen kleinen Trupp voraus oder lass den Gegner sie auslösen.</span></div></div>`;
     if (L.feature === 'convert')
-      h += `<div class="new"><div><b>Neu: Umbau</b><span>Im Knotenmenü kannst du eine andere Knotenart wählen. Der Knoten fällt dabei auf Stufe 1 zurück.</span></div></div>`;
+      h += `<div class="new"><div><b>Neu: Umbau</b><span>Im Gebäudemenü kannst du eine andere Gebäudeart wählen. Das Gebäude fällt dabei auf Stufe 1 zurück.</span></div></div>`;
     h += `<div class="actions"><button class="primary" id="go">Level starten</button><button data-go="${game.levelKind === 'campaign' ? 'campaign' : 'menu'}">Zurück</button></div>`;
   } else if (kind === 'stats') {
     card.className = 'card wide';
@@ -166,7 +166,7 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
     const hours = Math.floor(st.playTime / 3600),
       mins = Math.floor((st.playTime % 3600) / 60);
     h = `<h2>Erfolge und Statistik</h2><p class="sub">${save.achievements.length} von ${ACHIEVEMENTS.length} Erfolgen freigeschaltet.</p>
-      <div class="stats"><div><b>${st.gamesPlayed}</b>Level gespielt</div><div><b>${st.wins}</b>gewonnen</div><div><b>${st.captures}</b>Knoten erobert</div><div><b>${st.lost}</b>Knoten verloren</div><div><b>${st.cuts}</b>Routen gekappt</div><div><b>${hours ? `${hours} h ` : ''}${mins} min</b>Spielzeit</div><div><b>${save.dailyStreak}</b>Tage in Folge</div></div>
+      <div class="stats"><div><b>${st.gamesPlayed}</b>Level gespielt</div><div><b>${st.wins}</b>gewonnen</div><div><b>${st.captures}</b>Gebäude erobert</div><div><b>${st.lost}</b>Gebäude verloren</div><div><b>${st.cuts}</b>Linien gekappt</div><div><b>${hours ? `${hours} h ` : ''}${mins} min</b>Spielzeit</div><div><b>${save.dailyStreak}</b>Tage in Folge</div></div>
       <div class="achievements">${ACHIEVEMENTS.map((a) => `<div class="ach ${save.achievements.includes(a.id) ? 'on' : ''}">${icon(save.achievements.includes(a.id) ? 'trophy' : 'lock')}<div><b>${a.name}</b><small>${a.desc}</small></div></div>`).join('')}</div>
       <div class="actions"><button data-go="menu">${icon('back')}Zurück</button></div>`;
   } else if (kind === 'chapter') {
@@ -175,15 +175,15 @@ export function showScreen(game: Game, kind: ScreenKind, act: ScreenActions): vo
       <div class="actions"><button class="primary" id="go">Weiter</button><button data-go="campaign">Zurück</button></div>`;
   } else if (kind === 'win') {
     const r = game.result ?? { stars: 1, gained: 0, bestTime: game.levelTime, newBest: false };
-    h = `<h2>${r.newBest ? 'Neue Bestzeit!' : 'Der Abgrund leuchtet golden'}</h2><p class="sub">${L.name} geschafft</p>
+    h = `<h2>${r.newBest ? 'Neue Bestzeit!' : 'Sieg!'}</h2><p class="sub">${L.name} geschafft</p>
       <div class="stats"><div><b>${starIcons(r.stars)}</b>${r.stars === 3 ? 'unter Zielzeit' : r.stars === 2 ? 'nah an der Zielzeit' : 'geschafft'}</div><div><b>${fmtTime(game.levelTime)}</b>Zeit (Ziel ${fmtTime(L.par)})</div><div><b class="${r.newBest ? 'newbest' : ''}">${fmtTime(r.bestTime)}</b>${r.newBest ? 'neuer Rekord' : 'Bestzeit'}</div><div><b>${game.state.stats.captured}</b>erobert</div><div><b>+${r.gained}</b>Punkte</div></div>
       ${game.unlocked.length ? `<div class="new"><div><b>${icon('trophy')} Erfolg freigeschaltet</b><span>${game.unlocked.map((a) => `${a.name} – ${a.desc}`).join(' · ')}</span></div></div>` : ''}
       ${game.levelKind === 'daily' ? `<p class="meta">Tages-Herausforderung geschafft. Serie: ${save.dailyStreak} Tag${save.dailyStreak === 1 ? '' : 'e'}. Morgen wartet eine neue Karte.</p>` : ''}
       <div class="actions"><button class="primary" id="next">${game.levelKind === 'campaign' ? (game.levelIndex + 1 < CAMPAIGN.length ? 'Nächstes Level' : 'Kampagne geschafft – zur Übersicht') : game.levelKind === 'custom' ? 'Zurück zum Editor' : game.levelKind === 'daily' ? 'Zum Menü' : 'Nächste Welle'}</button><button id="again">Nochmal</button>${save.points ? '<button data-go="skills">Fähigkeiten</button>' : ''}<button data-go="menu">Menü</button></div>`;
   } else if (kind === 'lose') {
     const winner = FACTIONS[game.state.nodes.find((n) => n.owner > 1)?.owner ?? 2] ?? FACTIONS[2];
-    h = `<h2>Der Goldschwarm ist erloschen</h2><p class="sub">${L.name}</p>
-      <p>Der <span class="swatch" style="background:${winner?.color ?? '#fff'}"></span>${winner?.name ?? ''} hat deinen letzten Knoten eingenommen. Tipp: Halte an der Front eine Reserve, bau Wächter an Kreuzungen und sammle Energie für einen Schild, wenn ein großer Schwarm anrückt.</p>
+    h = `<h2>Niederlage</h2><p class="sub">${L.name}</p>
+      <p>Der <span class="swatch" style="background:${winner?.color ?? '#fff'}"></span>${winner?.name ?? ''} hat dein letztes Gebäude eingenommen. Tipp: Kappe Linien, bevor ein Gebäude leerläuft, bau Geschütztürme an Kreuzungen und sammle Energie für eine Panzerung, wenn ein großer Trupp anrückt.</p>
       <div class="actions"><button class="primary" id="again">Nochmal versuchen</button>${save.points ? '<button data-go="skills">Fähigkeiten</button>' : ''}<button data-go="${game.levelKind === 'campaign' ? 'campaign' : 'menu'}">Zurück</button></div>`;
   } else if (kind === 'pause') {
     h = `<h2>Pause</h2><p class="sub">${L.name}, ${fmtTime(game.levelTime)} gespielt</p><div class="actions"><button class="primary" id="go">Weiter</button><button id="again">Neu starten</button><button data-go="menu">Aufgeben</button></div>`;
@@ -334,15 +334,37 @@ function drawSeaPath(card: HTMLElement, unlocked: number): void {
     idx: +(el.dataset.play ?? 0),
   }));
   svg.innerHTML = '';
-  for (let i = 0; i < nodes.length - 1; i++) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const H = +(svg.getAttribute('viewBox')?.split(' ')[3] ?? 1000);
+  // trees along both sides of the road (deterministic)
+  let seed = 11;
+  const rand = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const zoneTops = [...map.querySelectorAll<HTMLElement>('.zone')].map((z) => z.offsetTop);
+  for (let i = 0; i < 40; i++) {
+    const x = i % 2 ? 20 + rand() * 120 : 860 + rand() * 120,
+      y = 60 + rand() * (H - 120),
+      r = 12 + rand() * 10;
+    if (x < 500 && zoneTops.some((zt) => y > zt - 20 && y < zt + 110)) continue;
+    const g = document.createElementNS(NS, 'g');
+    g.setAttribute('class', 'tree');
+    g.innerHTML = `<rect x="${x - 3}" y="${y - 4}" width="6" height="16" rx="2"/><circle cx="${x}" cy="${y - 6}" r="${r}" fill="#3e9c48"/><circle cx="${x - r * 0.25}" cy="${y - 10}" r="${r * 0.6}" fill="#5cc16a" stroke="none"/>`;
+    svg.appendChild(g);
+  }
+  const seg = (i: number) => {
     const a = nodes[i] as { x: number; y: number; idx: number },
       b = nodes[i + 1] as { x: number; y: number; idx: number };
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     const my = (a.y + b.y) / 2;
-    path.setAttribute('d', `M${a.x},${a.y} C${a.x},${my} ${b.x},${my} ${b.x},${b.y}`);
-    path.setAttribute('vector-effect', 'non-scaling-stroke');
-    if (b.idx <= unlocked) path.setAttribute('class', 'done');
-    svg.appendChild(path);
+    return { d: `M${a.x},${a.y} C${a.x},${my} ${b.x},${my} ${b.x},${b.y}`, done: b.idx <= unlocked };
+  };
+  for (const cls of ['road-edge', 'road', 'mid']) {
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const { d, done } = seg(i);
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('vector-effect', 'non-scaling-stroke');
+      path.setAttribute('class', cls + (done && cls === 'mid' ? ' done' : ''));
+      svg.appendChild(path);
+    }
   }
   const next =
     map.querySelector<HTMLElement>('.mnode.next') ??

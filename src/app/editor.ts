@@ -6,19 +6,19 @@ import { segmentDistance } from '@/sim/actions';
 export type EditorTool =
   'node' | 'edge' | 'rock' | 'barrier' | 'mine' | 'owner' | 'type' | 'units' | 'delete';
 export const EDITOR_TOOLS: { id: EditorTool; label: string; hint: string }[] = [
-  { id: 'node', label: 'Knoten', hint: 'Tippen setzt einen Knoten, Ziehen verschiebt ihn' },
-  { id: 'edge', label: 'Kante', hint: 'Von Knoten zu Knoten ziehen verbindet oder trennt' },
+  { id: 'node', label: 'Gebäude', hint: 'Tippen setzt ein Gebäude, Ziehen verschiebt es' },
+  { id: 'edge', label: 'Kante', hint: 'Von Gebäude zu Gebäude ziehen verbindet oder trennt' },
   { id: 'rock', label: 'Fels', hint: 'Tippen setzt einen Felsen, Tippen auf Fels entfernt ihn' },
-  { id: 'barrier', label: 'Barriere', hint: 'Tippen auf eine Kante setzt oder entfernt eine Riffbarriere' },
+  { id: 'barrier', label: 'Barrikade', hint: 'Tippen auf eine Kante setzt oder entfernt eine Barrikade' },
   { id: 'mine', label: 'Mine', hint: 'Tippen auf eine Kante setzt oder entfernt eine Mine' },
   {
     id: 'owner',
     label: 'Besitzer',
     hint: 'Tippen wechselt Neutral → Spieler → Gegner 1 → Gegner 2 → Gegner 3',
   },
-  { id: 'type', label: 'Art', hint: 'Tippen wechselt die Knotenart' },
+  { id: 'type', label: 'Art', hint: 'Tippen wechselt die Gebäudeart' },
   { id: 'units', label: 'Einheiten', hint: 'Tippen +4 Einheiten, Rechtsklick oder Shift −4' },
-  { id: 'delete', label: 'Löschen', hint: 'Tippen entfernt Knoten oder Fels' },
+  { id: 'delete', label: 'Löschen', hint: 'Tippen entfernt Gebäude oder Fels' },
 ];
 export const EDITOR_KEY = 'tiefenlicht:editor';
 
@@ -122,7 +122,7 @@ export class Editor {
     const owners = this.map.nodes.map((n) => n.owner ?? 0);
     if (!owners.includes(PLAYER)) out.push('Kein Spielerknoten (Besitzer: Spieler).');
     if (!owners.some((o) => o > 1)) out.push('Kein Gegnerknoten.');
-    if (this.map.nodes.length < 3) out.push('Mindestens drei Knoten.');
+    if (this.map.nodes.length < 3) out.push('Mindestens drei Gebäude.');
     return out;
   }
 
