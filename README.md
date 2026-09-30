@@ -2,9 +2,9 @@
 
 Türme erobern im Stil von Tower War: Ziehe Linien von deinen blauen Türmen, schicke Soldaten los und nimm alle roten Türme ein. Browser- und Handyspiel als PWA, spielbar unter **https://stefanschiederer.github.io/Tiefenlicht/**. Auf dem iPhone in Safari „Teilen → Zum Home-Bildschirm“ wählen.
 
-| Start                    | Spiel                    | Späteres Level                |
-| ------------------------ | ------------------------ | ----------------------------- |
-| ![Start](docs/start.png) | ![Spiel](docs/march.png) | ![Level 14](docs/level14.png) |
+| Kampagnen-Karte        | Spiel                    | Wüste                         | Schnee                        |
+| ---------------------- | ------------------------ | ----------------------------- | ----------------------------- |
+| ![Karte](docs/map.png) | ![Spiel](docs/march.png) | ![Level 14](docs/level14.png) | ![Level 25](docs/level25.png) |
 
 ## Spielregeln
 
