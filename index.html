@@ -2,20 +2,16 @@
 <html lang="de">
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=overlays-content"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta
       name="description"
-      content="Tiefenlicht – taktische Echtzeit-Eroberung: Linien ziehen, Gebäude ausbauen, die Karte erobern."
+      content="Tiefenlicht – Türme erobern: Linien ziehen, Soldaten schicken, alle roten Türme einnehmen."
     />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Tiefenlicht" />
-    <meta name="theme-color" content="#6cc8ee" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#6ebf3c" />
     <meta name="format-detection" content="telephone=no" />
     <link rel="icon" type="image/svg+xml" href="logo.svg" />
     <link rel="apple-touch-icon" href="icons/icon-180.png" />
@@ -24,30 +20,14 @@
   <body>
     <canvas id="c"></canvas>
     <div id="hud" hidden>
-      <div class="brand">
-        <div class="t">Tiefenlicht</div>
-        <div class="l" id="levelLabel"></div>
-        <div class="share" id="share" aria-label="Anteil der Gebäude"></div>
-        <div class="objective" id="objective" hidden></div>
-        <div class="energy">
-          Energie <span id="energyVal">0</span> / 100
-          <div class="bar"><i id="energyBar"></i></div>
-        </div>
-      </div>
-      <div class="tools">
-        <button id="legendBtn" aria-pressed="false" aria-label="Gebäudearten" title="Gebäudearten"></button>
-        <button id="speedBtn" aria-pressed="false" aria-label="Tempo 1×" title="Tempo (F)"></button>
-        <button id="pauseBtn" aria-label="Pause" title="Pause (Leertaste)"></button>
-        <button id="fsBtn" aria-label="Vollbild" title="Vollbild"></button>
+      <button id="pauseBtn" class="round" aria-label="Pause"></button>
+      <div class="top">
+        <div id="levelLabel" class="level-pill"></div>
+        <div id="bar" class="bar"></div>
       </div>
     </div>
-    <div id="abilities" hidden></div>
-    <div id="nodePanel" hidden></div>
-    <div id="legend" hidden></div>
-    <div id="tutorial"></div>
-    <div id="editorUi" hidden></div>
-    <div id="tip"></div>
-    <div id="screen" class="screen" hidden><div class="card" id="card"></div></div>
+    <div id="tip" role="status"></div>
+    <div id="screen" class="screen" hidden><div id="panel" class="panel"></div></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

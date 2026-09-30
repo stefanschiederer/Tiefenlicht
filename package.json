@@ -1,9 +1,9 @@
 {
   "name": "tiefenlicht",
-  "version": "0.10.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Tiefenlicht – Echtzeit-Strategie um leuchtende Knoten in der Tiefsee (PWA)",
+  "description": "Tiefenlicht – Türme erobern im Stil von Tower War (PWA)",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -15,7 +15,6 @@
     "e2e": "playwright test",
     "screenshots": "playwright test e2e/screenshots.spec.ts",
     "icons": "node scripts/icons.mjs",
-    "balance": "tsx scripts/balance.ts",
     "check": "npm run lint && npm run test && npm run build"
   },
   "devDependencies": {
@@ -35,9 +34,6 @@
     "workbox-window": "^7.3.0"
   },
   "dependencies": {
-    "@fontsource/baloo-2": "^5.3.0",
-    "@fontsource/nunito": "^5.3.0",
-    "pixi-filters": "^6.1.5",
-    "pixi.js": "^8.20.1"
+    "@fontsource/baloo-2": "^5.3.0"
   }
 }

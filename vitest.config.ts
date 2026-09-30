@@ -7,6 +7,6 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'node',
-    coverage: { provider: 'v8', include: ['src/sim/**', 'src/ai/**', 'src/app/**', 'src/data/**'] },
+    coverage: { provider: 'v8', include: ['src/game/**'] },
   },
 });

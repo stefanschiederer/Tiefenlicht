@@ -1,10 +1,13 @@
 import '@fontsource/baloo-2/600.css';
 import '@fontsource/baloo-2/800.css';
-import '@fontsource/nunito/400.css';
-import '@fontsource/nunito/700.css';
-import './app/base.css';
-import './ui/styles.css';
+import './styles.css';
 import './app/errors';
-import { startApp } from './app/index';
+import { App } from './app/app';
+import { registerPwa } from './app/pwa';
 
-void startApp();
+const app = new App(document.getElementById('c') as HTMLCanvasElement);
+// test hook for the end-to-end tests
+(window as unknown as { TW: App }).TW = app;
+// wait for the font so tower numbers render in Baloo 2
+void document.fonts?.ready.then(() => app.renderer.resize(window.innerWidth, window.innerHeight));
+if (import.meta.env.PROD) registerPwa();

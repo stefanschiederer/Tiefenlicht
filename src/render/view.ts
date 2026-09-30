@@ -1,115 +1,49 @@
-import { WORLD_H, WORLD_W } from '@/data';
-import type { GameState, SimNode } from '@/sim/state';
-import { nodeRadius } from '@/sim/stats';
+import { WORLD_H, WORLD_W } from '@/game/config';
 
 /**
- * Maps world coordinates (fixed 1600×800) to the screen. The map is fitted into the screen minus HUD
- * insets; a camera (zoom + centre) lets the player zoom into the fitted view.
+ * Maps the portrait world onto the screen. In landscape the world is rotated a quarter turn
+ * clockwise, so the player's side (bottom of the world) ends up on the left.
  */
 export class View {
-  width = 0;
-  height = 0;
-  /** Effective world→screen scale (fit scale × zoom). */
-  scale = 1;
-  offsetX = 0;
-  offsetY = 0;
-  /** UI scale for stroke widths, fonts, hit slop (≈ prototype's S). */
-  S = 1;
-  /** Visual magnification of nodes and units on small screens (does not affect the simulation). */
-  nodeScale = 1;
-  /** Screen margins reserved for HUD chrome (map is fitted into the remaining rect). */
-  insets = { top: 0, bottom: 0, left: 0, right: 0 };
-  /** Camera: zoom multiplier over the fit scale and the world point shown at the rect centre. */
-  zoom = 1;
-  cx = WORLD_W / 2;
-  cy = WORLD_H / 2;
-  readonly minZoom = 1;
-  readonly maxZoom = 3;
-  private fit = 1;
-  /** Incremented whenever the mapping changes (renderers use it to invalidate cached layers). */
-  version = 0;
+  w = 1;
+  h = 1;
+  k = 1;
+  ox = 0;
+  oy = 0;
+  rot = false;
+  /** Screen space reserved for the HUD at the top. */
+  top = 70;
 
-  resize(width: number, height: number, insets?: Partial<View['insets']>): void {
-    this.width = width;
-    this.height = height;
-    if (insets) this.insets = { ...this.insets, ...insets };
-    const aw = Math.max(1, width - this.insets.left - this.insets.right),
-      ah = Math.max(1, height - this.insets.top - this.insets.bottom);
-    this.fit = Math.min(aw / WORLD_W, ah / WORLD_H);
-    this.S = Math.max(0.55, Math.min(1.3, Math.min(width, height) / 760));
-    // Phones show the whole 1600×800 world at ~0.4 scale; enlarge nodes so they stay readable and tappable.
-    this.nodeScale = height < 500 ? 1.45 : width < 900 ? 1.2 : 1;
-    this.apply();
+  resize(w: number, h: number): void {
+    this.w = w;
+    this.h = h;
+    this.rot = w > h * 1.05;
+    this.top = this.rot ? 56 : 76;
+    const fw = this.rot ? WORLD_H : WORLD_W,
+      fh = this.rot ? WORLD_W : WORLD_H;
+    const pad = 6;
+    const availW = w - 2 * pad,
+      availH = h - this.top - pad;
+    this.k = Math.min(availW / fw, availH / fh);
+    this.ox = (w - fw * this.k) / 2;
+    this.oy = this.top + (availH - fh * this.k) / 2;
   }
 
-  /** Available rect (screen minus insets). */
-  rect(): { x: number; y: number; w: number; h: number } {
-    return {
-      x: this.insets.left,
-      y: this.insets.top,
-      w: Math.max(1, this.width - this.insets.left - this.insets.right),
-      h: Math.max(1, this.height - this.insets.top - this.insets.bottom),
-    };
+  sx(x: number, y: number): number {
+    return this.rot ? this.ox + (WORLD_H - y) * this.k : this.ox + x * this.k;
   }
-
-  private apply(): void {
-    const r = this.rect();
-    this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom));
-    this.scale = this.fit * this.zoom;
-    // Clamp the centre so the world never leaves the rect when it is larger than the rect.
-    const halfW = r.w / (2 * this.scale),
-      halfH = r.h / (2 * this.scale);
-    this.cx = WORLD_W * this.scale <= r.w ? WORLD_W / 2 : Math.max(halfW, Math.min(WORLD_W - halfW, this.cx));
-    this.cy = WORLD_H * this.scale <= r.h ? WORLD_H / 2 : Math.max(halfH, Math.min(WORLD_H - halfH, this.cy));
-    this.offsetX = r.x + r.w / 2 - this.cx * this.scale;
-    this.offsetY = r.y + r.h / 2 - this.cy * this.scale;
-    this.version++;
+  sy(x: number, y: number): number {
+    return this.rot ? this.oy + x * this.k : this.oy + y * this.k;
   }
-
-  /** Zooms by `factor` keeping the world point under screen (px, py) fixed. */
-  zoomAt(px: number, py: number, factor: number): void {
-    const wx = this.wx(px),
-      wy = this.wy(py);
-    this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom * factor));
-    this.scale = this.fit * this.zoom;
-    const r = this.rect();
-    // Choose the centre so that (wx, wy) stays at (px, py).
-    this.cx = wx - (px - r.x - r.w / 2) / this.scale;
-    this.cy = wy - (py - r.y - r.h / 2) / this.scale;
-    this.apply();
+  toWorld(px: number, py: number): { x: number; y: number } {
+    return this.rot
+      ? { x: (py - this.oy) / this.k, y: WORLD_H - (px - this.ox) / this.k }
+      : { x: (px - this.ox) / this.k, y: (py - this.oy) / this.k };
   }
-  /** Pans by a screen-space delta. */
-  panBy(dx: number, dy: number): void {
-    this.cx -= dx / this.scale;
-    this.cy -= dy / this.scale;
-    this.apply();
-  }
-  resetCamera(): void {
-    this.zoom = 1;
-    this.cx = WORLD_W / 2;
-    this.cy = WORLD_H / 2;
-    this.apply();
-  }
-
-  /** Screen-space hit test with touch slop (shared by all renderers). */
-  nodeAt(state: GameState, px: number, py: number): SimNode | null {
-    for (const n of state.nodes) {
-      const r = Math.max(nodeRadius(n) * this.nodeScale * this.scale + 16 * this.S, 24);
-      if (Math.hypot(this.sx(n.x) - px, this.sy(n.y) - py) <= r) return n;
-    }
-    return null;
-  }
-
-  sx(x: number): number {
-    return this.offsetX + x * this.scale;
-  }
-  sy(y: number): number {
-    return this.offsetY + y * this.scale;
-  }
-  wx(px: number): number {
-    return (px - this.offsetX) / this.scale;
-  }
-  wy(py: number): number {
-    return (py - this.offsetY) / this.scale;
+  /** Screen rectangle of the playfield. */
+  field(): { x: number; y: number; w: number; h: number } {
+    const fw = (this.rot ? WORLD_H : WORLD_W) * this.k,
+      fh = (this.rot ? WORLD_W : WORLD_H) * this.k;
+    return { x: this.ox, y: this.oy, w: fw, h: fh };
   }
 }

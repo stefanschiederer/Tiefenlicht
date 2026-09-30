@@ -30,6 +30,9 @@ export default tseslint.config(
     },
   },
   { files: ['**/*.js', '**/*.mjs'], ...tseslint.configs.disableTypeChecked },
-  { files: ['scripts/**', 'e2e/**', 'tests/**'], rules: { 'no-console': 'off' } },
+  {
+    files: ['scripts/**', 'e2e/**', 'tests/**'],
+    rules: { 'no-console': 'off', '@typescript-eslint/no-non-null-assertion': 'off' },
+  },
   prettier,
 );

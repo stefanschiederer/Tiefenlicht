@@ -19,7 +19,7 @@ async function render(size, pad, file) {
   const off = Math.round(size * pad);
   await page.setViewportSize({ width: size, height: size });
   await page.setContent(
-    `<html><body style="margin:0;background:#5dbde9;width:${size}px;height:${size}px;overflow:hidden">
+    `<html><body style="margin:0;background:#6ebf3c;width:${size}px;height:${size}px;overflow:hidden">
        <div style="position:absolute;left:${off}px;top:${off}px;width:${inner}px;height:${inner}px">${svg.replace(
          /width="512" height="512"/,
          `width="${inner}" height="${inner}"`,

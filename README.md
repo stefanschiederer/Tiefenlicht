@@ -1,71 +1,33 @@
 # Tiefenlicht
 
-Taktische Echtzeit-Eroberung im Stil von Tower War: Linien ziehen, Gebäude ausbauen, die Karte erobern. Browser- und Mobile-Spiel als PWA, spielbar unter **https://stefanschiederer.github.io/Tiefenlicht/**.
+Türme erobern im Stil von Tower War: Ziehe Linien von deinen blauen Türmen, schicke Soldaten los und nimm alle roten Türme ein. Browser- und Handyspiel als PWA, spielbar unter **https://stefanschiederer.github.io/Tiefenlicht/**. Auf dem iPhone in Safari „Teilen → Zum Home-Bildschirm“ wählen.
 
-![Spielszene](docs/game-desktop.png)
+| Start                    | Spiel                    | Späteres Level                |
+| ------------------------ | ------------------------ | ----------------------------- |
+| ![Start](docs/start.png) | ![Spiel](docs/march.png) | ![Level 14](docs/level14.png) |
 
-| Kampagnen-Karte                    | Handy (Querformat)             | Editor                     |
-| ---------------------------------- | ------------------------------ | -------------------------- |
-| ![Kampagne](docs/campaign-map.png) | ![Handy](docs/game-mobile.png) | ![Editor](docs/editor.png) |
+## Spielregeln
 
-## Spielprinzip
-
-Ziehe von einem eigenen Gebäude eine Linie zu einem Ziel: Deine Einheiten strömen dann laufend hinüber, bis du die Linie kappst (quer darüber wischen). Genau wie in Tower War. Sechs Gebäudearten (Kaserne, Feldlager, Bunker, Garage, Geschützturm, Depot) mit eigenen Truppen (Soldaten, Rekruten, Panzer, Motorräder, Jeeps, Lastwagen) und typspezifischem Ausbau, Barrikaden und Minen auf den Straßen, Gegner mit sichtbaren Linien. 18 Kampagnenlevel in drei Kapiteln mit Sternen, Endlosmodus, Tages-Herausforderung, Skill-Baum, Erfolge und ein Karten-Editor.
+- Jeder Turm zeigt seine Soldaten. Eigene Türme bilden laufend neue Soldaten aus, graue (neutrale) nicht.
+- Ziehe von einem blauen Turm zu einem anderen Turm. Die Linie bleibt, und Soldaten marschieren ununterbrochen hinüber.
+- Soldaten, die einen fremden Turm erreichen, ziehen dort einen ab. Fällt die Zahl unter null, gehört der Turm dir. Soldaten, die einen eigenen Turm erreichen, verstärken ihn.
+- Türme wachsen mit ihren Soldaten: ab 10 Stufe 2 (zwei Linien), ab 25 Stufe 3 (drei Linien). Schrumpft ein Turm, verliert er überzählige Linien.
+- Treffen sich Soldaten zweier Farben auf derselben Strecke, kämpfen sie eins gegen eins.
+- Wische quer über eine eigene Linie, um sie zu kappen. Soldaten vor dem Schnitt laufen nach Hause, die dahinter marschieren weiter.
+- Mauern und andere Türme versperren gerade Linien.
+- Gewonnen ist das Level, wenn keine gegnerischen Türme mehr übrig sind.
 
 ## Entwicklung
 
-```sh
+```bash
 npm install
 npm run dev        # Entwicklungsserver
 npm run check      # Lint, Unit-Tests, Build
-npm run e2e        # Playwright (Desktop 1280×800, Mobil 390×844 quer)
-npm run screenshots
-npm run icons      # Icons aus public/logo.svg neu erzeugen
+npm run e2e        # Playwright (Desktop und iPhone hochkant)
 ```
 
-```sh
-npm run balance    # spielt alle Level headless mit dem Bot durch, schreibt BALANCE.md
-```
+- `src/game` – Regeln und Simulation (deterministisch, ohne DOM), Level-Generator, Gegner-KI.
+- `src/render` – Canvas-2D-Grafik: Türme, Soldaten, Linien, Wiese, Mauern (alles prozedural gezeichnet).
+- `src/app` – Spielablauf, Eingabe, Bildschirme, Sound, Spielstand, PWA.
 
-Struktur:
-
-- `src/data` – Gebäudearten, Truppen, Fraktionen, Fähigkeiten, Skills, Kampagne, Regeln (Weltgröße 1600 × 800).
-- `src/sim` – reine Simulation ohne DOM: RNG, Graph, Kartengenerator, Levelaufbau, Aktionen, `step()`; gibt Ereignisse aus.
-- `src/ai` – Gegner-KI (`bot.ts`) und Heuristik-Bot für den Balance-Harness (`playerBot.ts`).
-- `src/render/canvas2d` – Renderer (liest den Zustand, hält nur visuelle Effekte), `src/render/view.ts` bildet Welt auf Bildschirm ab.
-- `src/ui` – HUD, Gebäudemenü, Bildschirme. `src/app` – Spielsitzung, Eingabe, Spielstand, PWA.
-- `src/audio` – synthetische Sounds. `tests/` – Vitest. `e2e/` – Playwright. `scripts/` – Icons, Balance.
-
-Der ursprüngliche Prototyp liegt als Referenz in `tiefenlicht.html`. Designentscheidungen und offene Punkte stehen in `GAMEDESIGN.md`, der Phasenplan in `PLAN.md`.
-
-## Steuerung
-
-- **Linien:** Von einem eigenen Gebäude zu einem Ziel ziehen. Die Linie bleibt, Einheiten strömen laufend hinüber (Tower-War-Prinzip). Ausbaustufe 1/2/3 erlaubt 1/2/3 Linien.
-- **Linie kappen:** Quer über die Linie wischen, im Gebäudemenü oder per Rechtsklick.
-- **Gebäudemenü:** Eigenes Gebäude antippen: Ausbau, Umbau, Linien löschen (radial am Gebäude).
-- **Kamera:** Mausrad oder Pinch zoomt, Zwei-Finger-Ziehen oder mittlere Maustaste verschiebt.
-- **Tasten:** 1–3 Fähigkeiten, Leertaste Pause, F Tempo, Esc Abbrechen.
-
-## Installation auf dem iPhone
-
-1. Seite in Safari öffnen.
-2. Teilen → „Zum Home-Bildschirm“.
-3. Über das Home-Bildschirm-Icon starten: Das Spiel läuft bildschirmfüllend im Querformat und offline.
-
-## Playwright ohne Root (Linux)
-
-Fehlen Chromium Systembibliotheken und gibt es kein `sudo`, lassen sie sich lokal entpacken; `scripts/chromium-env.mjs` hängt den Pfad automatisch an `LD_LIBRARY_PATH`:
-
-```sh
-mkdir -p /tmp/debs ~/.local/chromium-libs && cd /tmp/debs
-apt-get download libnspr4 libnss3 libatk1.0-0 libatk-bridge2.0-0 libxcomposite1 libxdamage1 libxfixes3 \
-  libxrandr2 libgbm1 libxkbcommon0 libasound2 libatspi2.0-0 libxrender1 libwayland-server0 libxcb-randr0 \
-  libxi6 libx11-xcb1 libxcursor1 libcups2 libpango-1.0-0 libcairo2 libdrm2 libxext6 libxcb1 libdbus-1-3 \
-  libexpat1 libharfbuzz0b libpixman-1-0 libthai0 libxcb-render0 libxcb-shm0 libavahi-client3 libavahi-common3 \
-  libgraphite2-3 libdatrie1
-for d in *.deb; do dpkg -x "$d" ~/.local/chromium-libs; done
-```
-
-## Deployment
-
-Jeder Push auf `main` baut und veröffentlicht über GitHub Actions auf GitHub Pages (`.github/workflows/deploy.yml`). In den Repository-Einstellungen muss unter „Pages“ die Quelle „GitHub Actions“ gewählt sein.
+Push auf `main` baut und veröffentlicht automatisch auf GitHub Pages.

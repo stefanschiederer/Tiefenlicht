@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 – Neuanfang als Tower-War-Nachbau (2026-09-30)
+
+- Spiel komplett neu geschrieben: nur Türme, Linien, Soldaten und Level, ohne Skills, Fähigkeiten, Energie, Gebäudetypen, Editor, Tages-Karte, Erfolge und Endlosmodus.
+- Hochformat wie Tower War, im Querformat gedreht. Türme wachsen mit ihren Soldaten (Stufe 2 ab 10, Stufe 3 ab 25) und halten 1, 2 oder 3 Linien.
+- Linien zu beliebigen Türmen in Sichtlinie, Soldaten marschieren einzeln, Kämpfe auf gegenläufigen Linien, Kappen per Wischen mit Rückweg.
+- Neue Grafik: Burgtürme in Blau, Rot und Grau mit Zinnen und Fahne, kleine Soldaten, Wiese mit Bäumen, Steinmauern.
+- Startbildschirm mit „Level N“ und „Spielen“, Pause, Sieg- und Niederlage-Bildschirm, Tutorial-Hand in Level 1.
+- Canvas 2D statt PixiJS: gleiche Grafik auf allen Geräten, kleinerer Download.
+
 ## 0.10.0 – Tower-War-Nachbau (2026-09-14)
 
 - Komplett neue Optik nach Tower War: grüne Insel mit Sandrand und Klippe im Wasser, Straßen zwischen den Gebäuden, Bäume, Tannen, Büsche, Häuser, Steine und Zäune als Deko (deterministisch je Level, nie auf Wegen).

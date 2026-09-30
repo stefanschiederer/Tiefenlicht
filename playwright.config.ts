@@ -23,7 +23,7 @@ export default defineConfig({
       use: {
         ...devices['iPhone 14'],
         browserName: 'chromium',
-        viewport: { width: 844, height: 390 },
+        viewport: { width: 390, height: 844 },
         isMobile: true,
         hasTouch: true,
       },
