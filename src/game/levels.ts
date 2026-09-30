@@ -1,7 +1,7 @@
 import { KINDS, NEUTRAL, PLAYER, TOWER_R, WALL_T, WORLD_H, WORLD_W, type TowerKind } from './config';
 
 const SPECIAL: TowerKind[] = ['barracks', 'fortress', 'cannon'];
-import { pointSegDist, rng } from './geom';
+import { pointSegDist, rng, segSegDist } from './geom';
 import { computeReach } from './sim';
 import type { LevelDef, Tower, Wall } from './state';
 
@@ -74,7 +74,7 @@ export function generate(n: number): LevelDef {
     const rand = rng(n * 9973 + attempt * 131 + 7);
     const ri = (a: number, b: number) => a + Math.floor(rand() * (b - a + 1));
     const two = n >= 12 && n % 5 === 2; // occasionally a second enemy
-    const pairs = Math.min(2 + Math.floor(n / 4), 6);
+    const pairs = Math.min(2 + Math.floor(n / 4), 5);
     const towers: TowerDef[] = [];
     const start = 10 + Math.min(10, Math.floor(n / 3));
     const px = ri(150, 570);
@@ -84,7 +84,7 @@ export function generate(n: number): LevelDef {
       towers.push(t(ri(520, 630), ri(160, 260), 3, start));
     } else towers.push(t(WORLD_W - px, WORLD_H - (towers[0] as TowerDef).y, 2, start));
     // extra enemy tower on later levels
-    const minD = TOWER_R * 4.1;
+    const minD = TOWER_R * 4.4;
     const free = (x: number, y: number) => towers.every((o) => Math.hypot(o.x - x, o.y - y) >= minD);
     if (!two && n >= 9 && rand() < 0.5) {
       const x = ri(120, 600),
@@ -142,6 +142,11 @@ export function generate(n: number): LevelDef {
         [v.x1, v.x2].every((x) => x > 40 && x < WORLD_W - 40) &&
         towers.every((o) => pointSegDist(o.x, o.y, v.x1, v.y1, v.x2, v.y2) > TOWER_R + WALL_T + 26);
       if (!clear(w) || !clear(m)) continue;
+      // walls never touch each other
+      const apart = (v: Wall) =>
+        walls.every((o) => segSegDist(v.x1, v.y1, v.x2, v.y2, o.x1, o.y1, o.x2, o.y2) > WALL_T * 3);
+      if (!apart(w) || !apart(m) || segSegDist(w.x1, w.y1, w.x2, w.y2, m.x1, m.y1, m.x2, m.y2) < WALL_T * 3)
+        continue;
       walls.push(w, m);
     }
     const def: LevelDef = {

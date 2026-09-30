@@ -40,6 +40,15 @@ export class View {
       ? { x: (py - this.oy) / this.k, y: WORLD_H - (px - this.ox) / this.k }
       : { x: (px - this.ox) / this.k, y: (py - this.oy) / this.k };
   }
+  /** Screen area of the playfield background: all of the screen below the HUD, with a small margin. */
+  playArea(): { x: number; y: number; w: number; h: number } {
+    const f = this.field();
+    const x = Math.min(f.x, 8),
+      y = Math.min(f.y, this.top - 4),
+      r = Math.max(f.x + f.w, this.w - 8),
+      b = Math.max(f.y + f.h, this.h - 8);
+    return { x, y, w: r - x, h: b - y };
+  }
   /** Screen rectangle of the playfield. */
   field(): { x: number; y: number; w: number; h: number } {
     const fw = (this.rot ? WORLD_H : WORLD_W) * this.k,

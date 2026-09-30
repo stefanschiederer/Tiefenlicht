@@ -1,4 +1,4 @@
-import { CANNON_RANGE, TEAM_COLORS, TEAM_DARK, WALL_T } from '@/game/config';
+import { CANNON_RANGE, TEAM_COLORS, TEAM_DARK, WALL_T, themeOf } from '@/game/config';
 import { levelOf, radiusOf, tower, troopPos } from '@/game/sim';
 import type { GameEvent, GameState, Line } from '@/game/state';
 import { drawGround, drawWall, towerSprite, troopSprite } from './sprites';
@@ -46,7 +46,7 @@ export class Renderer {
   }
 
   resize(w: number, h: number): void {
-    this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.dpr = Math.min(3, window.devicePixelRatio || 1);
     this.canvas.width = Math.round(w * this.dpr);
     this.canvas.height = Math.round(h * this.dpr);
     this.canvas.style.width = w + 'px';
@@ -125,7 +125,12 @@ export class Renderer {
       c.height = this.canvas.height;
       const gg = c.getContext('2d') as CanvasRenderingContext2D;
       gg.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-      drawGround(gg, v.w, v.h, v.field(), s.def.n);
+      const avoid = s.towers.map((t) => ({
+        x: v.sx(t.x, t.y),
+        y: v.sy(t.x, t.y),
+        r: radiusOf(t) * v.k * 1.6,
+      }));
+      drawGround(gg, v.w, v.h, v.playArea(), s.def.n, themeOf(s.def.n).id, avoid);
       for (const w of s.walls)
         drawWall(gg, v.sx(w.x1, w.y1), v.sy(w.x1, w.y1), v.sx(w.x2, w.y2), v.sy(w.x2, w.y2), WALL_T * v.k);
       this.ground = c;
@@ -254,7 +259,7 @@ export class Renderer {
       v = this.view;
     type Item = { y: number; draw: () => void };
     const items: Item[] = [];
-    const troopH = Math.max(13, Math.min(24, 30 * v.k));
+    const troopH = Math.max(17, Math.min(28, 38 * v.k));
     for (const u of s.troops) {
       const p = troopPos(s, u);
       const x = v.sx(p.x, p.y),
@@ -300,23 +305,25 @@ export class Renderer {
           }
           g.drawImage(sp.c, x - sp.ax * k, ay - sp.ay * k, sp.c.width * k, sp.c.height * k);
           if (t.kind === 'cannon') this.drawBarrel(t.id, t.owner, x, ay - (sp.gun ?? 0) * k, k);
-          // troop count
-          const fs = Math.max(15, Math.min(30, radiusOf(t) * v.k * 0.78));
-          const ty = ay - sp.top * k - fs * 0.25;
-          g.font = `800 ${fs}px "Baloo 2", "Arial Black", sans-serif`;
-          g.textAlign = 'center';
-          g.textBaseline = 'middle';
-          g.lineJoin = 'round';
-          g.lineWidth = fs * 0.22;
-          g.strokeStyle = '#1d2530';
-          const txt = String(Math.floor(t.troops));
-          g.strokeText(txt, x, ty);
-          g.fillStyle = '#ffffff';
-          g.fillText(txt, x, ty);
+          // troop count, drawn after all towers so no tower hides it
+          const fs = Math.max(18, Math.min(32, radiusOf(t) * v.k * 0.9));
+          labels.push({ x, y: ay - sp.top * k - fs * 0.25, fs, txt: String(Math.floor(t.troops)) });
         },
       });
     }
+    const labels: { x: number; y: number; fs: number; txt: string }[] = [];
     items.sort((a, b) => a.y - b.y).forEach((it) => it.draw());
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.lineJoin = 'round';
+    for (const l of labels) {
+      g.font = `800 ${l.fs}px "Baloo 2", "Arial Black", sans-serif`;
+      g.lineWidth = l.fs * 0.24;
+      g.strokeStyle = '#1d2530';
+      g.strokeText(l.txt, l.x, l.y);
+      g.fillStyle = '#ffffff';
+      g.fillText(l.txt, l.x, l.y);
+    }
   }
 
   /** Cannon barrel turned towards its last target, with a short recoil. */

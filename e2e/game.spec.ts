@@ -54,6 +54,21 @@ test('touch: tapping Spielen works and the pause menu opens', async ({ page }) =
   expect((await snap(page)).mode).toBe('play');
 });
 
+test('campaign map: finished levels can be replayed, locked ones not', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.addInitScript(() => {
+    localStorage.setItem('tiefenlicht-towerwar-v1', JSON.stringify({ level: 5, sound: false }));
+  });
+  await page.goto('./');
+  await expect(page.getByRole('button', { name: 'Level 5', exact: true }).first()).toBeVisible();
+  await expect(page.locator('.lvl.done')).toHaveCount(4);
+  await expect(page.locator('.lvl.locked').first()).toBeDisabled();
+  await page.locator('.lvl.done[data-lv="2"]').click();
+  await expect(page.locator('.level-big')).toHaveText('Level 2');
+  await page.getByRole('button', { name: 'Karte' }).click();
+  await expect(page.locator('.lvl.current')).toHaveText('5');
+});
+
 test('manifest and service worker are served', async ({ request }) => {
   expect((await request.get('./manifest.webmanifest')).ok()).toBe(true);
   expect((await request.get('./sw.js')).ok()).toBe(true);

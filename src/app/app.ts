@@ -7,12 +7,14 @@ import { Renderer, type UiState } from '@/render/renderer';
 import { kindIcon } from '@/render/sprites';
 import { setSound, sfx, unlockAudio } from './audio';
 import { loadSave, writeSave, type Save } from './save';
+import { mapHtml, scrollToCurrent } from './map';
 
-type Mode = 'start' | 'play' | 'pause' | 'win' | 'lose';
+type Mode = 'map' | 'start' | 'play' | 'pause' | 'win' | 'lose';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const ICON = {
+  map: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 4v14M15 6v14" stroke="currentColor" stroke-width="2"/></svg>',
   pause:
     '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>',
   soundOn:
@@ -49,7 +51,7 @@ export class App {
       if (document.hidden && this.mode === 'play') this.showPause();
     });
     this.loadLevel(this.save.level);
-    this.showStart();
+    this.showMap();
     requestAnimationFrame((t) => this.frame(t));
   }
 
@@ -91,7 +93,7 @@ export class App {
     this.tip('', 0);
     if (result === 'win') {
       sfx.win();
-      this.save.level = this.state.def.n + 1;
+      this.save.level = Math.max(this.save.level, this.state.def.n + 1);
       writeSave(this.save);
       this.setScreen(
         `<div class="banner win">Gewonnen!</div><div class="sub">Level ${this.state.def.n} geschafft</div>
@@ -100,14 +102,19 @@ export class App {
       $('next').addEventListener('click', () => {
         sfx.tap();
         this.loadLevel(this.save.level);
-        this.showStart();
+        this.showMap();
       });
     } else {
       sfx.lose();
       this.setScreen(
         `<div class="banner lose">Verloren</div><div class="sub">Level ${this.state.def.n}</div>
-         <button class="big green" id="again">Nochmal</button>`,
+         <button class="big green" id="again">Nochmal</button>
+         <button class="big blue" id="toMap">Karte</button>`,
       );
+      $('toMap').addEventListener('click', () => {
+        sfx.tap();
+        this.showMap();
+      });
       $('again').addEventListener('click', () => {
         sfx.tap();
         this.loadLevel(this.state.def.n);
@@ -134,10 +141,49 @@ export class App {
          <div class="level-big">Level ${this.state.def.n}</div>
          <button class="big green" id="play">Spielen</button>
        </div>
-       <button class="round sound" id="sound" aria-label="Ton">${this.save.sound ? ICON.soundOn : ICON.soundOff}</button>`,
+       <button class="round sound" id="sound" aria-label="Ton">${this.save.sound ? ICON.soundOn : ICON.soundOff}</button>
+       <button class="round back" id="back" aria-label="Karte">${ICON.map}</button>`,
     );
     $('screen').className = 'screen start';
+    $('back').addEventListener('click', () => {
+      sfx.tap();
+      this.showMap();
+    });
     $('play').addEventListener('click', () => this.play());
+    $('sound').addEventListener('click', () => {
+      this.toggleSound();
+      $('sound').innerHTML = this.save.sound ? ICON.soundOn : ICON.soundOff;
+    });
+  }
+
+  /** Campaign map: a road through the worlds; tap a reached level to open it. */
+  showMap(): void {
+    this.mode = 'map';
+    this.ui.drag = null;
+    this.tip('', 0);
+    $('hud').hidden = true;
+    const cur = this.save.level;
+    this.setScreen(
+      `<div class="map-top"><div class="map-title">Tiefenlicht</div>
+         <button class="round" id="sound" aria-label="Ton">${this.save.sound ? ICON.soundOn : ICON.soundOff}</button></div>
+       <div class="map" id="map">${mapHtml(cur, Math.min(window.innerWidth, 560))}</div>
+       <div class="map-bottom"><button class="big green" id="playCur">Level ${cur}</button></div>`,
+    );
+    $('screen').className = 'screen map-screen';
+    const map = $('map');
+    scrollToCurrent(map);
+    map.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button.lvl');
+      if (!b || b.disabled) return;
+      sfx.tap();
+      this.loadLevel(Number(b.dataset.lv));
+      this.showStart();
+    });
+    $('playCur').addEventListener('click', () => {
+      sfx.tap();
+      this.loadLevel(cur);
+      this.showStart();
+    });
     $('sound').addEventListener('click', () => {
       this.toggleSound();
       $('sound').innerHTML = this.save.sound ? ICON.soundOn : ICON.soundOff;
@@ -161,8 +207,13 @@ export class App {
       `<div class="banner">Pause</div>
        <button class="big green" id="resume">Weiter</button>
        <button class="big blue" id="restart">Neu starten</button>
-       <button class="big blue" id="snd">${this.save.sound ? 'Ton aus' : 'Ton an'}</button>`,
+       <button class="big blue" id="snd">${this.save.sound ? 'Ton aus' : 'Ton an'}</button>
+       <button class="big blue" id="toMap">Karte</button>`,
     );
+    $('toMap').addEventListener('click', () => {
+      sfx.tap();
+      this.showMap();
+    });
     $('resume').addEventListener('click', () => {
       sfx.tap();
       this.setScreen(null);

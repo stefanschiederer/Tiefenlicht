@@ -45,6 +45,8 @@ export async function startAt(page: Page, level = 1, play = true): Promise<void>
   }, level);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('./');
+  // the app opens on the campaign map; the big button opens the current level
+  await page.locator('#playCur').click();
   await page.getByRole('button', { name: 'Spielen' }).waitFor();
   if (play) await page.getByRole('button', { name: 'Spielen' }).click();
 }

@@ -67,3 +67,15 @@ export const KINDS: Record<TowerKind, KindDef> = {
 export const CANNON_RANGE = 200;
 /** Seconds between two cannon shots. */
 export const CANNON_RELOAD = 0.75;
+
+/** Landscape of a level: every ten levels the campaign moves to the next world. */
+export type Theme = 'grass' | 'desert' | 'snow' | 'autumn';
+export const THEMES: { id: Theme; name: string }[] = [
+  { id: 'grass', name: 'Grüne Wiesen' },
+  { id: 'desert', name: 'Heiße Wüste' },
+  { id: 'snow', name: 'Eisige Berge' },
+  { id: 'autumn', name: 'Goldener Herbst' },
+];
+export function themeOf(n: number): (typeof THEMES)[number] {
+  return THEMES[Math.floor((Math.max(1, n) - 1) / 10) % THEMES.length] as (typeof THEMES)[number];
+}

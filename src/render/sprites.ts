@@ -1,4 +1,4 @@
-import { TEAM_COLORS, TEAM_DARK, TEAM_LIGHT, type TowerKind } from '@/game/config';
+import { TEAM_COLORS, TEAM_DARK, TEAM_LIGHT, type Theme, type TowerKind } from '@/game/config';
 
 /* Procedural cartoon sprites in the Tower War look. All drawn on 2D canvases, no external assets. */
 
@@ -491,66 +491,216 @@ function prand(seed: number): () => number {
   };
 }
 
-/** A round cartoon tree (for the border around the field). */
-export function drawTree(g: CanvasRenderingContext2D, x: number, y: number, s: number): void {
-  g.fillStyle = 'rgba(20,60,20,0.25)';
+interface Palette {
+  outer: string;
+  field: string;
+  light: string;
+  dark: string;
+  tuft: string;
+  flowers: string[];
+  rock: [string, string];
+  bush: [string, string];
+}
+export const PALETTES: Record<Theme, Palette> = {
+  grass: {
+    outer: '#5fb235',
+    field: '#8fd956',
+    light: 'rgba(255,255,255,0.08)',
+    dark: 'rgba(0,80,0,0.07)',
+    tuft: 'rgba(40,110,20,0.45)',
+    flowers: ['#ffffff', '#ffe066', '#ff9ec7'],
+    rock: ['#9aa3ad', '#c9cfd6'],
+    bush: ['#3aa24a', '#5cc463'],
+  },
+  desert: {
+    outer: '#d9a95b',
+    field: '#f0cf8a',
+    light: 'rgba(255,255,255,0.12)',
+    dark: 'rgba(150,90,20,0.08)',
+    tuft: 'rgba(160,110,40,0.35)',
+    flowers: ['#ff8a5c', '#ffd166'],
+    rock: ['#b9835a', '#d9a47a'],
+    bush: ['#6f9a3a', '#8fbf4a'],
+  },
+  snow: {
+    outer: '#b9d3e6',
+    field: '#eef6fb',
+    light: 'rgba(255,255,255,0.5)',
+    dark: 'rgba(90,140,190,0.08)',
+    tuft: 'rgba(120,160,200,0.35)',
+    flowers: ['#bfe3ff', '#ffffff'],
+    rock: ['#8b9bb0', '#c3d0de'],
+    bush: ['#3f7f6a', '#5a9d86'],
+  },
+  autumn: {
+    outer: '#b38a3a',
+    field: '#d9c26a',
+    light: 'rgba(255,255,255,0.1)',
+    dark: 'rgba(120,70,0,0.08)',
+    tuft: 'rgba(140,100,20,0.4)',
+    flowers: ['#ff7043', '#ffca28', '#e53935'],
+    rock: ['#9aa3ad', '#c9cfd6'],
+    bush: ['#d0662b', '#f08a3c'],
+  },
+};
+
+/** A round cartoon tree; colours depend on the world. */
+export function drawTree(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  s: number,
+  theme: Theme = 'grass',
+): void {
+  g.fillStyle = 'rgba(20,40,20,0.22)';
   g.beginPath();
   g.ellipse(x + 4 * s, y + 2 * s, 20 * s, 7 * s, 0, 0, TAU);
   g.fill();
-  g.fillStyle = '#7a4b25';
   g.strokeStyle = OUT;
   g.lineWidth = 2.5 * s;
+  if (theme === 'desert') {
+    // cactus
+    g.fillStyle = '#4f9d4a';
+    g.beginPath();
+    g.roundRect(x - 7 * s, y - 44 * s, 14 * s, 46 * s, 7 * s);
+    g.fill();
+    g.stroke();
+    g.beginPath();
+    g.roundRect(x - 20 * s, y - 34 * s, 9 * s, 18 * s, 4.5 * s);
+    g.roundRect(x + 11 * s, y - 40 * s, 9 * s, 20 * s, 4.5 * s);
+    g.fill();
+    g.stroke();
+    g.fillStyle = '#6fbf63';
+    g.fillRect(x - 3 * s, y - 40 * s, 3 * s, 34 * s);
+    return;
+  }
+  g.fillStyle = '#7a4b25';
   g.beginPath();
   g.roundRect(x - 4 * s, y - 20 * s, 8 * s, 22 * s, 3 * s);
   g.fill();
   g.stroke();
-  g.fillStyle = '#3aa24a';
+  if (theme === 'snow') {
+    // snowy pine
+    for (let i = 0; i < 3; i++) {
+      const yy = y - 14 * s - i * 14 * s,
+        ww = (22 - i * 5) * s;
+      g.fillStyle = '#2f7d5c';
+      g.beginPath();
+      g.moveTo(x - ww, yy);
+      g.lineTo(x + ww, yy);
+      g.lineTo(x, yy - 22 * s);
+      g.closePath();
+      g.fill();
+      g.stroke();
+      g.fillStyle = '#ffffff';
+      g.beginPath();
+      g.moveTo(x - ww * 0.45, yy - 12 * s);
+      g.lineTo(x + ww * 0.45, yy - 12 * s);
+      g.lineTo(x, yy - 22 * s);
+      g.closePath();
+      g.fill();
+    }
+    return;
+  }
+  const [c1, c2] = theme === 'autumn' ? ['#e0702a', '#f59a3d'] : ['#3aa24a', '#5cc463'];
+  g.fillStyle = c1;
   g.beginPath();
   g.arc(x, y - 32 * s, 20 * s, 0, TAU);
   g.fill();
   g.stroke();
-  g.fillStyle = '#5cc463';
+  g.fillStyle = c2;
   g.beginPath();
   g.arc(x - 5 * s, y - 37 * s, 11 * s, 0, TAU);
   g.fill();
 }
 
-/** Ground: grass with soft patches and tufts, the playfield slightly lighter; trees outside. */
+function drawBush(g: CanvasRenderingContext2D, x: number, y: number, s: number, p: Palette): void {
+  g.fillStyle = 'rgba(20,40,20,0.2)';
+  g.beginPath();
+  g.ellipse(x + 3 * s, y + 2 * s, 16 * s, 5 * s, 0, 0, TAU);
+  g.fill();
+  g.strokeStyle = OUT;
+  g.lineWidth = 2 * s;
+  g.fillStyle = p.bush[0];
+  for (const [dx, dy, r] of [
+    [-7, -6, 8],
+    [7, -6, 8],
+    [0, -11, 9],
+  ] as const) {
+    g.beginPath();
+    g.arc(x + dx * s, y + dy * s, r * s, 0, TAU);
+    g.fill();
+    g.stroke();
+  }
+  g.fillStyle = p.bush[1];
+  g.beginPath();
+  g.arc(x - 2 * s, y - 13 * s, 4 * s, 0, TAU);
+  g.fill();
+}
+
+function drawRock(g: CanvasRenderingContext2D, x: number, y: number, s: number, p: Palette): void {
+  g.fillStyle = 'rgba(20,40,20,0.2)';
+  g.beginPath();
+  g.ellipse(x + 3 * s, y + 2 * s, 14 * s, 5 * s, 0, 0, TAU);
+  g.fill();
+  g.strokeStyle = OUT;
+  g.lineWidth = 2 * s;
+  g.fillStyle = p.rock[0];
+  g.beginPath();
+  g.moveTo(x - 13 * s, y);
+  g.lineTo(x - 10 * s, y - 10 * s);
+  g.lineTo(x - 2 * s, y - 15 * s);
+  g.lineTo(x + 9 * s, y - 11 * s);
+  g.lineTo(x + 13 * s, y - 1 * s);
+  g.closePath();
+  g.fill();
+  g.stroke();
+  g.fillStyle = p.rock[1];
+  g.beginPath();
+  g.moveTo(x - 8 * s, y - 9 * s);
+  g.lineTo(x - 2 * s, y - 13 * s);
+  g.lineTo(x + 6 * s, y - 10 * s);
+  g.lineTo(x - 2 * s, y - 6 * s);
+  g.closePath();
+  g.fill();
+}
+
+/**
+ * Ground of a level: the world's colours, soft patches, tufts and flowers, bushes and rocks away from
+ * the towers, and trees (cacti, pines…) around the playfield.
+ */
 export function drawGround(
   g: CanvasRenderingContext2D,
   w: number,
   h: number,
   f: { x: number; y: number; w: number; h: number },
   seed: number,
+  theme: Theme,
+  avoid: { x: number; y: number; r: number }[],
 ): void {
+  const p = PALETTES[theme];
   const rand = prand(seed * 7 + 3);
-  g.fillStyle = '#6ebf3c';
+  g.fillStyle = p.outer;
   g.fillRect(0, 0, w, h);
-  for (let i = 0; i < 60; i++) {
-    g.fillStyle = i % 2 ? 'rgba(255,255,255,0.05)' : 'rgba(0,60,0,0.05)';
-    g.beginPath();
-    g.ellipse(rand() * w, rand() * h, 40 + rand() * 120, 20 + rand() * 60, rand() * 3, 0, TAU);
-    g.fill();
-  }
   // playfield
-  const rad = Math.min(f.w, f.h) * 0.06;
-  g.fillStyle = 'rgba(0,50,0,0.18)';
+  const rad = Math.min(28, Math.min(f.w, f.h) * 0.06);
+  g.fillStyle = 'rgba(0,30,0,0.18)';
   g.beginPath();
   g.roundRect(f.x - 2, f.y + 4, f.w + 4, f.h + 2, rad);
   g.fill();
-  g.fillStyle = '#8fd956';
+  g.fillStyle = p.field;
   g.beginPath();
   g.roundRect(f.x, f.y, f.w, f.h, rad);
   g.fill();
   g.save();
   g.clip();
-  for (let i = 0; i < 40; i++) {
-    g.fillStyle = i % 3 ? 'rgba(255,255,255,0.07)' : 'rgba(0,80,0,0.06)';
+  for (let i = 0; i < 46; i++) {
+    g.fillStyle = i % 3 ? p.light : p.dark;
     g.beginPath();
     g.ellipse(
       f.x + rand() * f.w,
       f.y + rand() * f.h,
-      30 + rand() * f.w * 0.2,
+      30 + rand() * f.w * 0.22,
       16 + rand() * f.w * 0.1,
       rand() * 3,
       0,
@@ -558,9 +708,9 @@ export function drawGround(
     );
     g.fill();
   }
-  g.strokeStyle = 'rgba(40,110,20,0.45)';
+  g.strokeStyle = p.tuft;
   g.lineWidth = 1.6;
-  for (let i = 0; i < Math.round((f.w * f.h) / 2500); i++) {
+  for (let i = 0; i < Math.round((f.w * f.h) / 2200); i++) {
     const x = f.x + rand() * f.w,
       y = f.y + rand() * f.h;
     g.beginPath();
@@ -569,15 +719,34 @@ export function drawGround(
     g.lineTo(x + 3, y - 5);
     g.stroke();
   }
-  // a few flowers
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < 26; i++) {
     const x = f.x + rand() * f.w,
       y = f.y + rand() * f.h;
-    g.fillStyle = ['#fff', '#ffe066', '#ff9ec7'][i % 3] as string;
-    g.beginPath();
-    g.arc(x, y, 2.2, 0, TAU);
-    g.fill();
+    g.fillStyle = p.flowers[i % p.flowers.length] as string;
+    for (const [dx, dy] of [
+      [0, 0],
+      [4, 2],
+      [-3, 3],
+    ] as const)
+      if (rand() < 0.8) {
+        g.beginPath();
+        g.arc(x + dx, y + dy, 2.2, 0, TAU);
+        g.fill();
+      }
   }
+  // bushes and rocks, never under a tower
+  const s = Math.max(0.7, Math.min(1.2, f.w / 600));
+  const props: [number, number, 'bush' | 'rock'][] = [];
+  for (let i = 0; i < 40 && props.length < 12; i++) {
+    const x = f.x + 14 + rand() * (f.w - 28),
+      y = f.y + 24 + rand() * (f.h - 30);
+    if (avoid.some((a) => Math.hypot(a.x - x, a.y - y) < a.r + 26 * s)) continue;
+    if (props.some(([px, py]) => Math.hypot(px - x, py - y) < 50 * s)) continue;
+    props.push([x, y, rand() < 0.55 ? 'bush' : 'rock']);
+  }
+  props
+    .sort((a, b) => a[1] - b[1])
+    .forEach(([x, y, k]) => (k === 'bush' ? drawBush(g, x, y, s * 0.8, p) : drawRock(g, x, y, s * 0.8, p)));
   g.restore();
   g.strokeStyle = 'rgba(255,255,255,0.35)';
   g.lineWidth = 3;
@@ -585,16 +754,21 @@ export function drawGround(
   g.roundRect(f.x, f.y, f.w, f.h, rad);
   g.stroke();
   // trees around the playfield
-  const s = Math.max(0.6, Math.min(1.1, f.w / 700));
   const trees: [number, number][] = [];
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 110; i++) {
     const x = rand() * w,
       y = rand() * h;
     const inside = x > f.x - 20 && x < f.x + f.w + 20 && y > f.y - 10 && y < f.y + f.h + 50;
     if (inside) continue;
     trees.push([x, y]);
   }
-  trees.sort((a, b) => a[1] - b[1]).forEach(([x, y]) => drawTree(g, x, y, s * (0.7 + rand() * 0.5)));
+  trees.sort((a, b) => a[1] - b[1]).forEach(([x, y]) => drawTree(g, x, y, s * (0.7 + rand() * 0.5), theme));
+  // soft vignette
+  const vg = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.45, w / 2, h / 2, Math.max(w, h) * 0.75);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,20,0,0.18)');
+  g.fillStyle = vg;
+  g.fillRect(0, 0, w, h);
 }
 
 /** Stone wall between (x1,y1) and (x2,y2) in screen space: top face, front face, bricks. */
@@ -653,7 +827,22 @@ export function drawWall(
 
 /** Data URL of a tower kind in neutral grey (for the "Neu" card). */
 export function kindIcon(kind: TowerKind): string {
-  const sp = towerSprite(0, 2, kind);
+  return towerIcon(0, 2, kind);
+}
+
+const iconCache = new Map<string, string>();
+/** Cropped data URL of a tower (for DOM screens: new-tower card, campaign map). */
+export function towerIcon(owner: number, level: 1 | 2 | 3, kind: TowerKind): string {
+  const key = `${owner}:${level}:${kind}`;
+  const hit = iconCache.get(key);
+  if (hit) return hit;
+  const url = renderIcon(owner, level, kind);
+  iconCache.set(key, url);
+  return url;
+}
+
+function renderIcon(owner: number, level: 1 | 2 | 3, kind: TowerKind): string {
+  const sp = towerSprite(owner, level, kind);
   const top = sp.ay - sp.top - 6,
     bottom = sp.ay + 34,
     w = 180;

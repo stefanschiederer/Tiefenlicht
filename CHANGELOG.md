@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 – Kampagnen-Karte und schönere Handy-Grafik (2026-09-30)
+
+- Kampagnen-Karte als Startbildschirm: ein kurviger Weg nach oben durch die Welten, geschaffte Level grün (erneut spielbar), aktuelles Level blau mit wippendem Turm, gesperrte grau, alle zehn Level ein Boss-Feld mit rotem Turm. Großer „Level N“-Knopf unten, Karte von Start-, Pause- und Niederlage-Bildschirm aus erreichbar.
+- Vier Welten mit eigener Landschaft, je 10 Level: Grüne Wiesen, Heiße Wüste (Kakteen), Eisige Berge (verschneite Tannen), Goldener Herbst.
+- Spielfeld füllt den ganzen Handybildschirm; Büsche, Steine und Blumen auf dem Feld (nie unter Türmen), weiche Vignette.
+- Schärfere Grafik auf dem iPhone (volle Pixeldichte), größere Soldaten und Zahlen; Zahlen liegen immer über den Türmen.
+- Weniger Gedränge in späten Leveln, Mauern berühren sich nicht mehr.
+
 ## 1.1.0 – Besondere Türme (2026-09-30)
 
 - Kaserne (ab Level 4): Hallenbau mit Satteldach, bildet doppelt so schnell Soldaten aus.
