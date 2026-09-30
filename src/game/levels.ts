@@ -22,6 +22,7 @@ const HAND: Record<number, Omit<LevelDef, 'n'>> = {
     walls: [],
     aiInterval: 3.5,
     aiDelay: 12,
+    enemyGrowth: 0.7,
   },
   2: {
     towers: [
@@ -34,8 +35,9 @@ const HAND: Record<number, Omit<LevelDef, 'n'>> = {
       t(360, 200, 2, 12),
     ],
     walls: [],
-    aiInterval: 3,
-    aiDelay: 6,
+    aiInterval: 3.2,
+    aiDelay: 8,
+    enemyGrowth: 0.7,
   },
   3: {
     towers: [
@@ -48,8 +50,9 @@ const HAND: Record<number, Omit<LevelDef, 'n'>> = {
       t(520, 200, 2, 14),
     ],
     walls: [],
-    aiInterval: 2.6,
-    aiDelay: 4,
+    aiInterval: 3,
+    aiDelay: 7,
+    enemyGrowth: 0.72,
   },
 };
 
@@ -73,12 +76,13 @@ export function generate(n: number): LevelDef {
   for (let attempt = 0; attempt < 200; attempt++) {
     const rand = rng(n * 9973 + attempt * 131 + 7);
     const ri = (a: number, b: number) => a + Math.floor(rand() * (b - a + 1));
-    const two = n >= 12 && n % 5 === 2; // occasionally a second enemy
+    const two = n >= 15 && n % 5 === 2; // occasionally a second enemy
     const pairs = Math.min(2 + Math.floor(n / 4), 5);
     const towers: TowerDef[] = [];
     const start = 10 + Math.min(10, Math.floor(n / 3));
     const px = ri(150, 570);
-    towers.push(t(px, ri(1040, 1120), PLAYER, start));
+    // the player starts a little stronger (less so in late levels)
+    towers.push(t(px, ri(1040, 1120), PLAYER, start + Math.max(2, 6 - Math.floor(n / 10))));
     if (two) {
       towers.push(t(ri(90, 200), ri(160, 260), 2, start));
       towers.push(t(ri(520, 630), ri(160, 260), 3, start));
@@ -86,7 +90,7 @@ export function generate(n: number): LevelDef {
     // extra enemy tower on later levels
     const minD = TOWER_R * 4.4;
     const free = (x: number, y: number) => towers.every((o) => Math.hypot(o.x - x, o.y - y) >= minD);
-    if (!two && n >= 9 && rand() < 0.5) {
+    if (!two && n >= 16 && rand() < 0.5) {
       const x = ri(120, 600),
         y = ri(260, 380);
       if (!free(x, y) || !free(WORLD_W - x, WORLD_H - y)) continue;
@@ -153,8 +157,9 @@ export function generate(n: number): LevelDef {
       n,
       towers,
       walls,
-      aiInterval: Math.max(0.9, 2.6 - n * 0.06),
-      aiDelay: Math.max(1, 4 - n * 0.2),
+      aiInterval: Math.max(1.3, 3.2 - n * 0.045),
+      aiDelay: Math.max(3, 7 - n * 0.12),
+      enemyGrowth: Math.min(1, 0.7 + n * 0.008),
     };
     if (isPlayable(def)) return def;
   }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 – Leichtere Level (2026-09-30)
+
+- Gegner bilden anfangs langsamer aus (70 % in Level 1, erst ab etwa Level 38 volle Geschwindigkeit).
+- Gegner-KI entscheidet langsamer und legt später los; du startest mit ein paar Soldaten mehr.
+- Zweiter roter Startturm erst ab Level 16, zweiter Gegner erst ab Level 17.
+
 ## 1.2.0 – Kampagnen-Karte und schönere Handy-Grafik (2026-09-30)
 
 - Kampagnen-Karte als Startbildschirm: ein kurviger Weg nach oben durch die Welten, geschaffte Level grün (erneut spielbar), aktuelles Level blau mit wippendem Turm, gesperrte grau, alle zehn Level ein Boss-Feld mit rotem Turm. Großer „Level N“-Knopf unten, Karte von Start-, Pause- und Niederlage-Bildschirm aus erreichbar.

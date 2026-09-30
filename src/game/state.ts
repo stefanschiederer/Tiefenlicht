@@ -66,6 +66,8 @@ export interface LevelDef {
   aiInterval: number;
   /** Enemy waits this long before its first move. */
   aiDelay: number;
+  /** Production multiplier of enemy towers (below 1 makes the level easier). */
+  enemyGrowth?: number;
 }
 
 export interface GameState {

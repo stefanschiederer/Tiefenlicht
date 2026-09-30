@@ -307,7 +307,8 @@ export function step(s: GameState, dt: number): void {
       t.acc = 0;
       continue;
     }
-    t.acc += (GROWTH[levelOf(t) - 1] ?? 1) * KINDS[t.kind].growth * dt;
+    const handicap = t.owner >= 2 ? (s.def.enemyGrowth ?? 1) : 1;
+    t.acc += (GROWTH[levelOf(t) - 1] ?? 1) * KINDS[t.kind].growth * handicap * dt;
     while (t.acc >= 1 && t.troops < GROW_CAP) {
       t.troops++;
       t.acc--;

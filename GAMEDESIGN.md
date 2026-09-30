@@ -27,6 +27,7 @@ Die Art bleibt bei der Eroberung erhalten. Im Level der Einführung zeigt der St
 ## Level
 
 - Level 1–3 handgebaut (Tutorial-Hand, Hinweise zu Stufen und Kappen).
+- Schwierigkeit: Gegner-Produktion 70 % + 0,8 % je Level (max. 100 %), KI-Takt 3,2 s − 0,045 s je Level (min. 1,3 s), Startvorsprung des Spielers 2–6 Soldaten. Geprüft mit einem einfachen Bot: Level 1–15 fast immer gewonnen, danach zunehmend schwerer.
 - Ab Level 4 generiert: punktsymmetrische Aufstellung, mehr Türme und stärkere Neutrale mit steigender Nummer, Mauern ab Level 6, schnellere KI.
 
 ## Bewusst weggelassen
