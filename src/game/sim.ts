@@ -10,6 +10,9 @@ import {
   TOWER_R,
   TROOP_SPEED,
   WALL_T,
+  CANNON_RANGE,
+  CANNON_RELOAD,
+  KINDS,
 } from './config';
 import { pointSegDist, segIntersect, segSegDist } from './geom';
 import type { GameState, LevelDef, Line, Tower, Troop } from './state';
@@ -52,6 +55,8 @@ export function createGame(def: LevelDef): GameState {
     owner: t.owner,
     troops: t.troops,
     acc: 0,
+    kind: t.kind ?? 'tower',
+    cool: CANNON_RELOAD,
   }));
   const s: GameState = {
     def,
@@ -212,7 +217,7 @@ function arrive(s: GameState, t: Troop): void {
     B.troops = Math.min(MAX_TROOPS, B.troops + 1);
     return;
   }
-  B.troops -= 1;
+  B.troops -= KINDS[B.kind].damage;
   s.events.push({ type: 'hit', tower: B, owner: t.owner });
   if (B.troops < 0) {
     const from = B.owner;
@@ -258,6 +263,38 @@ function clashes(s: GameState): void {
   if (dead.size) s.troops = s.troops.filter((t) => !dead.has(t.id));
 }
 
+/** Cannon towers shoot the nearest foreign soldier in range (neutral cannons shoot everybody). */
+function cannons(s: GameState, dt: number): void {
+  for (const c of s.towers) {
+    if (c.kind !== 'cannon') continue;
+    c.cool -= dt;
+    if (c.cool > 0) continue;
+    let best: Troop | null = null,
+      bestD = CANNON_RANGE;
+    let bx = 0,
+      by = 0;
+    for (const u of s.troops) {
+      if (u.owner === c.owner) continue;
+      const p = troopPos(s, u);
+      const d = Math.hypot(p.x - c.x, p.y - c.y);
+      if (d < bestD) {
+        best = u;
+        bestD = d;
+        bx = p.x;
+        by = p.y;
+      }
+    }
+    if (!best) {
+      c.cool = 0;
+      continue;
+    }
+    c.cool = CANNON_RELOAD;
+    const id = best.id;
+    s.troops = s.troops.filter((u) => u.id !== id);
+    s.events.push({ type: 'shot', tower: c, x: bx, y: by });
+  }
+}
+
 /* ------------------------------------------------------------------ step */
 
 export function step(s: GameState, dt: number): void {
@@ -270,7 +307,7 @@ export function step(s: GameState, dt: number): void {
       t.acc = 0;
       continue;
     }
-    t.acc += (GROWTH[levelOf(t) - 1] ?? 1) * dt;
+    t.acc += (GROWTH[levelOf(t) - 1] ?? 1) * KINDS[t.kind].growth * dt;
     while (t.acc >= 1 && t.troops < GROW_CAP) {
       t.troops++;
       t.acc--;
@@ -308,6 +345,7 @@ export function step(s: GameState, dt: number): void {
     for (const t of arrived) arrive(s, t);
   }
   clashes(s);
+  cannons(s, dt);
   // end of game
   const alive = (o: number) => s.towers.some((t) => t.owner === o) || s.troops.some((t) => t.owner === o);
   if (!alive(PLAYER)) {

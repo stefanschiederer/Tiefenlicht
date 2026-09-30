@@ -1,9 +1,10 @@
 import { enemiesFor, type Enemy } from '@/game/ai';
-import { PLAYER, TEAM_COLORS } from '@/game/config';
+import { KINDS, PLAYER, TEAM_COLORS, type TowerKind } from '@/game/config';
 import { levelDef } from '@/game/levels';
 import { addLine, checkLine, createGame, cutLines, drainEvents, radiusOf, step, strength } from '@/game/sim';
 import type { GameState } from '@/game/state';
 import { Renderer, type UiState } from '@/render/renderer';
+import { kindIcon } from '@/render/sprites';
 import { setSound, sfx, unlockAudio } from './audio';
 import { loadSave, writeSave, type Save } from './save';
 
@@ -129,6 +130,7 @@ export class App {
     this.setScreen(
       `<div class="logo">Tiefenlicht</div>
        <div class="start-bottom">
+         ${this.newKindCard()}
          <div class="level-big">Level ${this.state.def.n}</div>
          <button class="big green" id="play">Spielen</button>
        </div>
@@ -140,6 +142,15 @@ export class App {
       this.toggleSound();
       $('sound').innerHTML = this.save.sound ? ICON.soundOn : ICON.soundOff;
     });
+  }
+
+  /** "Neu" card on the start screen of the level that introduces a tower kind. */
+  private newKindCard(): string {
+    const n = this.state.def.n;
+    const kind = (Object.keys(KINDS) as TowerKind[]).find((k) => k !== 'tower' && KINDS[k].from === n);
+    if (!kind) return '';
+    const url = kindIcon(kind);
+    return `<div class="new-card"><img src="${url}" alt="" /><div><b>Neu: ${KINDS[kind].name}</b><span>${KINDS[kind].desc}</span></div></div>`;
   }
 
   private showPause(): void {

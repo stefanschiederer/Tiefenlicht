@@ -1,4 +1,4 @@
-import { TEAM_COLORS, TEAM_DARK, WALL_T } from '@/game/config';
+import { CANNON_RANGE, TEAM_COLORS, TEAM_DARK, WALL_T } from '@/game/config';
 import { levelOf, radiusOf, tower, troopPos } from '@/game/sim';
 import type { GameEvent, GameState, Line } from '@/game/state';
 import { drawGround, drawWall, towerSprite, troopSprite } from './sprites';
@@ -37,6 +37,9 @@ export class Renderer {
   /** Per-tower pop animation after a capture. */
   private pop = new Map<number, number>();
   private rings: { x: number; y: number; t: number; color: string }[] = [];
+  /** Cannon aim angle (screen radians) and recoil per tower. */
+  private aim = new Map<number, { a: number; kick: number }>();
+  private shots: { x1: number; y1: number; x2: number; y2: number; t: number }[] = [];
 
   constructor(readonly canvas: HTMLCanvasElement) {
     this.g = canvas.getContext('2d') as CanvasRenderingContext2D;
@@ -69,6 +72,18 @@ export class Renderer {
       } else if (e.type === 'hit') {
         const t = e.tower;
         if (Math.random() < 0.5) this.burst(v.sx(t.x, t.y), v.sy(t.x, t.y) - 10, '#ffffff', 2);
+      } else if (e.type === 'shot') {
+        const t = e.tower;
+        const sp = towerSprite(t.owner, levelOf(t), t.kind);
+        const k = (radiusOf(t) * v.k * 1.18) / sp.r;
+        const gx = v.sx(t.x, t.y),
+          gy = v.sy(t.x, t.y) + radiusOf(t) * v.k * 0.35 - (sp.gun ?? 0) * k;
+        const tx = v.sx(e.x, e.y),
+          ty = v.sy(e.x, e.y);
+        this.aim.set(t.id, { a: Math.atan2(ty - gy, tx - gx), kick: 1 });
+        this.shots.push({ x1: gx, y1: gy, x2: tx, y2: ty, t: 0 });
+        this.burst(tx, ty - 6, '#555c66', 6);
+        this.burst(tx, ty - 6, '#ffd166', 3);
       } else if (e.type === 'clash') {
         this.burst(v.sx(e.x, e.y), v.sy(e.x, e.y), '#ffffff', 4);
       } else if (e.type === 'cut') {
@@ -267,11 +282,24 @@ export class Renderer {
         y: y + 1,
         draw: () => {
           const lvl = levelOf(t);
-          const sp = towerSprite(t.owner, lvl);
+          const sp = towerSprite(t.owner, lvl, t.kind);
           const pop = this.pop.get(t.id) ?? 0;
           const k = ((radiusOf(t) * v.k * 1.18) / sp.r) * (1 + pop * 0.25);
           const ay = y + radiusOf(t) * v.k * 0.35;
+          if (t.kind === 'cannon') {
+            // range ring on the ground
+            g.setLineDash([6, 8]);
+            g.strokeStyle = t.owner ? (TEAM_COLORS[t.owner] ?? '#fff') : 'rgba(255,255,255,0.8)';
+            g.globalAlpha = 0.45;
+            g.lineWidth = 2.5;
+            g.beginPath();
+            g.arc(x, y, CANNON_RANGE * v.k, 0, TAU);
+            g.stroke();
+            g.setLineDash([]);
+            g.globalAlpha = 1;
+          }
           g.drawImage(sp.c, x - sp.ax * k, ay - sp.ay * k, sp.c.width * k, sp.c.height * k);
+          if (t.kind === 'cannon') this.drawBarrel(t.id, t.owner, x, ay - (sp.gun ?? 0) * k, k);
           // troop count
           const fs = Math.max(15, Math.min(30, radiusOf(t) * v.k * 0.78));
           const ty = ay - sp.top * k - fs * 0.25;
@@ -291,8 +319,54 @@ export class Renderer {
     items.sort((a, b) => a.y - b.y).forEach((it) => it.draw());
   }
 
+  /** Cannon barrel turned towards its last target, with a short recoil. */
+  private drawBarrel(id: number, owner: number, x: number, y: number, k: number): void {
+    const g = this.g;
+    const st = this.aim.get(id) ?? { a: owner === 1 ? -Math.PI * 0.3 : -Math.PI * 0.7, kick: 0 };
+    const len = 46 * k * (1 - st.kick * 0.25),
+      w = 16 * k;
+    g.save();
+    g.translate(x, y);
+    g.rotate(st.a);
+    g.fillStyle = '#2e343d';
+    g.strokeStyle = '#1d2530';
+    g.lineWidth = 3 * k;
+    g.beginPath();
+    g.roundRect(-w * 0.3, -w / 2, len, w, w * 0.35);
+    g.fill();
+    g.stroke();
+    g.fillStyle = '#4a525e';
+    g.beginPath();
+    g.roundRect(len - w * 0.5, -w * 0.62, w * 0.5, w * 1.24, 3 * k);
+    g.fill();
+    g.stroke();
+    g.restore();
+    g.fillStyle = '#3b4350';
+    g.strokeStyle = '#1d2530';
+    g.lineWidth = 3 * k;
+    g.beginPath();
+    g.arc(x, y, 11 * k, 0, TAU);
+    g.fill();
+    g.stroke();
+  }
+
   private drawEffects(dt: number): void {
     const g = this.g;
+    for (const st of this.aim.values()) st.kick = Math.max(0, st.kick - dt * 5);
+    this.shots = this.shots.filter((sh) => (sh.t += dt) < 0.15);
+    for (const sh of this.shots) {
+      const p = sh.t / 0.15;
+      g.fillStyle = '#1d2530';
+      g.beginPath();
+      g.arc(sh.x1 + (sh.x2 - sh.x1) * p, sh.y1 + (sh.y2 - sh.y1) * p, 4, 0, TAU);
+      g.fill();
+      if (p < 0.4) {
+        g.fillStyle = '#ffd166';
+        g.beginPath();
+        g.arc(sh.x1, sh.y1, 9 * (1 - p), 0, TAU);
+        g.fill();
+      }
+    }
     for (const [id, p] of this.pop) {
       const n = p - dt * 3;
       if (n <= 0) this.pop.delete(id);

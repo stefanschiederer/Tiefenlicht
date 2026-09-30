@@ -14,6 +14,16 @@ Stand 2026-09-30: kompletter Neuanfang als möglichst genauer Nachbau von Tower 
 - Kappen per Wischen; Rückweg für Soldaten vor dem Schnitt.
 - Zurückziehen über die eigene Linie dreht sie um.
 
+## Besondere Türme
+
+| Turm        | ab Level | Wirkung                                                                                                       |
+| ----------- | -------- | ------------------------------------------------------------------------------------------------------------- |
+| Kaserne     | 4        | doppelte Produktion                                                                                           |
+| Festung     | 6        | Angreifer ziehen nur 0,5 ab                                                                                   |
+| Kanonenturm | 8        | halbe Produktion, schießt alle 0,75 s einen fremden Soldaten in 200 Einheiten Reichweite ab; neutral auf alle |
+
+Die Art bleibt bei der Eroberung erhalten. Im Level der Einführung zeigt der Startbildschirm eine „Neu“-Karte.
+
 ## Level
 
 - Level 1–3 handgebaut (Tutorial-Hand, Hinweise zu Stufen und Kappen).
@@ -21,4 +31,4 @@ Stand 2026-09-30: kompletter Neuanfang als möglichst genauer Nachbau von Tower 
 
 ## Bewusst weggelassen
 
-Skills, Fähigkeiten, Energie, Gebäudetypen, Editor, Tages-Karte, Erfolge, Endlosmodus.
+Skills, Fähigkeiten, Energie, Editor, Tages-Karte, Erfolge, Endlosmodus.

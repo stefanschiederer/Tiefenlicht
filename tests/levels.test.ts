@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { enemiesFor } from '@/game/ai';
-import { NEUTRAL, PLAYER, TOWER_R, WORLD_H, WORLD_W } from '@/game/config';
+import { KINDS, NEUTRAL, PLAYER, TOWER_R, WORLD_H, WORLD_W } from '@/game/config';
 import { isPlayable, levelDef } from '@/game/levels';
 import { addLine, checkLine, createGame, dropLine, step } from '@/game/sim';
 import type { GameState } from '@/game/state';
@@ -57,7 +57,12 @@ function playerBot(s: GameState): void {
   const mine = s.towers.filter((t) => t.owner === PLAYER).sort((a, b) => b.troops - a.troops);
   for (const t of mine) {
     const targets = s.towers
-      .filter((d) => d.owner !== PLAYER && checkLine(s, t.id, d.id, PLAYER) === 'ok' && d.troops < t.troops)
+      .filter(
+        (d) =>
+          d.owner !== PLAYER &&
+          checkLine(s, t.id, d.id, PLAYER) === 'ok' &&
+          d.troops / KINDS[d.kind].damage < t.troops,
+      )
       .sort((a, b) => a.troops - b.troops);
     const d = targets[0];
     if (d && t.troops >= 6) addLine(s, t.id, d.id, PLAYER);

@@ -27,3 +27,43 @@ export const SEND_INTERVAL = 0.5;
 export const TROOP_SPEED = 115;
 /** Wall thickness (world units); lines may not cross walls. */
 export const WALL_T = 22;
+
+/** Tower kinds (Tower-War-style special towers). */
+export type TowerKind = 'tower' | 'barracks' | 'fortress' | 'cannon';
+export interface KindDef {
+  name: string;
+  desc: string;
+  /** Production multiplier. */
+  growth: number;
+  /** Troops one attacking soldier removes. */
+  damage: number;
+  /** First campaign level the kind appears in. */
+  from: number;
+}
+export const KINDS: Record<TowerKind, KindDef> = {
+  tower: { name: 'Turm', desc: 'Der normale Turm.', growth: 1, damage: 1, from: 1 },
+  barracks: {
+    name: 'Kaserne',
+    desc: 'Bildet doppelt so schnell Soldaten aus. Nimm sie früh ein!',
+    growth: 2,
+    damage: 1,
+    from: 4,
+  },
+  fortress: {
+    name: 'Festung',
+    desc: 'Dicke Mauern: Jeder Angreifer zählt nur halb.',
+    growth: 1,
+    damage: 0.5,
+    from: 6,
+  },
+  cannon: {
+    name: 'Kanonenturm',
+    desc: 'Schießt auf fremde Soldaten in seiner Nähe. Neutrale Kanonen schießen auf alle.',
+    growth: 0.5,
+    damage: 1,
+    from: 8,
+  },
+};
+export const CANNON_RANGE = 200;
+/** Seconds between two cannon shots. */
+export const CANNON_RELOAD = 0.75;

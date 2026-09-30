@@ -1,11 +1,19 @@
-import { NEUTRAL, PLAYER, TOWER_R, WALL_T, WORLD_H, WORLD_W } from './config';
+import { KINDS, NEUTRAL, PLAYER, TOWER_R, WALL_T, WORLD_H, WORLD_W, type TowerKind } from './config';
+
+const SPECIAL: TowerKind[] = ['barracks', 'fortress', 'cannon'];
 import { pointSegDist, rng } from './geom';
 import { computeReach } from './sim';
 import type { LevelDef, Tower, Wall } from './state';
 
 type TowerDef = LevelDef['towers'][number];
 
-const t = (x: number, y: number, owner: number, troops: number): TowerDef => ({ x, y, owner, troops });
+const t = (x: number, y: number, owner: number, troops: number, kind: TowerKind = 'tower'): TowerDef => ({
+  x,
+  y,
+  owner,
+  troops,
+  kind,
+});
 
 /** Hand-made opening levels (tutorial pacing), then generated ones. */
 const HAND: Record<number, Omit<LevelDef, 'n'>> = {
@@ -85,6 +93,17 @@ export function generate(n: number): LevelDef {
       towers.push(t(x, y, 2, 6 + Math.floor(n / 4)));
       towers.push(t(WORLD_W - x, WORLD_H - y, NEUTRAL, 6 + Math.floor(n / 4)));
     }
+    // special towers: the newest kind always shows up in the level that introduces it, then a mix
+    const avail = SPECIAL.filter((k) => KINDS[k].from <= n);
+    const fresh = SPECIAL.find((k) => KINDS[k].from === n);
+    const specials: TowerKind[] = [];
+    if (fresh) specials.push(fresh);
+    const want = avail.length ? Math.min(1 + Math.floor(n / 10), 3) : 0;
+    const offset = Math.floor(rand() * 3);
+    for (let i = 0; specials.length < want && i < 6; i++) {
+      const k = avail[(i + offset) % avail.length] as TowerKind;
+      if (!specials.includes(k) || specials.length >= avail.length) specials.push(k);
+    }
     let tries = 0;
     let placed = 0;
     while (placed < pairs && tries++ < 400) {
@@ -94,7 +113,9 @@ export function generate(n: number): LevelDef {
         my = WORLD_H - y;
       if (!free(x, y) || !free(mx, my) || Math.hypot(mx - x, my - y) < minD) continue;
       const troops = ri(3, 8 + Math.min(22, n));
-      towers.push(t(x, y, NEUTRAL, troops), t(mx, my, NEUTRAL, troops));
+      const kind: TowerKind = specials[placed] ?? 'tower';
+      const tr = kind === 'fortress' ? Math.ceil(troops * 0.6) : troops;
+      towers.push(t(x, y, NEUTRAL, tr, kind), t(mx, my, NEUTRAL, tr, kind));
       placed++;
     }
     // central tower sometimes
@@ -138,7 +159,7 @@ export function generate(n: number): LevelDef {
 
 /** Every tower is reachable from the player's start over drawable lines. */
 export function isPlayable(def: LevelDef): boolean {
-  const towers: Tower[] = def.towers.map((x, id) => ({ id, ...x, acc: 0 }));
+  const towers: Tower[] = def.towers.map((x, id) => ({ id, ...x, acc: 0, kind: x.kind ?? 'tower', cool: 0 }));
   const reach = computeReach({ towers, walls: def.walls });
   const seen = new Set<number>([0]);
   const queue = [0];

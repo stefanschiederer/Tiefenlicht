@@ -1,4 +1,4 @@
-import { TEAM_COLORS, TEAM_DARK, TEAM_LIGHT } from '@/game/config';
+import { TEAM_COLORS, TEAM_DARK, TEAM_LIGHT, type TowerKind } from '@/game/config';
 
 /* Procedural cartoon sprites in the Tower War look. All drawn on 2D canvases, no external assets. */
 
@@ -14,6 +14,8 @@ export interface Sprite {
   r: number;
   /** Height of the top of the art above the anchor. */
   top: number;
+  /** Height of the cannon mount above the anchor (cannon towers). */
+  gun?: number;
 }
 
 function mk(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -28,16 +30,37 @@ function mk(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D]
 
 const towerCache = new Map<string, Sprite>();
 
-/** Round castle tower in the owner colour; taller with each level, flag on level 3. */
-export function towerSprite(owner: number, level: 1 | 2 | 3): Sprite {
-  const key = `${owner}:${level}`;
+/** Tower art for every kind, cached per owner, level and kind. */
+export function towerSprite(owner: number, level: 1 | 2 | 3, kind: TowerKind = 'tower'): Sprite {
+  const key = `${owner}:${level}:${kind}`;
   const hit = towerCache.get(key);
   if (hit) return hit;
+  const sp =
+    kind === 'barracks'
+      ? barracksSprite(owner, level)
+      : kind === 'fortress'
+        ? roundTower(owner, level, { rMul: 1.18, hMul: 0.7, fortress: true })
+        : kind === 'cannon'
+          ? roundTower(owner, level, { rMul: 0.95, hMul: 0.85, cannon: true })
+          : roundTower(owner, level, {});
+  towerCache.set(key, sp);
+  return sp;
+}
+
+interface TowerOpts {
+  rMul?: number;
+  hMul?: number;
+  fortress?: boolean;
+  cannon?: boolean;
+}
+
+/** Round castle tower in the owner colour; taller with each level, flag on level 3. */
+function roundTower(owner: number, level: 1 | 2 | 3, o: TowerOpts): Sprite {
   const col = TEAM_COLORS[owner] ?? TEAM_COLORS[0],
     dark = TEAM_DARK[owner] ?? TEAM_DARK[0],
     light = TEAM_LIGHT[owner] ?? TEAM_LIGHT[0];
-  const r = [46, 50, 54][level - 1] as number;
-  const hgt = [40, 64, 88][level - 1] as number;
+  const r = ([46, 50, 54][level - 1] as number) * (o.rMul ?? 1);
+  const hgt = ([40, 64, 88][level - 1] as number) * (o.hMul ?? 1);
   const ry = r * 0.42;
   const W = 200,
     H = 260,
@@ -68,6 +91,7 @@ export function towerSprite(owner: number, level: 1 | 2 | 3): Sprite {
   g.ellipse(ax, ay - ph, pr, pry, 0, 0, TAU);
   g.fill();
   g.stroke();
+  if (o.fortress) stoneRing(g, ax, ay - ph, r + 16, 26, 'back');
   // body cylinder
   const by = ay - ph + 2;
   const grd = g.createLinearGradient(ax - r, 0, ax + r, 0);
@@ -123,8 +147,25 @@ export function towerSprite(owner: number, level: 1 | 2 | 3): Sprite {
   g.closePath();
   g.fill();
   g.stroke();
+  // shield emblem on fortresses
+  if (o.fortress) {
+    const sy = by - hgt * 0.72;
+    g.fillStyle = '#f2f4f7';
+    g.beginPath();
+    g.moveTo(ax - 14, sy);
+    g.lineTo(ax + 14, sy);
+    g.lineTo(ax + 14, sy + 14);
+    g.quadraticCurveTo(ax + 12, sy + 26, ax, sy + 32);
+    g.quadraticCurveTo(ax - 12, sy + 26, ax - 14, sy + 14);
+    g.closePath();
+    g.fill();
+    g.stroke();
+    g.fillStyle = col;
+    g.fillRect(ax - 3, sy + 4, 6, 22);
+    g.fillRect(ax - 10, sy + 10, 20, 6);
+  }
   // window on level 2+
-  if (level >= 2) {
+  if (level >= 2 && !o.fortress) {
     g.fillStyle = '#26303b';
     const wy = by - hgt * 0.62;
     g.beginPath();
@@ -155,8 +196,16 @@ export function towerSprite(owner: number, level: 1 | 2 | 3): Sprite {
   g.beginPath();
   g.ellipse(ax, ty + 2, r * 0.66, ry * 0.62, 0, 0, TAU);
   g.fill();
+  if (o.cannon) {
+    // gun mount on the platform (the barrel is drawn live by the renderer)
+    g.fillStyle = '#3b4350';
+    g.beginPath();
+    g.ellipse(ax, ty - 2, r * 0.42, ry * 0.5, 0, 0, TAU);
+    g.fill();
+    g.stroke();
+  }
   // flag on level 3
-  if (level >= 3) {
+  if (level >= 3 && !o.cannon) {
     g.strokeStyle = '#4b3a2c';
     g.lineWidth = 5;
     g.beginPath();
@@ -175,9 +224,207 @@ export function towerSprite(owner: number, level: 1 | 2 | 3): Sprite {
     g.stroke();
   }
   for (let i = 0; i < merlons; i++) if (Math.sin((i / merlons) * TAU) >= 0) drawMerlon(i);
-  const sprite: Sprite = { c, ax, ay, r, top: ay - ty + ry + (level >= 3 ? 50 : 16) };
-  towerCache.set(key, sprite);
-  return sprite;
+  if (o.fortress) stoneRing(g, ax, ay - ph, r + 16, 26, 'front');
+  return {
+    c,
+    ax,
+    ay,
+    r: r / (o.rMul ?? 1),
+    top: ay - ty + ry + (level >= 3 && !o.cannon ? 50 : 16),
+    gun: ay - ty + 4,
+  };
+}
+
+/** Crenellated stone ring wall (fortress), drawn in two halves around the tower body. */
+function stoneRing(
+  g: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  r: number,
+  h: number,
+  half: 'back' | 'front',
+): void {
+  const ry = r * 0.42;
+  const [a0, a1] = half === 'back' ? [Math.PI, TAU] : [0, Math.PI];
+  g.strokeStyle = OUT;
+  g.lineWidth = 4;
+  // wall band
+  g.fillStyle = half === 'back' ? '#8b949f' : '#aab2bc';
+  g.beginPath();
+  g.ellipse(cx, cy, r, ry, 0, a0, a1);
+  g.ellipse(cx, cy - h, r, ry, 0, a1, a0, true);
+  g.closePath();
+  g.fill();
+  g.stroke();
+  // merlons on top
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * TAU;
+    const inHalf = half === 'back' ? Math.sin(a) < 0 : Math.sin(a) >= 0;
+    if (!inHalf) continue;
+    const mx = cx + Math.cos(a) * r,
+      my = cy - h + Math.sin(a) * ry;
+    g.fillStyle = '#c7cdd4';
+    g.beginPath();
+    g.roundRect(mx - 7, my - 12, 14, 14, 3);
+    g.fill();
+    g.stroke();
+  }
+  if (half === 'front') {
+    // gate
+    g.fillStyle = '#3a2a22';
+    g.beginPath();
+    g.moveTo(cx - 13, cy + ry - 1);
+    g.lineTo(cx - 13, cy + ry - 16);
+    g.arc(cx, cy + ry - 16, 13, Math.PI, 0);
+    g.lineTo(cx + 13, cy + ry - 1);
+    g.closePath();
+    g.fill();
+    g.stroke();
+  }
+}
+
+/** Barracks: a square hall with a pitched roof in the owner colour; bigger with each level. */
+function barracksSprite(owner: number, level: 1 | 2 | 3): Sprite {
+  const col = TEAM_COLORS[owner] ?? TEAM_COLORS[0],
+    dark = TEAM_DARK[owner] ?? TEAM_DARK[0],
+    light = TEAM_LIGHT[owner] ?? TEAM_LIGHT[0];
+  const W = 200,
+    H = 260,
+    ax = 100,
+    ay = 220;
+  const [c, g] = mk(W, H);
+  g.strokeStyle = OUT;
+  g.lineWidth = 4;
+  const w = [84, 92, 100][level - 1] as number,
+    d = 30,
+    h = [34, 46, 58][level - 1] as number,
+    roof = [30, 36, 42][level - 1] as number;
+  g.fillStyle = 'rgba(20,50,20,0.25)';
+  g.beginPath();
+  g.ellipse(ax + 8, ay + 2, w * 0.72, 22, 0, 0, TAU);
+  g.fill();
+  // coordinates: front face from (x0, y0) to (x1, y0-h); depth goes up-right by (d, -d*0.6)
+  const x0 = ax - w / 2,
+    x1 = ax + w / 2 - d * 0.5,
+    y0 = ay + 4,
+    dx = d,
+    dy = -d * 0.6;
+  const poly = (pts: [number, number][], fill: string) => {
+    g.fillStyle = fill;
+    g.beginPath();
+    pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    g.closePath();
+    g.fill();
+    g.stroke();
+  };
+  // stone walls
+  poly(
+    [
+      [x1, y0],
+      [x1 + dx, y0 + dy],
+      [x1 + dx, y0 + dy - h],
+      [x1, y0 - h],
+    ],
+    '#9aa3ad',
+  );
+  poly(
+    [
+      [x0, y0],
+      [x1, y0],
+      [x1, y0 - h],
+      [x0, y0 - h],
+    ],
+    '#d5dae0',
+  );
+  // brick hints
+  g.strokeStyle = 'rgba(0,0,0,0.14)';
+  g.lineWidth = 2;
+  for (let y = y0 - 12; y > y0 - h + 4; y -= 12) {
+    g.beginPath();
+    g.moveTo(x0 + 3, y);
+    g.lineTo(x1 - 3, y);
+    g.stroke();
+  }
+  g.strokeStyle = OUT;
+  g.lineWidth = 4;
+  // roof: front gable triangle + slope
+  const rx0 = x0 - 6,
+    rx1 = x1 + 6,
+    ry0 = y0 - h,
+    mid = (rx0 + rx1) / 2;
+  poly(
+    [
+      [mid, ry0 - roof],
+      [rx1, ry0],
+      [rx1 + dx, ry0 + dy],
+      [mid + dx, ry0 - roof + dy],
+    ],
+    dark,
+  );
+  poly(
+    [
+      [rx0, ry0],
+      [mid, ry0 - roof],
+      [mid + dx, ry0 - roof + dy],
+      [rx0 + dx, ry0 + dy],
+    ],
+    col,
+  );
+  poly(
+    [
+      [rx0, ry0],
+      [rx1, ry0],
+      [mid, ry0 - roof],
+    ],
+    light,
+  );
+  // door and windows
+  g.fillStyle = '#3a2a22';
+  g.beginPath();
+  g.roundRect(ax - d * 0.25 - 12, y0 - 26, 24, 26, [10, 10, 0, 0]);
+  g.fill();
+  g.stroke();
+  g.fillStyle = '#26303b';
+  for (const wx of [x0 + 14, x1 - 26])
+    if (h > 40) {
+      g.beginPath();
+      g.roundRect(wx, y0 - h + 10, 12, 14, 3);
+      g.fill();
+      g.stroke();
+    }
+  // crossed swords sign on the gable
+  g.strokeStyle = '#ffffff';
+  g.lineWidth = 3;
+  g.beginPath();
+  g.moveTo(mid - 8, ry0 - 6);
+  g.lineTo(mid + 8, ry0 - roof * 0.6);
+  g.moveTo(mid + 8, ry0 - 6);
+  g.lineTo(mid - 8, ry0 - roof * 0.6);
+  g.stroke();
+  g.strokeStyle = OUT;
+  g.lineWidth = 4;
+  if (level >= 3) {
+    g.strokeStyle = '#4b3a2c';
+    g.lineWidth = 5;
+    g.beginPath();
+    g.moveTo(mid + dx * 0.5, ry0 - roof + dy * 0.5);
+    g.lineTo(mid + dx * 0.5, ry0 - roof + dy * 0.5 - 44);
+    g.stroke();
+    g.strokeStyle = OUT;
+    g.lineWidth = 3.5;
+    g.fillStyle = col;
+    const fx = mid + dx * 0.5 + 2,
+      fy = ry0 - roof + dy * 0.5 - 44;
+    g.beginPath();
+    g.moveTo(fx, fy);
+    g.quadraticCurveTo(fx + 18, fy - 2, fx + 36, fy + 9);
+    g.quadraticCurveTo(fx + 18, fy + 18, fx, fy + 20);
+    g.closePath();
+    g.fill();
+    g.stroke();
+  }
+  const top = ay - (ry0 - roof + dy) + (level >= 3 ? 40 : 6);
+  return { c, ax, ay, r: 50, top, gun: 0 };
 }
 
 const troopCache = new Map<number, Sprite>();
@@ -402,4 +649,35 @@ export function drawWall(
     g.stroke();
   }
   g.lineCap = 'round';
+}
+
+/** Data URL of a tower kind in neutral grey (for the "Neu" card). */
+export function kindIcon(kind: TowerKind): string {
+  const sp = towerSprite(0, 2, kind);
+  const top = sp.ay - sp.top - 6,
+    bottom = sp.ay + 34,
+    w = 180;
+  const [c, g] = mk(w, bottom - top);
+  g.drawImage(sp.c, sp.ax - w / 2, top, w, bottom - top, 0, 0, w, bottom - top);
+  if (kind === 'cannon') {
+    // barrel, as in the game
+    const y = sp.ay - (sp.gun ?? 0) - top;
+    g.save();
+    g.translate(w / 2, y);
+    g.rotate(-Math.PI * 0.3);
+    g.fillStyle = '#2e343d';
+    g.strokeStyle = OUT;
+    g.lineWidth = 3;
+    g.beginPath();
+    g.roundRect(-5, -8, 46, 16, 6);
+    g.fill();
+    g.stroke();
+    g.restore();
+    g.fillStyle = '#3b4350';
+    g.beginPath();
+    g.arc(w / 2, y, 11, 0, TAU);
+    g.fill();
+    g.stroke();
+  }
+  return c.toDataURL();
 }

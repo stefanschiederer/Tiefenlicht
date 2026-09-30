@@ -1,5 +1,5 @@
-import { NEUTRAL } from './config';
-import { rng } from './geom';
+import { CANNON_RANGE, KINDS, NEUTRAL } from './config';
+import { pointSegDist, rng } from './geom';
 import { addLine, checkLine, dropLine, levelOf, lineLimit, linesFrom, tower } from './sim';
 import type { GameState, Tower } from './state';
 
@@ -78,9 +78,14 @@ export class Enemy {
         if (threat === 0 || d.troops > threat + 5) continue;
         score = 40 + threat - d.troops;
       } else {
-        const margin = from.troops - d.troops;
+        const margin = from.troops - d.troops / KINDS[d.kind].damage;
         if (margin < 2 && !(d.owner !== NEUTRAL && levelOf(from) >= 2)) continue;
         score = margin * 0.8 - dist / 60 + (d.owner === NEUTRAL ? 4 : 8) + this.rand() * 4;
+        if (d.kind === 'barracks') score += 6;
+        // lines that run past a foreign cannon lose soldiers
+        for (const c of s.towers)
+          if (c.kind === 'cannon' && c.owner !== this.owner && c !== d)
+            if (pointSegDist(c.x, c.y, from.x, from.y, d.x, d.y) < CANNON_RANGE) score -= 8;
       }
       if (score > bestScore) {
         bestScore = score;

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 – Besondere Türme (2026-09-30)
+
+- Kaserne (ab Level 4): Hallenbau mit Satteldach, bildet doppelt so schnell Soldaten aus.
+- Festung (ab Level 6): breiter Turm mit Ringmauer und Wappen, jeder Angreifer zählt nur halb.
+- Kanonenturm (ab Level 8): drehbares Geschütz mit sichtbarer Reichweite, schießt fremde Soldaten ab; neutrale Kanonen schießen auf alle.
+- „Neu“-Karte auf dem Startbildschirm des Einführungslevels; Gegner-KI berücksichtigt Festungen, Kasernen und Kanonen.
+
 ## 1.0.0 – Neuanfang als Tower-War-Nachbau (2026-09-30)
 
 - Spiel komplett neu geschrieben: nur Türme, Linien, Soldaten und Level, ohne Skills, Fähigkeiten, Energie, Gebäudetypen, Editor, Tages-Karte, Erfolge und Endlosmodus.

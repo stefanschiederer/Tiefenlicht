@@ -1,3 +1,5 @@
+import type { TowerKind } from './config';
+
 export interface Tower {
   id: number;
   x: number;
@@ -6,6 +8,9 @@ export interface Tower {
   troops: number;
   /** Production accumulator (fractions of a troop). */
   acc: number;
+  kind: TowerKind;
+  /** Cannon reload countdown. */
+  cool: number;
 }
 
 export interface Line {
@@ -48,13 +53,14 @@ export type GameEvent =
   | { type: 'cut'; line: Line; x: number; y: number }
   | { type: 'capture'; tower: Tower; from: number }
   | { type: 'hit'; tower: Tower; owner: number }
+  | { type: 'shot'; tower: Tower; x: number; y: number }
   | { type: 'clash'; x: number; y: number; a: number; b: number }
   | { type: 'end'; result: 'win' | 'lose' };
 
 export interface LevelDef {
   /** 1-based level number. */
   n: number;
-  towers: { x: number; y: number; owner: number; troops: number }[];
+  towers: { x: number; y: number; owner: number; troops: number; kind?: TowerKind }[];
   walls: Wall[];
   /** Seconds between enemy decisions. */
   aiInterval: number;

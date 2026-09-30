@@ -273,8 +273,39 @@ button {
   border-radius: 8px;
   font-size: 12px;
 }
+/* ---- new tower kind card ---- */
+.new-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(92vw, 420px);
+  padding: 8px 16px 8px 8px;
+  border-radius: 20px;
+  background: #fff;
+  border: 3px solid var(--ink);
+  box-shadow: 0 5px 0 var(--ink);
+  animation: pop-in 0.4s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.new-card img {
+  width: 78px;
+  height: auto;
+  flex: none;
+}
+.new-card b {
+  display: block;
+  font-size: 22px;
+  line-height: 1.1;
+  color: #e8590c;
+}
+.new-card span {
+  display: block;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.25;
+}
 @media (prefers-reduced-motion: reduce) {
   .big.green,
+  .new-card,
   .panel {
     animation: none;
   }
