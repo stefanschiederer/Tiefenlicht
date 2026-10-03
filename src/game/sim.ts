@@ -13,6 +13,9 @@ import {
   CANNON_RANGE,
   CANNON_RELOAD,
   KINDS,
+  MAGE_DAMAGE,
+  MAGE_RANGE,
+  MAGE_RELOAD,
 } from './config';
 import { pointSegDist, segIntersect, segSegDist } from './geom';
 import type { GameState, LevelDef, Line, Tower, Troop } from './state';
@@ -27,7 +30,7 @@ export function radiusOf(t: Tower): number {
   return TOWER_R * (1 + (levelOf(t) - 1) * 0.12);
 }
 export function lineLimit(t: Tower): number {
-  return LINES_PER_LEVEL[levelOf(t) - 1] ?? 1;
+  return (LINES_PER_LEVEL[levelOf(t) - 1] ?? 1) + (KINDS[t.kind].lines ?? 0);
 }
 export function linesFrom(s: GameState, id: number): Line[] {
   return s.lines.filter((l) => l.src === id);
@@ -56,7 +59,7 @@ export function createGame(def: LevelDef): GameState {
     troops: t.troops,
     acc: 0,
     kind: t.kind ?? 'tower',
-    cool: CANNON_RELOAD,
+    cool: t.kind === 'mage' ? MAGE_RELOAD : CANNON_RELOAD,
   }));
   const s: GameState = {
     def,
@@ -208,6 +211,7 @@ function spawnTroop(s: GameState, line: Line): void {
     d: start,
     len: Math.max(start + 1, D - radiusOf(B) * 0.5),
     line: line.id,
+    speed: KINDS[A.kind].speed ?? 1,
   });
 }
 
@@ -295,6 +299,28 @@ function cannons(s: GameState, dt: number): void {
   }
 }
 
+/** Mage towers strike the strongest foreign (non-neutral) tower in range with lightning. */
+function mages(s: GameState, dt: number): void {
+  for (const m of s.towers) {
+    if (m.kind !== 'mage' || m.owner === NEUTRAL) continue;
+    m.cool -= dt;
+    if (m.cool > 0) continue;
+    let best: Tower | null = null;
+    for (const t of s.towers) {
+      if (t.owner === m.owner || t.owner === NEUTRAL || t.troops < 1) continue;
+      if (Math.hypot(t.x - m.x, t.y - m.y) > MAGE_RANGE) continue;
+      if (!best || t.troops > best.troops) best = t;
+    }
+    if (!best) {
+      m.cool = 0.5;
+      continue;
+    }
+    m.cool = MAGE_RELOAD;
+    best.troops = Math.max(0, best.troops - MAGE_DAMAGE);
+    s.events.push({ type: 'zap', tower: m, target: best });
+  }
+}
+
 /* ------------------------------------------------------------------ step */
 
 export function step(s: GameState, dt: number): void {
@@ -337,7 +363,7 @@ export function step(s: GameState, dt: number): void {
   // walking
   const arrived: Troop[] = [];
   for (const t of s.troops) {
-    t.d += TROOP_SPEED * dt;
+    t.d += TROOP_SPEED * t.speed * dt;
     if (t.d >= t.len) arrived.push(t);
   }
   if (arrived.length) {
@@ -347,6 +373,7 @@ export function step(s: GameState, dt: number): void {
   }
   clashes(s);
   cannons(s, dt);
+  mages(s, dt);
   // end of game
   const alive = (o: number) => s.towers.some((t) => t.owner === o) || s.troops.some((t) => t.owner === o);
   if (!alive(PLAYER)) {

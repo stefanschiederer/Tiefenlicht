@@ -4,16 +4,18 @@ import { levelDef } from '@/game/levels';
 import { addLine, checkLine, createGame, cutLines, drainEvents, radiusOf, step, strength } from '@/game/sim';
 import type { GameState } from '@/game/state';
 import { Renderer, type UiState } from '@/render/renderer';
-import { kindIcon } from '@/render/sprites';
+import { kindIcon, towerIcon } from '@/render/sprites';
 import { setSound, sfx, unlockAudio } from './audio';
 import { loadSave, writeSave, type Save } from './save';
 import { mapHtml, scrollToCurrent } from './map';
+import { applyPendingUpdate } from './pwa';
 
 type Mode = 'map' | 'start' | 'play' | 'pause' | 'win' | 'lose';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const ICON = {
+  info: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/><rect x="10.8" y="10" width="2.4" height="7" rx="1.2"/><circle cx="12" cy="7" r="1.5"/></svg>',
   map: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 4v14M15 6v14" stroke="currentColor" stroke-width="2"/></svg>',
   pause:
     '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>',
@@ -164,8 +166,9 @@ export class App {
     $('hud').hidden = true;
     const cur = this.save.level;
     this.setScreen(
-      `<div class="map-top"><div class="map-title">Tiefenlicht</div>
-         <button class="round" id="sound" aria-label="Ton">${this.save.sound ? ICON.soundOn : ICON.soundOff}</button></div>
+      `<div class="map-top"><div><div class="map-title">Tiefenlicht</div><div class="map-tag">Erobere alle roten Türme!</div></div>
+         <div class="map-buttons"><button class="round" id="info" aria-label="Anleitung">${ICON.info}</button>
+         <button class="round" id="sound" aria-label="Ton">${this.save.sound ? ICON.soundOn : ICON.soundOff}</button></div></div>
        <div class="map" id="map">${mapHtml(cur, Math.min(window.innerWidth, 560))}</div>
        <div class="map-bottom"><button class="big green" id="playCur">Level ${cur}</button></div>`,
     );
@@ -179,6 +182,8 @@ export class App {
       this.loadLevel(Number(b.dataset.lv));
       this.showStart();
     });
+    // a downloaded update is installed here, between levels (the save game stays in localStorage)
+    applyPendingUpdate();
     $('playCur').addEventListener('click', () => {
       sfx.tap();
       this.loadLevel(cur);
@@ -187,6 +192,43 @@ export class App {
     $('sound').addEventListener('click', () => {
       this.toggleSound();
       $('sound').innerHTML = this.save.sound ? ICON.soundOn : ICON.soundOff;
+    });
+    $('info').addEventListener('click', () => {
+      sfx.tap();
+      this.showGuide();
+    });
+  }
+
+  /** Rules and all tower kinds (opened from the map). */
+  showGuide(): void {
+    this.mode = 'map';
+    const kinds = (Object.keys(KINDS) as TowerKind[]).map((k) => {
+      const d = KINDS[k];
+      const locked = d.from > this.save.level;
+      return `<div class="kind${locked ? ' locked' : ''}"><img src="${towerIcon(1, 2, k)}" alt="" />
+        <div><b>${d.name}</b> <small>${d.from > 1 ? `ab Level ${d.from}` : 'von Anfang an'}</small><span>${d.desc}</span></div></div>`;
+    });
+    this.setScreen(
+      `<div class="guide">
+        <h2>So geht's</h2>
+        <p class="lead">Tiefenlicht ist ein Strategiespiel um Türme. Du bist <b class="blue">Blau</b>, der Gegner ist <b class="red">Rot</b>, graue Türme gehören noch niemandem. Erobere alle roten Türme, dann hast du das Level gewonnen.</p>
+        <ul>
+          <li><b>Linie ziehen:</b> Wische von einem blauen Turm zu einem anderen Turm. Deine Soldaten marschieren dann ununterbrochen hinüber.</li>
+          <li><b>Erobern:</b> Jeder Soldat zieht einem fremden Turm einen ab. Fällt die Zahl unter null, gehört der Turm dir. Eigene Türme werden verstärkt.</li>
+          <li><b>Wachsen:</b> Deine Türme bilden laufend Soldaten aus. Ab 10 Soldaten halten sie 2 Linien, ab 25 Soldaten 3 Linien.</li>
+          <li><b>Kappen:</b> Wische quer über eine eigene Linie. Soldaten vor dem Schnitt laufen heim, die anderen marschieren weiter.</li>
+          <li><b>Kämpfe:</b> Treffen sich Soldaten verschiedener Farben auf einer Strecke, kämpfen sie eins gegen eins.</li>
+          <li><b>Mauern</b> und andere Türme versperren den direkten Weg.</li>
+        </ul>
+        <h3>Türme</h3>
+        <div class="kinds">${kinds.join('')}</div>
+        <button class="big green" id="guideBack">Zur Karte</button>
+      </div>`,
+    );
+    $('screen').className = 'screen guide-screen';
+    $('guideBack').addEventListener('click', () => {
+      sfx.tap();
+      this.showMap();
     });
   }
 

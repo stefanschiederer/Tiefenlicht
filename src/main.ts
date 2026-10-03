@@ -10,4 +10,4 @@ const app = new App(document.getElementById('c') as HTMLCanvasElement);
 (window as unknown as { TW: App }).TW = app;
 // wait for the font so tower numbers render in Baloo 2
 void document.fonts?.ready.then(() => app.renderer.resize(window.innerWidth, window.innerHeight));
-if (import.meta.env.PROD) registerPwa();
+if (import.meta.env.PROD) registerPwa(() => app.mode === 'map' || app.mode === 'start');

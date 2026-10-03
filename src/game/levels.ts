@@ -1,6 +1,6 @@
 import { KINDS, NEUTRAL, PLAYER, TOWER_R, WALL_T, WORLD_H, WORLD_W, type TowerKind } from './config';
 
-const SPECIAL: TowerKind[] = ['barracks', 'fortress', 'cannon'];
+const SPECIAL: TowerKind[] = ['barracks', 'fortress', 'cannon', 'stable', 'castle', 'mage'];
 import { pointSegDist, rng, segSegDist } from './geom';
 import { computeReach } from './sim';
 import type { LevelDef, Tower, Wall } from './state';

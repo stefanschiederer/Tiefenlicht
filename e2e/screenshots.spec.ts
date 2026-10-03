@@ -24,12 +24,16 @@ test('screenshots', async ({ page }, info) => {
   await page.waitForTimeout(3500);
   await page.screenshot({ path: `e2e/screenshots/${tag}-march.png` });
 
-  for (const lv of [4, 6, 8]) {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Anleitung' }).click();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `e2e/screenshots/${tag}-guide.png`, fullPage: true });
+  for (const lv of [12, 16, 20]) {
     await startAt(page, lv, false);
     await page.waitForTimeout(500);
     await page.screenshot({ path: `e2e/screenshots/${tag}-new${lv}.png` });
   }
-  for (const lv of [14, 25]) {
+  for (const lv of [22]) {
     await startAt(page, lv);
     await page.waitForTimeout(10000);
     await page.screenshot({ path: `e2e/screenshots/${tag}-level${lv}.png` });

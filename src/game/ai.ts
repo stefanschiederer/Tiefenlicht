@@ -81,7 +81,8 @@ export class Enemy {
         const margin = from.troops - d.troops / KINDS[d.kind].damage;
         if (margin < 2 && !(d.owner !== NEUTRAL && levelOf(from) >= 2)) continue;
         score = margin * 0.8 - dist / 60 + (d.owner === NEUTRAL ? 4 : 8) + this.rand() * 4;
-        if (d.kind === 'barracks') score += 6;
+        if (d.kind === 'barracks' || d.kind === 'castle') score += 6;
+        if (d.kind === 'mage' || d.kind === 'stable') score += 4;
         // lines that run past a foreign cannon lose soldiers
         for (const c of s.towers)
           if (c.kind === 'cannon' && c.owner !== this.owner && c !== d)

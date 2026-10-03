@@ -36,13 +36,17 @@ export function towerSprite(owner: number, level: 1 | 2 | 3, kind: TowerKind = '
   const hit = towerCache.get(key);
   if (hit) return hit;
   const sp =
-    kind === 'barracks'
-      ? barracksSprite(owner, level)
-      : kind === 'fortress'
-        ? roundTower(owner, level, { rMul: 1.18, hMul: 0.7, fortress: true })
-        : kind === 'cannon'
-          ? roundTower(owner, level, { rMul: 0.95, hMul: 0.85, cannon: true })
-          : roundTower(owner, level, {});
+    kind === 'barracks' || kind === 'stable'
+      ? barracksSprite(owner, level, kind === 'stable')
+      : kind === 'castle'
+        ? roundTower(owner, level, { rMul: 1.05, hMul: 1.05, castle: true })
+        : kind === 'mage'
+          ? roundTower(owner, level, { rMul: 0.82, hMul: 1.3, mage: true })
+          : kind === 'fortress'
+            ? roundTower(owner, level, { rMul: 1.18, hMul: 0.7, fortress: true })
+            : kind === 'cannon'
+              ? roundTower(owner, level, { rMul: 0.95, hMul: 0.85, cannon: true })
+              : roundTower(owner, level, {});
   towerCache.set(key, sp);
   return sp;
 }
@@ -52,6 +56,55 @@ interface TowerOpts {
   hMul?: number;
   fortress?: boolean;
   cannon?: boolean;
+  castle?: boolean;
+  mage?: boolean;
+}
+
+/** Small round corner turret with a battlement cap (castle). */
+function turret(
+  g: CanvasRenderingContext2D,
+  x: number,
+  base: number,
+  r: number,
+  h: number,
+  col: string,
+  dark: string,
+  light: string,
+): void {
+  const ry = r * 0.42;
+  const grd = g.createLinearGradient(x - r, 0, x + r, 0);
+  grd.addColorStop(0, light);
+  grd.addColorStop(0.4, col);
+  grd.addColorStop(1, dark);
+  g.fillStyle = grd;
+  g.strokeStyle = OUT;
+  g.lineWidth = 4;
+  g.beginPath();
+  g.moveTo(x - r, base);
+  g.lineTo(x - r, base - h);
+  g.ellipse(x, base - h, r, ry, 0, Math.PI, 0, true);
+  g.lineTo(x + r, base);
+  g.ellipse(x, base, r, ry, 0, 0, Math.PI);
+  g.closePath();
+  g.fill();
+  g.stroke();
+  // pointed roof
+  g.fillStyle = dark;
+  g.beginPath();
+  g.moveTo(x - r - 4, base - h);
+  g.lineTo(x, base - h - r * 1.5);
+  g.lineTo(x + r + 4, base - h);
+  g.ellipse(x, base - h, r + 4, ry + 2, 0, 0, Math.PI);
+  g.closePath();
+  g.fill();
+  g.stroke();
+  g.fillStyle = light;
+  g.beginPath();
+  g.moveTo(x - r * 0.6, base - h - 2);
+  g.lineTo(x - 2, base - h - r * 1.35);
+  g.lineTo(x - r * 0.1, base - h);
+  g.closePath();
+  g.fill();
 }
 
 /** Round castle tower in the owner colour; taller with each level, flag on level 3. */
@@ -92,6 +145,25 @@ function roundTower(owner: number, level: 1 | 2 | 3, o: TowerOpts): Sprite {
   g.fill();
   g.stroke();
   if (o.fortress) stoneRing(g, ax, ay - ph, r + 16, 26, 'back');
+  if (o.castle) {
+    // curtain wall between two corner turrets, behind the keep
+    g.fillStyle = '#b7bfc8';
+    g.strokeStyle = OUT;
+    g.lineWidth = 4;
+    g.beginPath();
+    g.rect(ax - r - 30, ay - ph - hgt * 0.55 - 14, 2 * r + 60, hgt * 0.55);
+    g.fill();
+    g.stroke();
+    for (let x = ax - r - 30; x < ax + r + 30; x += 18) {
+      g.fillStyle = '#d5dae0';
+      g.beginPath();
+      g.rect(x + 2, ay - ph - hgt * 0.55 - 26, 12, 12);
+      g.fill();
+      g.stroke();
+    }
+    turret(g, ax - r - 26, ay - 10, 22, hgt * 0.9, col, dark, light);
+    turret(g, ax + r + 26, ay - 10, 22, hgt * 0.9, col, dark, light);
+  }
   // body cylinder
   const by = ay - ph + 2;
   const grd = g.createLinearGradient(ax - r, 0, ax + r, 0);
@@ -173,8 +245,52 @@ function roundTower(owner: number, level: 1 | 2 | 3, o: TowerOpts): Sprite {
     g.fill();
     g.stroke();
   }
-  // top: battlement ring
+  // top: battlement ring (a pointed roof with a crystal on mage towers)
   const ty = by - hgt;
+  if (o.mage) {
+    g.strokeStyle = OUT;
+    g.lineWidth = 4;
+    const rh = r * 2.1;
+    g.fillStyle = dark;
+    g.beginPath();
+    g.moveTo(ax - r - 8, ty);
+    g.quadraticCurveTo(ax - r * 0.3, ty - rh * 0.5, ax + 6, ty - rh);
+    g.quadraticCurveTo(ax + r * 0.4, ty - rh * 0.45, ax + r + 8, ty);
+    g.ellipse(ax, ty, r + 8, ry + 4, 0, 0, Math.PI);
+    g.closePath();
+    g.fill();
+    g.stroke();
+    g.fillStyle = col;
+    g.beginPath();
+    g.moveTo(ax - r - 2, ty - 2);
+    g.quadraticCurveTo(ax - r * 0.3, ty - rh * 0.5, ax + 6, ty - rh);
+    g.quadraticCurveTo(ax - r * 0.1, ty - rh * 0.4, ax - 6, ty + 4);
+    g.closePath();
+    g.fill();
+    // stars on the roof
+    g.fillStyle = '#ffe066';
+    for (const [sx, sy] of [
+      [-12, -26],
+      [8, -44],
+      [14, -16],
+    ] as const) {
+      g.beginPath();
+      g.arc(ax + sx, ty + sy, 3, 0, TAU);
+      g.fill();
+    }
+    // crystal orb
+    const oy = ty - rh - 10;
+    const og = g.createRadialGradient(ax + 3, oy - 3, 1, ax + 6, oy, 12);
+    og.addColorStop(0, '#ffffff');
+    og.addColorStop(0.4, '#d2adff');
+    og.addColorStop(1, '#7b3fe0');
+    g.fillStyle = og;
+    g.beginPath();
+    g.arc(ax + 6, oy, 11, 0, TAU);
+    g.fill();
+    g.stroke();
+    return { c, ax, ay, r: r / (o.rMul ?? 1), top: ay - oy + 14, gun: ay - oy };
+  }
   const merlons = 10;
   const drawMerlon = (i: number) => {
     const a = (i / merlons) * TAU;
@@ -284,7 +400,7 @@ function stoneRing(
 }
 
 /** Barracks: a square hall with a pitched roof in the owner colour; bigger with each level. */
-function barracksSprite(owner: number, level: 1 | 2 | 3): Sprite {
+function barracksSprite(owner: number, level: 1 | 2 | 3, stable = false): Sprite {
   const col = TEAM_COLORS[owner] ?? TEAM_COLORS[0],
     dark = TEAM_DARK[owner] ?? TEAM_DARK[0],
     light = TEAM_LIGHT[owner] ?? TEAM_LIGHT[0];
@@ -325,7 +441,7 @@ function barracksSprite(owner: number, level: 1 | 2 | 3): Sprite {
       [x1 + dx, y0 + dy - h],
       [x1, y0 - h],
     ],
-    '#9aa3ad',
+    stable ? '#9c6a3c' : '#9aa3ad',
   );
   poly(
     [
@@ -334,7 +450,7 @@ function barracksSprite(owner: number, level: 1 | 2 | 3): Sprite {
       [x1, y0 - h],
       [x0, y0 - h],
     ],
-    '#d5dae0',
+    stable ? '#c48f58' : '#d5dae0',
   );
   // brick hints
   g.strokeStyle = 'rgba(0,0,0,0.14)';
@@ -392,15 +508,43 @@ function barracksSprite(owner: number, level: 1 | 2 | 3): Sprite {
       g.fill();
       g.stroke();
     }
-  // crossed swords sign on the gable
-  g.strokeStyle = '#ffffff';
-  g.lineWidth = 3;
-  g.beginPath();
-  g.moveTo(mid - 8, ry0 - 6);
-  g.lineTo(mid + 8, ry0 - roof * 0.6);
-  g.moveTo(mid + 8, ry0 - 6);
-  g.lineTo(mid - 8, ry0 - roof * 0.6);
-  g.stroke();
+  if (stable) {
+    // horseshoe on the gable and a paddock fence in front
+    g.strokeStyle = '#ffffff';
+    g.lineWidth = 4;
+    g.beginPath();
+    g.arc(mid, ry0 - roof * 0.32, 8, Math.PI * 0.1, Math.PI * 0.9, true);
+    g.stroke();
+    g.strokeStyle = OUT;
+    g.lineWidth = 3;
+    g.fillStyle = '#e5b77e';
+    for (const fx of [x0 - 18, x0 - 2, x1 + dx + 4, x1 + dx + 20]) {
+      g.beginPath();
+      g.roundRect(fx - 3, y0 - 20, 6, 22, 2);
+      g.fill();
+      g.stroke();
+    }
+    for (const [fa, fb] of [
+      [x0 - 22, x0 + 2],
+      [x1 + dx, x1 + dx + 24],
+    ] as const)
+      for (const fy of [y0 - 15, y0 - 7]) {
+        g.beginPath();
+        g.roundRect(fa, fy - 2, fb - fa, 4, 2);
+        g.fill();
+        g.stroke();
+      }
+  } else {
+    // crossed swords sign on the gable
+    g.strokeStyle = '#ffffff';
+    g.lineWidth = 3;
+    g.beginPath();
+    g.moveTo(mid - 8, ry0 - 6);
+    g.lineTo(mid + 8, ry0 - roof * 0.6);
+    g.moveTo(mid + 8, ry0 - 6);
+    g.lineTo(mid - 8, ry0 - roof * 0.6);
+    g.stroke();
+  }
   g.strokeStyle = OUT;
   g.lineWidth = 4;
   if (level >= 3) {
@@ -427,12 +571,88 @@ function barracksSprite(owner: number, level: 1 | 2 | 3): Sprite {
   return { c, ax, ay, r: 50, top, gun: 0 };
 }
 
-const troopCache = new Map<number, Sprite>();
+const troopCache = new Map<string, Sprite>();
 
-/** Little soldier (side view, facing right) in the owner colour. */
-export function troopSprite(owner: number): Sprite {
-  const hit = troopCache.get(owner);
+/** Rider on a brown horse (side view, facing right). */
+function riderSprite(owner: number): Sprite {
+  const col = TEAM_COLORS[owner] ?? TEAM_COLORS[0],
+    dark = TEAM_DARK[owner] ?? TEAM_DARK[0];
+  const [c, g] = mk(64, 60);
+  const ax = 32,
+    ay = 54;
+  g.strokeStyle = OUT;
+  g.lineWidth = 3;
+  g.fillStyle = 'rgba(20,50,20,0.25)';
+  g.beginPath();
+  g.ellipse(ax, ay, 22, 4, 0, 0, TAU);
+  g.fill();
+  // legs
+  g.fillStyle = '#6b4226';
+  for (const lx of [-16, -9, 8, 15]) {
+    g.beginPath();
+    g.roundRect(ax + lx - 3, ay - 16, 6, 16, 2);
+    g.fill();
+    g.stroke();
+  }
+  // body, neck, head
+  g.fillStyle = '#8a5a32';
+  g.beginPath();
+  g.ellipse(ax, ay - 20, 21, 10, 0, 0, TAU);
+  g.fill();
+  g.stroke();
+  g.beginPath();
+  g.moveTo(ax + 12, ay - 26);
+  g.lineTo(ax + 22, ay - 40);
+  g.lineTo(ax + 30, ay - 36);
+  g.lineTo(ax + 22, ay - 20);
+  g.closePath();
+  g.fill();
+  g.stroke();
+  g.beginPath();
+  g.ellipse(ax + 27, ay - 38, 7, 5, 0.4, 0, TAU);
+  g.fill();
+  g.stroke();
+  // tail and mane
+  g.fillStyle = '#3d2614';
+  g.beginPath();
+  g.ellipse(ax - 22, ay - 20, 4, 8, 0.6, 0, TAU);
+  g.fill();
+  // saddle blanket in team colour
+  g.fillStyle = col;
+  g.beginPath();
+  g.roundRect(ax - 9, ay - 30, 16, 12, 3);
+  g.fill();
+  g.stroke();
+  // rider
+  g.fillStyle = col;
+  g.beginPath();
+  g.roundRect(ax - 7, ay - 46, 14, 18, 6);
+  g.fill();
+  g.stroke();
+  g.fillStyle = '#ffd3a6';
+  g.beginPath();
+  g.arc(ax + 1, ay - 50, 7, 0, TAU);
+  g.fill();
+  g.stroke();
+  g.fillStyle = dark;
+  g.beginPath();
+  g.arc(ax + 1, ay - 52, 8, Math.PI, 0);
+  g.closePath();
+  g.fill();
+  g.stroke();
+  return { c, ax, ay, r: 12, top: 60 };
+}
+
+/** Soldier sprite; riders (from a stable) sit on a horse. */
+export function troopSprite(owner: number, rider = false): Sprite {
+  const key = `${owner}:${rider}`;
+  const hit = troopCache.get(key);
   if (hit) return hit;
+  if (rider) {
+    const sp = riderSprite(owner);
+    troopCache.set(key, sp);
+    return sp;
+  }
   const col = TEAM_COLORS[owner] ?? TEAM_COLORS[0],
     dark = TEAM_DARK[owner] ?? TEAM_DARK[0];
   const [c, g] = mk(40, 52);
@@ -478,7 +698,7 @@ export function troopSprite(owner: number): Sprite {
   g.arc(ax + 5, ay - 37, 1.6, 0, TAU);
   g.fill();
   const sprite: Sprite = { c, ax, ay, r: 12, top: 50 };
-  troopCache.set(owner, sprite);
+  troopCache.set(key, sprite);
   return sprite;
 }
 

@@ -69,6 +69,16 @@ test('campaign map: finished levels can be replayed, locked ones not', async ({ 
   await expect(page.locator('.lvl.current')).toHaveText('5');
 });
 
+test('the guide explains the rules and every tower', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Anleitung' }).click();
+  await expect(page.getByRole('heading', { name: "So geht's" })).toBeVisible();
+  await expect(page.locator('.kind')).toHaveCount(7);
+  await page.getByRole('button', { name: 'Zur Karte' }).click();
+  await expect(page.locator('#playCur')).toBeVisible();
+});
+
 test('manifest and service worker are served', async ({ request }) => {
   expect((await request.get('./manifest.webmanifest')).ok()).toBe(true);
   expect((await request.get('./sw.js')).ok()).toBe(true);

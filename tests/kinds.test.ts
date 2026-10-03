@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { KINDS, NEUTRAL, PLAYER } from '@/game/config';
 import { levelDef } from '@/game/levels';
-import { addLine, createGame, drainEvents, step } from '@/game/sim';
+import { addLine, createGame, drainEvents, lineLimit, step } from '@/game/sim';
 import type { LevelDef } from '@/game/state';
 
 const DT = 1 / 60;
@@ -77,9 +77,62 @@ describe('tower kinds', () => {
     expect(drainEvents(t).filter((e) => e.type === 'shot')).toHaveLength(0);
   });
 
-  it.each(['barracks', 'fortress', 'cannon'] as const)('%s is introduced in its campaign level', (kind) => {
-    const n = KINDS[kind].from;
-    expect(levelDef(n).towers.some((t) => t.kind === kind)).toBe(true);
-    expect(levelDef(n - 1).towers.some((t) => t.kind === kind)).toBe(false);
+  it('riders from a stable arrive almost twice as fast', () => {
+    const mk = (kind: 'tower' | 'stable') =>
+      createGame(
+        def([
+          { x: 360, y: 1150, owner: PLAYER, troops: 20, kind },
+          { x: 360, y: 150, owner: NEUTRAL, troops: 50 },
+          { x: 60, y: 640, owner: 2, troops: 1 },
+        ]),
+      );
+    const firstHit = (s: ReturnType<typeof createGame>) => {
+      addLine(s, 0, 1, PLAYER);
+      for (let i = 0; i < 60 * 20; i++) {
+        step(s, DT);
+        if (drainEvents(s).some((e) => e.type === 'hit')) return i * DT;
+      }
+      return Infinity;
+    };
+    const slow = firstHit(mk('tower')),
+      fast = firstHit(mk('stable'));
+    expect(fast).toBeLessThan(slow * 0.65);
   });
+
+  it('a castle holds one line more', () => {
+    const s = createGame(
+      def([
+        { x: 100, y: 1100, owner: PLAYER, troops: 5 },
+        { x: 600, y: 1100, owner: PLAYER, troops: 5, kind: 'castle' },
+        { x: 360, y: 100, owner: 2, troops: 5 },
+      ]),
+    );
+    expect(lineLimit(s.towers[0]!)).toBe(1);
+    expect(lineLimit(s.towers[1]!)).toBe(2);
+  });
+
+  it('a mage tower strikes the strongest enemy tower in range', () => {
+    const s = createGame(
+      def([
+        { x: 360, y: 900, owner: PLAYER, troops: 5, kind: 'mage' },
+        { x: 200, y: 700, owner: 2, troops: 10 },
+        { x: 520, y: 700, owner: 2, troops: 30 },
+        { x: 360, y: 100, owner: 2, troops: 40 },
+      ]),
+    );
+    run(s, 7.1);
+    const zaps = drainEvents(s).filter((e) => e.type === 'zap');
+    expect(zaps).toHaveLength(1);
+    // tower 3 is stronger but out of range
+    expect(zaps[0]?.type === 'zap' && zaps[0].target.id).toBe(2);
+  });
+
+  it.each(['barracks', 'fortress', 'cannon', 'stable', 'castle', 'mage'] as const)(
+    '%s is introduced in its campaign level',
+    (kind) => {
+      const n = KINDS[kind].from;
+      expect(levelDef(n).towers.some((t) => t.kind === kind)).toBe(true);
+      expect(levelDef(n - 1).towers.some((t) => t.kind === kind)).toBe(false);
+    },
+  );
 });

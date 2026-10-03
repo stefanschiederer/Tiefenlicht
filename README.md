@@ -15,7 +15,8 @@ Türme erobern im Stil von Tower War: Ziehe Linien von deinen blauen Türmen, sc
 - Treffen sich Soldaten zweier Farben auf derselben Strecke, kämpfen sie eins gegen eins.
 - Wische quer über eine eigene Linie, um sie zu kappen. Soldaten vor dem Schnitt laufen nach Hause, die dahinter marschieren weiter.
 - Mauern und andere Türme versperren gerade Linien.
-- Besondere Türme: **Kaserne** (ab Level 4) bildet doppelt so schnell aus, **Festung** (ab Level 6) zählt jeden Angreifer nur halb, **Kanonenturm** (ab Level 8) schießt fremde Soldaten in seiner Reichweite ab. Neutrale Kanonen schießen auf alle.
+- Besondere Türme: **Kaserne** (ab Level 4) bildet doppelt so schnell aus, **Festung** (ab Level 6) zählt jeden Angreifer nur halb, **Kanonenturm** (ab Level 8) schießt fremde Soldaten in seiner Reichweite ab, neutrale Kanonen schießen auf alle. **Reiterhof** (ab Level 12) schickt schnelle Reiter, **Burg** (ab Level 16) hält eine Linie mehr und ist robust, **Zauberturm** (ab Level 20) trifft den stärksten feindlichen Turm in Reichweite mit Blitzen.
+- Updates kommen automatisch und werden auf der Kampagnen-Karte eingespielt. Der Spielstand liegt im Browser-Speicher des Geräts und bleibt bei Updates erhalten.
 - Gewonnen ist das Level, wenn keine gegnerischen Türme mehr übrig sind.
 
 ## Entwicklung

@@ -17,7 +17,7 @@ export default defineConfig({
   build: { target: 'es2022', sourcemap: true },
   plugins: [
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['logo.svg', 'icons/*.png'],
       manifest: {
         id: 'tiefenlicht',

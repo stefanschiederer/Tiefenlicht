@@ -29,7 +29,7 @@ export const TROOP_SPEED = 115;
 export const WALL_T = 22;
 
 /** Tower kinds (Tower-War-style special towers). */
-export type TowerKind = 'tower' | 'barracks' | 'fortress' | 'cannon';
+export type TowerKind = 'tower' | 'barracks' | 'fortress' | 'cannon' | 'stable' | 'castle' | 'mage';
 export interface KindDef {
   name: string;
   desc: string;
@@ -39,6 +39,10 @@ export interface KindDef {
   damage: number;
   /** First campaign level the kind appears in. */
   from: number;
+  /** Walking speed multiplier of soldiers leaving this tower. */
+  speed?: number;
+  /** Extra outgoing lines. */
+  lines?: number;
 }
 export const KINDS: Record<TowerKind, KindDef> = {
   tower: { name: 'Turm', desc: 'Der normale Turm.', growth: 1, damage: 1, from: 1 },
@@ -63,7 +67,33 @@ export const KINDS: Record<TowerKind, KindDef> = {
     damage: 1,
     from: 8,
   },
+  stable: {
+    name: 'Reiterhof',
+    desc: 'Schickt Reiter statt Fußsoldaten: Sie sind fast doppelt so schnell am Ziel.',
+    growth: 1,
+    damage: 1,
+    from: 12,
+    speed: 1.8,
+  },
+  castle: {
+    name: 'Burg',
+    desc: 'Hält eine Linie mehr als andere Türme, bildet schneller aus und ist schwer zu knacken.',
+    growth: 1.25,
+    damage: 0.75,
+    from: 16,
+    lines: 1,
+  },
+  mage: {
+    name: 'Zauberturm',
+    desc: 'Schleudert alle 7 Sekunden einen Blitz auf den stärksten feindlichen Turm in Reichweite: 4 Soldaten weniger.',
+    growth: 0.6,
+    damage: 1,
+    from: 20,
+  },
 };
+export const MAGE_RANGE = 340;
+export const MAGE_RELOAD = 7;
+export const MAGE_DAMAGE = 4;
 export const CANNON_RANGE = 200;
 /** Seconds between two cannon shots. */
 export const CANNON_RELOAD = 0.75;

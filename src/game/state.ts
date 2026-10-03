@@ -37,6 +37,8 @@ export interface Troop {
   len: number;
   /** Line the troop walks on (null once the line is gone: returning or orphaned troops). */
   line: number | null;
+  /** Speed multiplier (riders from a stable are faster). */
+  speed: number;
 }
 
 /** A straight wall segment; lines may not cross it. */
@@ -54,6 +56,7 @@ export type GameEvent =
   | { type: 'capture'; tower: Tower; from: number }
   | { type: 'hit'; tower: Tower; owner: number }
   | { type: 'shot'; tower: Tower; x: number; y: number }
+  | { type: 'zap'; tower: Tower; target: Tower }
   | { type: 'clash'; x: number; y: number; a: number; b: number }
   | { type: 'end'; result: 'win' | 'lose' };
 

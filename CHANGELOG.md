@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 – Neue Türme und Anleitung (2026-10-03)
+
+- Reiterhof (ab Level 12): Holzstall mit Koppel, schickt Reiter auf Pferden, die fast doppelt so schnell sind.
+- Burg (ab Level 16): Turm mit Ringmauer und zwei Ecktürmen, hält eine Linie mehr, bildet schneller aus, Angreifer zählen nur ¾.
+- Zauberturm (ab Level 20): schlanker Turm mit Spitzdach und Kristallkugel, schleudert alle 7 Sekunden einen Blitz auf den stärksten feindlichen Turm in Reichweite (−4 Soldaten).
+- Anleitung im Hauptmenü (Info-Knopf auf der Karte): Ziel, Steuerung und alle Turmarten mit Bild; Untertitel „Erobere alle roten Türme!“.
+- Updates werden nicht mehr mitten im Level eingespielt, sondern auf der Karte; der Browser wird gebeten, den Spielstand dauerhaft zu behalten.
+
 ## 1.2.1 – Leichtere Level (2026-09-30)
 
 - Gegner bilden anfangs langsamer aus (70 % in Level 1, erst ab etwa Level 38 volle Geschwindigkeit).

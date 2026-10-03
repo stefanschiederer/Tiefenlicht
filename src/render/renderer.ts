@@ -40,6 +40,7 @@ export class Renderer {
   /** Cannon aim angle (screen radians) and recoil per tower. */
   private aim = new Map<number, { a: number; kick: number }>();
   private shots: { x1: number; y1: number; x2: number; y2: number; t: number }[] = [];
+  private bolts: { x1: number; y1: number; x2: number; y2: number; t: number }[] = [];
 
   constructor(readonly canvas: HTMLCanvasElement) {
     this.g = canvas.getContext('2d') as CanvasRenderingContext2D;
@@ -84,6 +85,18 @@ export class Renderer {
         this.shots.push({ x1: gx, y1: gy, x2: tx, y2: ty, t: 0 });
         this.burst(tx, ty - 6, '#555c66', 6);
         this.burst(tx, ty - 6, '#ffd166', 3);
+      } else if (e.type === 'zap') {
+        const m = e.tower,
+          t = e.target;
+        const sp = towerSprite(m.owner, levelOf(m), m.kind);
+        const k = (radiusOf(m) * v.k * 1.18) / sp.r;
+        const x1 = v.sx(m.x, m.y),
+          y1 = v.sy(m.x, m.y) + radiusOf(m) * v.k * 0.35 - (sp.gun ?? 0) * k;
+        const x2 = v.sx(t.x, t.y),
+          y2 = v.sy(t.x, t.y) - radiusOf(t) * v.k * 0.6;
+        this.bolts.push({ x1, y1, x2, y2, t: 0 });
+        this.burst(x2, y2, '#c79bff', 18);
+        this.burst(x2, y2, '#ffffff', 8);
       } else if (e.type === 'clash') {
         this.burst(v.sx(e.x, e.y), v.sy(e.x, e.y), '#ffffff', 4);
       } else if (e.type === 'cut') {
@@ -269,8 +282,9 @@ export class Renderer {
       items.push({
         y,
         draw: () => {
-          const sp = troopSprite(u.owner);
-          const k = troopH / sp.top;
+          const rider = u.speed > 1.2;
+          const sp = troopSprite(u.owner, rider);
+          const k = (troopH * (rider ? 1.25 : 1)) / sp.top;
           const bob = Math.abs(Math.sin(this.time * 14 + u.id)) * 2.2;
           g.save();
           g.translate(x, y - bob);
@@ -360,6 +374,34 @@ export class Renderer {
   private drawEffects(dt: number): void {
     const g = this.g;
     for (const st of this.aim.values()) st.kick = Math.max(0, st.kick - dt * 5);
+    this.bolts = this.bolts.filter((b) => (b.t += dt) < 0.4);
+    for (const b of this.bolts) {
+      // jagged lightning, re-randomised each frame
+      const n = 8;
+      const pts: [number, number][] = [[b.x1, b.y1]];
+      const nx = -(b.y2 - b.y1),
+        ny = b.x2 - b.x1,
+        nl = Math.hypot(nx, ny) || 1;
+      for (let i = 1; i < n; i++) {
+        const f = i / n,
+          off = (Math.random() - 0.5) * 26;
+        pts.push([b.x1 + (b.x2 - b.x1) * f + (nx / nl) * off, b.y1 + (b.y2 - b.y1) * f + (ny / nl) * off]);
+      }
+      pts.push([b.x2, b.y2]);
+      g.globalAlpha = 1 - b.t / 0.4;
+      for (const [w, c] of [
+        [9, 'rgba(165,92,255,0.55)'],
+        [3, '#ffffff'],
+      ] as const) {
+        g.strokeStyle = c;
+        g.lineWidth = w;
+        g.lineJoin = 'round';
+        g.beginPath();
+        pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+        g.stroke();
+      }
+      g.globalAlpha = 1;
+    }
     this.shots = this.shots.filter((sh) => (sh.t += dt) < 0.15);
     for (const sh of this.shots) {
       const p = sh.t / 0.15;
