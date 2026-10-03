@@ -45,6 +45,11 @@ export class Renderer {
   /** Hit wobble per tower (1 → 0). */
   private shake = new Map<number, number>();
   private dustAcc = 0;
+  private weather: { x: number; y: number; ph: number; s: number }[] = [];
+  private weatherTheme = '';
+  /** Last known level per tower (level-up sparkle). */
+  private lastLevel = new Map<number, number>();
+  private levelState: GameState | null = null;
   private bolts: { x1: number; y1: number; x2: number; y2: number; t: number }[] = [];
 
   constructor(readonly canvas: HTMLCanvasElement) {
@@ -158,12 +163,13 @@ export class Renderer {
     g.drawImage(this.ground, 0, 0);
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
-    this.drawClouds();
     this.drawSelection(s, ui);
     this.drawLines(s);
     if (ui.drag) this.drawDrag(s, ui.drag);
     this.drawScene(s);
+    this.levelUps(s);
     this.drawEffects(dt);
+    this.drawWeather(s, dt);
     this.drawCut(ui);
     if (ui.hint) this.drawHint(s, ui.hint);
   }
@@ -208,6 +214,15 @@ export class Renderer {
     const col = TEAM_COLORS[l.owner] ?? '#fff',
       dark = TEAM_DARK[l.owner] ?? '#333';
     g.lineCap = 'round';
+    // soft team-coloured glow
+    g.globalAlpha = 0.28;
+    g.strokeStyle = col;
+    g.lineWidth = lw * 2.4;
+    g.beginPath();
+    g.moveTo(ax, ay);
+    g.lineTo(bx, by);
+    g.stroke();
+    g.globalAlpha = 1;
     g.strokeStyle = 'rgba(20,40,20,0.25)';
     g.lineWidth = lw + 5;
     g.beginPath();
@@ -222,6 +237,13 @@ export class Renderer {
     g.stroke();
     g.strokeStyle = col;
     g.lineWidth = lw;
+    g.stroke();
+    // glossy highlight along the upper edge
+    g.strokeStyle = 'rgba(255,255,255,0.35)';
+    g.lineWidth = Math.max(1.5, lw * 0.22);
+    g.beginPath();
+    g.moveTo(ax, ay - lw * 0.22);
+    g.lineTo(bx, by - lw * 0.22);
     g.stroke();
     // moving chevrons towards the target
     const len = Math.hypot(bx - ax, by - ay);
@@ -275,25 +297,6 @@ export class Renderer {
   }
 
   /* ------------------------------------------------------------------ towers and troops */
-  /** Slow cloud shadows drifting over the battlefield. */
-  private drawClouds(): void {
-    const g = this.g,
-      v = this.view;
-    const span = v.w + 600;
-    for (let i = 0; i < 3; i++) {
-      const x = ((this.time * (14 + i * 5) + i * 420) % span) - 300,
-        y = v.h * (0.22 + i * 0.3) + Math.sin(this.time * 0.1 + i) * 30;
-      const r = 150 + i * 40;
-      const grd = g.createRadialGradient(x, y, r * 0.2, x, y, r);
-      grd.addColorStop(0, 'rgba(10,30,10,0.10)');
-      grd.addColorStop(1, 'rgba(10,30,10,0)');
-      g.fillStyle = grd;
-      g.beginPath();
-      g.ellipse(x, y, r * 1.5, r * 0.8, 0, 0, TAU);
-      g.fill();
-    }
-  }
-
   /** Glow under the tower a line is dragged from and under the hovered target. */
   private drawSelection(s: GameState, ui: UiState): void {
     const d = ui.drag;
@@ -340,15 +343,16 @@ export class Renderer {
           vy: -10,
           life: 0.5,
           max: 0.5,
-          color: 'rgba(240,230,200,0.8)',
-          size: 5 + Math.random() * 4,
+          color: 'rgba(235,225,195,0.45)',
+          size: 2.5 + Math.random() * 2,
           round: true,
         });
       items.push({
         y,
         draw: () => {
           const rider = u.speed > 1.2;
-          const sp = troopSprite(u.owner, rider);
+          const frame = Math.floor(this.time * (rider ? 10 : 7) + u.id * 0.37) % 2;
+          const sp = troopSprite(u.owner, rider, frame);
           const k = (troopH * (rider ? 1.25 : 1)) / sp.top;
           const bob = Math.abs(Math.sin(this.time * 14 + u.id)) * 2.2;
           g.save();
@@ -390,24 +394,193 @@ export class Renderer {
             g.drawImage(sp.c, x - sp.ax * k + wob, ay - sp.ay * k * sq, sp.c.width * k, sp.c.height * k * sq);
           } else g.drawImage(sp.c, x - sp.ax * k, ay - sp.ay * k, sp.c.width * k, sp.c.height * k);
           if (t.kind === 'cannon') this.drawBarrel(t.id, t.owner, x, ay - (sp.gun ?? 0) * k, k);
-          // troop count, drawn after all towers so no tower hides it
-          const fs = Math.max(18, Math.min(32, radiusOf(t) * v.k * 0.9));
-          labels.push({ x, y: ay - sp.top * k - fs * 0.25, fs, txt: String(Math.floor(t.troops)) });
+          // waving flag on owned towers
+          const flag = t.owner > 0 && sp.peak !== undefined;
+          if (flag) this.drawFlag(x + (sp.peakX ?? 0) * k, ay - (sp.peak ?? 0) * k, k, t.owner, t.id);
+          // troop count badge, drawn after all towers so no tower hides it
+          const fs = Math.max(16, Math.min(28, radiusOf(t) * v.k * 0.78));
+          const top = flag ? ay - ((sp.peak ?? 0) + 46) * k : ay - sp.top * k;
+          labels.push({
+            x,
+            y: Math.min(top, ay - sp.top * k) - fs * 0.55,
+            fs,
+            txt: String(Math.floor(t.troops)),
+            owner: t.owner,
+          });
         },
       });
     }
-    const labels: { x: number; y: number; fs: number; txt: string }[] = [];
+    const labels: { x: number; y: number; fs: number; txt: string; owner: number }[] = [];
     items.sort((a, b) => a.y - b.y).forEach((it) => it.draw());
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.lineJoin = 'round';
     for (const l of labels) {
       g.font = `800 ${l.fs}px "Baloo 2", "Arial Black", sans-serif`;
-      g.lineWidth = l.fs * 0.24;
+      const w = Math.max(l.fs * 1.5, g.measureText(l.txt).width + l.fs * 0.8),
+        h = l.fs * 1.12;
+      const bx = l.x - w / 2,
+        by = l.y - h / 2;
+      // badge: dark outline, team colour, top gloss
+      g.fillStyle = 'rgba(0,0,0,0.25)';
+      g.beginPath();
+      g.roundRect(bx, by + 3, w, h, h / 2);
+      g.fill();
+      g.fillStyle = TEAM_DARK[l.owner] ?? '#555';
       g.strokeStyle = '#1d2530';
-      g.strokeText(l.txt, l.x, l.y);
+      g.lineWidth = 2.5;
+      g.beginPath();
+      g.roundRect(bx, by, w, h, h / 2);
+      g.fill();
+      g.stroke();
+      g.fillStyle = TEAM_COLORS[l.owner] ?? '#888';
+      g.beginPath();
+      g.roundRect(bx + 2, by + 2, w - 4, h - 6, (h - 6) / 2);
+      g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.3)';
+      g.beginPath();
+      g.roundRect(bx + 5, by + 3, w - 10, h * 0.3, h * 0.15);
+      g.fill();
+      g.lineWidth = l.fs * 0.2;
+      g.strokeStyle = '#1d2530';
+      g.strokeText(l.txt, l.x, l.y + 1);
       g.fillStyle = '#ffffff';
-      g.fillText(l.txt, l.x, l.y);
+      g.fillText(l.txt, l.x, l.y + 1);
+    }
+  }
+
+  /** Flag on a pole, cloth waving in the wind (pole foot at x, y; k = sprite scale). */
+  private drawFlag(x: number, y: number, k: number, owner: number, id: number): void {
+    const g = this.g;
+    const pole = 44 * k,
+      w = 34 * k,
+      h = 20 * k;
+    g.strokeStyle = '#4b3a2c';
+    g.lineWidth = Math.max(2, 4 * k);
+    g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x, y - pole);
+    g.stroke();
+    const t = this.time * 6 + id;
+    const pts: [number, number][] = [];
+    const n = 6;
+    for (let i = 0; i <= n; i++) {
+      const f = i / n;
+      pts.push([x + f * w, y - pole + Math.sin(t - f * 3) * f * 3.5 * k]);
+    }
+    g.fillStyle = TEAM_COLORS[owner] ?? '#fff';
+    g.strokeStyle = '#1d2530';
+    g.lineWidth = Math.max(1.5, 2.5 * k);
+    g.beginPath();
+    pts.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py)));
+    for (let i = n; i >= 0; i--) {
+      const [px, py] = pts[i] as [number, number];
+      g.lineTo(px, py + h * (1 - (i / n) * 0.35));
+    }
+    g.closePath();
+    g.fill();
+    g.stroke();
+    // emblem
+    g.fillStyle = 'rgba(255,255,255,0.85)';
+    const [mx, my] = pts[3] as [number, number];
+    g.beginPath();
+    g.arc(mx - 2 * k, my + h * 0.45, 4 * k, 0, TAU);
+    g.fill();
+  }
+
+  /** Golden sparkle and ring when a tower grows to the next level. */
+  private levelUps(s: GameState): void {
+    const v = this.view;
+    if (this.levelState !== s) {
+      this.levelState = s;
+      this.lastLevel.clear();
+    }
+    for (const t of s.towers) {
+      // sparkle only the first time a tower reaches a level (per owner), not when it wobbles around 10/25
+      const lv = levelOf(t),
+        key = t.id * 10 + t.owner,
+        prev = this.lastLevel.get(key);
+      if (prev === undefined) {
+        this.lastLevel.set(key, lv);
+        continue;
+      }
+      if (lv <= prev || t.owner === 0) continue;
+      this.lastLevel.set(key, lv);
+      const x = v.sx(t.x, t.y),
+        y = v.sy(t.x, t.y) - radiusOf(t) * v.k;
+      this.burst(x, y, '#ffd43b', 16);
+      this.burst(x, y, '#ffffff', 8);
+      this.rings.push({ x, y: v.sy(t.x, t.y), t: 0, color: '#ffd43b' });
+      this.pop.set(t.id, 0.6);
+    }
+  }
+
+  /** Atmosphere of the world: butterflies, sand motes, snow or falling leaves. */
+  private drawWeather(s: GameState, dt: number): void {
+    const theme = themeOf(s.def.n).id;
+    if (this.weatherTheme !== theme) {
+      this.weatherTheme = theme;
+      this.weather = [];
+    }
+    const g = this.g,
+      v = this.view;
+    const want = theme === 'snow' ? 60 : theme === 'autumn' ? 22 : theme === 'desert' ? 30 : 8;
+    while (this.weather.length < want)
+      this.weather.push({
+        x: Math.random() * v.w,
+        y: Math.random() * v.h,
+        ph: Math.random() * TAU,
+        s: 0.6 + Math.random() * 0.8,
+      });
+    for (const p of this.weather) {
+      p.ph += dt;
+      if (theme === 'snow') {
+        p.y += 28 * p.s * dt;
+        p.x += Math.sin(p.ph * 1.3) * 12 * dt;
+      } else if (theme === 'autumn') {
+        p.y += 34 * p.s * dt;
+        p.x += Math.sin(p.ph * 1.6) * 30 * dt;
+      } else if (theme === 'desert') {
+        p.x += 40 * p.s * dt;
+        p.y += Math.sin(p.ph * 2) * 6 * dt;
+      } else {
+        p.x += Math.cos(p.ph * 0.7) * 40 * dt;
+        p.y += Math.sin(p.ph * 1.1) * 28 * dt;
+      }
+      if (p.y > v.h + 10) p.y = -10;
+      if (p.x > v.w + 10) p.x = -10;
+      if (p.x < -10) p.x = v.w + 10;
+      if (p.y < -10) p.y = v.h + 10;
+      if (theme === 'snow') {
+        g.fillStyle = 'rgba(255,255,255,0.9)';
+        g.beginPath();
+        g.arc(p.x, p.y, 2.2 * p.s, 0, TAU);
+        g.fill();
+      } else if (theme === 'autumn') {
+        g.save();
+        g.translate(p.x, p.y);
+        g.rotate(p.ph * 2);
+        g.fillStyle = p.s > 1 ? '#e0702a' : '#f5b03d';
+        g.beginPath();
+        g.ellipse(0, 0, 5 * p.s, 2.6 * p.s, 0, 0, TAU);
+        g.fill();
+        g.restore();
+      } else if (theme === 'desert') {
+        g.fillStyle = 'rgba(255,240,200,0.6)';
+        g.fillRect(p.x, p.y, 2.5 * p.s, 1.5 * p.s);
+      } else {
+        // butterfly: two flapping wings
+        const flap = Math.abs(Math.sin(p.ph * 12));
+        g.fillStyle = p.s > 1 ? '#ffd43b' : '#ffffff';
+        for (const side of [-1, 1]) {
+          g.beginPath();
+          g.ellipse(p.x + side * 3 * flap, p.y, 3.5 * flap + 0.8, 3, 0, 0, TAU);
+          g.fill();
+        }
+        g.fillStyle = '#1d2530';
+        g.fillRect(p.x - 0.6, p.y - 2.5, 1.2, 5);
+      }
     }
   }
 

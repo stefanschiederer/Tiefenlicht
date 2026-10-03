@@ -16,6 +16,9 @@ export interface Sprite {
   top: number;
   /** Height of the cannon mount above the anchor (cannon towers). */
   gun?: number;
+  /** Where a waving flag is planted (height above the anchor, x offset); none on cannons and mage towers. */
+  peak?: number;
+  peakX?: number;
 }
 
 function mk(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -206,6 +209,19 @@ function roundTower(owner: number, level: 1 | 2 | 3, o: TowerOpts): Sprite {
     }
   }
   g.restore();
+  // rim light on the sunny side and a soft dark core on the shadow side
+  g.strokeStyle = 'rgba(255,255,255,0.45)';
+  g.lineWidth = 5;
+  g.beginPath();
+  g.moveTo(ax - r + 7, by - hgt + ry * 0.6);
+  g.lineTo(ax - r + 7, by + ry * 0.5);
+  g.stroke();
+  g.strokeStyle = 'rgba(0,0,0,0.12)';
+  g.lineWidth = 9;
+  g.beginPath();
+  g.moveTo(ax + r - 9, by - hgt + ry * 0.7);
+  g.lineTo(ax + r - 9, by + ry * 0.5);
+  g.stroke();
   g.strokeStyle = OUT;
   g.lineWidth = 4;
   // door
@@ -320,25 +336,14 @@ function roundTower(owner: number, level: 1 | 2 | 3, o: TowerOpts): Sprite {
     g.fill();
     g.stroke();
   }
-  // flag on level 3
-  if (level >= 3 && !o.cannon) {
-    g.strokeStyle = '#4b3a2c';
-    g.lineWidth = 5;
-    g.beginPath();
-    g.moveTo(ax, ty + 2);
-    g.lineTo(ax, ty - 62);
-    g.stroke();
-    g.strokeStyle = OUT;
-    g.lineWidth = 3.5;
-    g.fillStyle = col;
-    g.beginPath();
-    g.moveTo(ax + 2, ty - 62);
-    g.quadraticCurveTo(ax + 22, ty - 64, ax + 42, ty - 52);
-    g.quadraticCurveTo(ax + 22, ty - 44, ax + 2, ty - 40);
-    g.closePath();
-    g.fill();
-    g.stroke();
-  }
+  // glossy highlight on the top rim
+  g.strokeStyle = 'rgba(255,255,255,0.55)';
+  g.lineWidth = 3;
+  g.beginPath();
+  g.ellipse(ax, ty, r - 5, ry - 3, 0, Math.PI * 1.05, Math.PI * 1.55);
+  g.stroke();
+  g.strokeStyle = OUT;
+  g.lineWidth = 4;
   for (let i = 0; i < merlons; i++) if (Math.sin((i / merlons) * TAU) >= 0) drawMerlon(i);
   if (o.fortress) stoneRing(g, ax, ay - ph, r + 16, 26, 'front');
   return {
@@ -346,8 +351,9 @@ function roundTower(owner: number, level: 1 | 2 | 3, o: TowerOpts): Sprite {
     ax,
     ay,
     r: r / (o.rMul ?? 1),
-    top: ay - ty + ry + (level >= 3 && !o.cannon ? 50 : 16),
+    top: ay - ty + ry + 16,
     gun: ay - ty + 4,
+    ...(o.cannon ? {} : { peak: ay - ty, peakX: 0 }),
   };
 }
 
@@ -547,34 +553,14 @@ function barracksSprite(owner: number, level: 1 | 2 | 3, stable = false): Sprite
   }
   g.strokeStyle = OUT;
   g.lineWidth = 4;
-  if (level >= 3) {
-    g.strokeStyle = '#4b3a2c';
-    g.lineWidth = 5;
-    g.beginPath();
-    g.moveTo(mid + dx * 0.5, ry0 - roof + dy * 0.5);
-    g.lineTo(mid + dx * 0.5, ry0 - roof + dy * 0.5 - 44);
-    g.stroke();
-    g.strokeStyle = OUT;
-    g.lineWidth = 3.5;
-    g.fillStyle = col;
-    const fx = mid + dx * 0.5 + 2,
-      fy = ry0 - roof + dy * 0.5 - 44;
-    g.beginPath();
-    g.moveTo(fx, fy);
-    g.quadraticCurveTo(fx + 18, fy - 2, fx + 36, fy + 9);
-    g.quadraticCurveTo(fx + 18, fy + 18, fx, fy + 20);
-    g.closePath();
-    g.fill();
-    g.stroke();
-  }
-  const top = ay - (ry0 - roof + dy) + (level >= 3 ? 40 : 6);
-  return { c, ax, ay, r: 50, top, gun: 0 };
+  const top = ay - (ry0 - roof + dy) + 6;
+  return { c, ax, ay, r: 50, top, gun: 0, peak: ay - (ry0 - roof + dy * 0.5), peakX: mid + dx * 0.5 - ax };
 }
 
 const troopCache = new Map<string, Sprite>();
 
 /** Rider on a brown horse (side view, facing right). */
-function riderSprite(owner: number): Sprite {
+function riderSprite(owner: number, frame = 0): Sprite {
   const col = TEAM_COLORS[owner] ?? TEAM_COLORS[0],
     dark = TEAM_DARK[owner] ?? TEAM_DARK[0];
   const [c, g] = mk(64, 60);
@@ -588,11 +574,16 @@ function riderSprite(owner: number): Sprite {
   g.fill();
   // legs
   g.fillStyle = '#6b4226';
-  for (const lx of [-16, -9, 8, 15]) {
+  for (const [i, lx] of [-16, -9, 8, 15].entries()) {
+    const rot = (i % 2 === frame ? 0.35 : -0.35) * (i < 2 ? 1 : -1);
+    g.save();
+    g.translate(ax + lx, ay - 16);
+    g.rotate(rot);
     g.beginPath();
-    g.roundRect(ax + lx - 3, ay - 16, 6, 16, 2);
+    g.roundRect(-3, 0, 6, 16, 2);
     g.fill();
     g.stroke();
+    g.restore();
   }
   // body, neck, head
   g.fillStyle = '#8a5a32';
@@ -643,61 +634,110 @@ function riderSprite(owner: number): Sprite {
   return { c, ax, ay, r: 12, top: 60 };
 }
 
-/** Soldier sprite; riders (from a stable) sit on a horse. */
-export function troopSprite(owner: number, rider = false): Sprite {
-  const key = `${owner}:${rider}`;
+/** Soldier sprite (two walk frames); riders (from a stable) sit on a horse. */
+export function troopSprite(owner: number, rider = false, frame = 0): Sprite {
+  const key = `${owner}:${rider}:${frame}`;
   const hit = troopCache.get(key);
   if (hit) return hit;
   if (rider) {
-    const sp = riderSprite(owner);
+    const sp = riderSprite(owner, frame);
     troopCache.set(key, sp);
     return sp;
   }
   const col = TEAM_COLORS[owner] ?? TEAM_COLORS[0],
-    dark = TEAM_DARK[owner] ?? TEAM_DARK[0];
-  const [c, g] = mk(40, 52);
-  const ax = 20,
-    ay = 46;
+    dark = TEAM_DARK[owner] ?? TEAM_DARK[0],
+    light = TEAM_LIGHT[owner] ?? TEAM_LIGHT[0];
+  const [c, g] = mk(48, 60);
+  const ax = 22,
+    ay = 54;
   g.strokeStyle = OUT;
   g.lineWidth = 3;
-  g.fillStyle = 'rgba(20,50,20,0.25)';
+  g.fillStyle = 'rgba(20,50,20,0.28)';
   g.beginPath();
   g.ellipse(ax, ay, 12, 4, 0, 0, TAU);
   g.fill();
-  // legs
-  g.fillStyle = '#2d3440';
+  // spear behind the body
+  g.strokeStyle = '#6b4226';
+  g.lineWidth = 3.5;
   g.beginPath();
-  g.roundRect(ax - 8, ay - 14, 7, 14, 3);
-  g.roundRect(ax + 1, ay - 14, 7, 14, 3);
+  g.moveTo(ax + 11, ay - 6);
+  g.lineTo(ax + 15, ay - 56);
+  g.stroke();
+  g.fillStyle = '#d7dde4';
+  g.strokeStyle = OUT;
+  g.lineWidth = 2;
+  g.beginPath();
+  g.moveTo(ax + 15.5, ay - 59);
+  g.lineTo(ax + 19, ay - 50);
+  g.lineTo(ax + 12, ay - 51);
+  g.closePath();
   g.fill();
   g.stroke();
-  // body
+  g.lineWidth = 3;
+  // legs: apart or together
+  g.fillStyle = '#2d3440';
+  const legs: [number, number][] = frame
+    ? [
+        [-3, 0.25],
+        [3, -0.25],
+      ]
+    : [
+        [-1, 0.05],
+        [1, -0.05],
+      ];
+  for (const [dx, rot] of legs) {
+    g.save();
+    g.translate(ax + dx, ay - 14);
+    g.rotate(rot);
+    g.beginPath();
+    g.roundRect(-3.5, 0, 7, 14, 3);
+    g.fill();
+    g.stroke();
+    g.restore();
+  }
+  // body with shading and a belt
+  const grd = g.createLinearGradient(ax - 11, 0, ax + 11, 0);
+  grd.addColorStop(0, light);
+  grd.addColorStop(0.45, col);
+  grd.addColorStop(1, dark);
+  g.fillStyle = grd;
+  g.beginPath();
+  g.roundRect(ax - 11, ay - 33, 22, 21, 8);
+  g.fill();
+  g.stroke();
+  g.fillStyle = '#4b3a2c';
+  g.fillRect(ax - 10, ay - 19, 20, 3.5);
+  // arm holding the spear
   g.fillStyle = col;
   g.beginPath();
-  g.roundRect(ax - 11, ay - 32, 22, 21, 8);
+  g.roundRect(ax + 4, ay - 30, 9, 7, 3.5);
   g.fill();
   g.stroke();
   // head
   g.fillStyle = '#ffd3a6';
   g.beginPath();
-  g.arc(ax + 1, ay - 38, 8, 0, TAU);
+  g.arc(ax + 1, ay - 39, 8, 0, TAU);
   g.fill();
   g.stroke();
-  // helmet
+  // helmet with a shine
   g.fillStyle = dark;
   g.beginPath();
-  g.arc(ax + 1, ay - 40, 9, Math.PI, 0);
-  g.lineTo(ax + 12, ay - 39);
-  g.lineTo(ax - 9, ay - 39);
+  g.arc(ax + 1, ay - 41, 9, Math.PI, 0);
+  g.lineTo(ax + 12, ay - 40);
+  g.lineTo(ax - 9, ay - 40);
   g.closePath();
   g.fill();
   g.stroke();
+  g.fillStyle = 'rgba(255,255,255,0.45)';
+  g.beginPath();
+  g.ellipse(ax - 3, ay - 46, 3, 1.6, -0.4, 0, TAU);
+  g.fill();
   // eye
   g.fillStyle = OUT;
   g.beginPath();
-  g.arc(ax + 5, ay - 37, 1.6, 0, TAU);
+  g.arc(ax + 5, ay - 38, 1.6, 0, TAU);
   g.fill();
-  const sprite: Sprite = { c, ax, ay, r: 12, top: 50 };
+  const sprite: Sprite = { c, ax, ay, r: 12, top: 52 };
   troopCache.set(key, sprite);
   return sprite;
 }

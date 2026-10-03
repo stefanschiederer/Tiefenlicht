@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.5.0 – Schönere Grafik (2026-10-03)
+
+- Wolkenschatten entfernt.
+- Wehende Fahnen in Teamfarbe auf allen eigenen und gegnerischen Türmen (statt starrer Fahne nur auf Stufe 3).
+- Zahlen in farbigen Plaketten mit Glanz, passend zum Besitzer.
+- Soldaten mit Speer, Gürtel, schattiertem Rock und glänzendem Helm; echte Laufanimation, Pferde galoppieren.
+- Türme mit Streiflicht, Glanzkante oben und weicherem Schatten.
+- Linien mit weichem Leuchten und Glanzkante.
+- Atmosphäre je Welt: Schmetterlinge auf der Wiese, Sandkörner in der Wüste, Schneefall in den Bergen, fallende Blätter im Herbst.
+- Goldenes Funkeln, wenn ein Turm zum ersten Mal Stufe 2 oder 3 erreicht; dezentere Staubwolken.
+
 ## 1.4.0 – Sterne, Münzen, Shop, Tagesbonus und Feinschliff (2026-10-03)
 
 - Sterne pro Level nach Zeit (3 Sterne unter der Zielzeit), auf der Karte unter jedem Level, Gesamtzahl oben; Zielzeit auf dem Startbildschirm.
