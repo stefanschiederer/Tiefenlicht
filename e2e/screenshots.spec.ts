@@ -7,11 +7,27 @@ test('screenshots', async ({ page }, info) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addInitScript(() => {
     if (!sessionStorage.getItem('shot'))
-      localStorage.setItem('tiefenlicht-towerwar-v1', JSON.stringify({ level: 14, sound: false }));
+      localStorage.setItem(
+        'tiefenlicht-towerwar-v1',
+        JSON.stringify({
+          level: 14,
+          sound: false,
+          coins: 640,
+          stars: [3, 3, 2, 3, 1, 3, 2, 3, 3, 2, 3, 1, 2],
+          upgrades: { army: 2, drill: 1, boots: 0 },
+        }),
+      );
   });
   await page.goto('./');
   await page.waitForTimeout(800);
   await page.screenshot({ path: `e2e/screenshots/${tag}-map.png` });
+  await page.getByRole('button', { name: 'Shop' }).click();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `e2e/screenshots/${tag}-shop.png` });
+  await page.getByRole('button', { name: 'Zur Karte' }).click();
+  await page.getByRole('button', { name: 'Tagesbonus' }).click();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `e2e/screenshots/${tag}-daily.png` });
   await page.evaluate(() => sessionStorage.setItem('shot', '1'));
   await startAt(page, 1, false);
   await page.waitForTimeout(600);
@@ -33,6 +49,15 @@ test('screenshots', async ({ page }, info) => {
     await page.waitForTimeout(500);
     await page.screenshot({ path: `e2e/screenshots/${tag}-new${lv}.png` });
   }
+  // win screen
+  await startAt(page, 5);
+  await page.waitForTimeout(500);
+  await page.evaluate(() => {
+    const app = (window as unknown as { TW: { state: { towers: { owner: number }[]; time: number } } }).TW;
+    for (const t of app.state.towers) if (t.owner >= 2) t.owner = 1;
+  });
+  await page.waitForTimeout(1600);
+  await page.screenshot({ path: `e2e/screenshots/${tag}-win.png` });
   for (const lv of [22]) {
     await startAt(page, lv);
     await page.waitForTimeout(10000);

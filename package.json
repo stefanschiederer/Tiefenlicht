@@ -1,6 +1,6 @@
 {
   "name": "tiefenlicht",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "type": "module",
   "description": "Tiefenlicht – Türme erobern im Stil von Tower War (PWA)",
@@ -15,6 +15,7 @@
     "e2e": "playwright test",
     "screenshots": "playwright test e2e/screenshots.spec.ts",
     "icons": "node scripts/icons.mjs",
+    "calibrate": "tsx scripts/calibrate.ts",
     "check": "npm run lint && npm run test && npm run build"
   },
   "devDependencies": {

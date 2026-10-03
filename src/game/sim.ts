@@ -56,7 +56,7 @@ export function createGame(def: LevelDef): GameState {
     x: t.x,
     y: t.y,
     owner: t.owner,
-    troops: t.troops,
+    troops: t.troops + (t.owner === PLAYER ? (def.player?.start ?? 0) : 0),
     acc: 0,
     kind: t.kind ?? 'tower',
     cool: t.kind === 'mage' ? MAGE_RELOAD : CANNON_RELOAD,
@@ -211,7 +211,7 @@ function spawnTroop(s: GameState, line: Line): void {
     d: start,
     len: Math.max(start + 1, D - radiusOf(B) * 0.5),
     line: line.id,
-    speed: KINDS[A.kind].speed ?? 1,
+    speed: (KINDS[A.kind].speed ?? 1) * (line.owner === PLAYER ? (s.def.player?.speed ?? 1) : 1),
   });
 }
 
@@ -333,7 +333,8 @@ export function step(s: GameState, dt: number): void {
       t.acc = 0;
       continue;
     }
-    const handicap = t.owner >= 2 ? (s.def.enemyGrowth ?? 1) : 1;
+    const handicap =
+      t.owner >= 2 ? (s.def.enemyGrowth ?? 1) : t.owner === PLAYER ? (s.def.player?.growth ?? 1) : 1;
     t.acc += (GROWTH[levelOf(t) - 1] ?? 1) * KINDS[t.kind].growth * handicap * dt;
     while (t.acc >= 1 && t.troops < GROW_CAP) {
       t.troops++;

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0 – Sterne, Münzen, Shop, Tagesbonus und Feinschliff (2026-10-03)
+
+- Sterne pro Level nach Zeit (3 Sterne unter der Zielzeit), auf der Karte unter jedem Level, Gesamtzahl oben; Zielzeit auf dem Startbildschirm.
+- Münzen für jeden Sieg (mehr für Sterne, doppelt bei Boss-Leveln alle zehn Level, ein Drittel bei Wiederholung).
+- Shop mit dauerhaften Upgrades: Große Armee (mehr Startsoldaten), Drill (schnellere Ausbildung), Marschstiefel (schnellere Soldaten), je 10 Stufen.
+- Tagesbonus-Truhe mit 7-Tage-Serie (40 bis 280 Münzen), leuchtet, wenn sie bereit ist.
+- Neuer Sieg-Bildschirm: einfliegende Sterne, Münzzähler, Bestzeit, Konfetti.
+- Grafik: ziehende Wolkenschatten, warmes Sonnenlicht, Staubwolken hinter marschierenden Soldaten, Türme wackeln bei Treffern, leuchtende Auswahl beim Ziehen (grün = möglich, rot = nicht möglich).
+- Schwierigkeit: flachere Kurve ab Level 15, zweiter Gegner erst ab Level 22; jedes Level 4–150 ist vorab mit einem Test-Bot geprüft (scripts/calibrate.ts, Ergebnis in src/game/calibration.json).
+- Alte Spielstände bleiben erhalten; bereits geschaffte Level zählen mit einem Stern.
+
 ## 1.3.0 – Neue Türme und Anleitung (2026-10-03)
 
 - Reiterhof (ab Level 12): Holzstall mit Koppel, schickt Reiter auf Pferden, die fast doppelt so schnell sind.

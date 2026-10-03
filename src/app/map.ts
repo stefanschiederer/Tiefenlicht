@@ -37,7 +37,7 @@ export function mapLevels(current: number): number {
 }
 
 /** Campaign map HTML: worlds as coloured bands, a winding road and a button per level. */
-export function mapHtml(current: number, width: number): string {
+export function mapHtml(current: number, width: number, stars: number[] = []): string {
   const count = mapLevels(current);
   const H = BOTTOM + (count - 1) * STEP + 170;
   const yOf = (n: number) => H - BOTTOM - (n - 1) * STEP;
@@ -83,8 +83,13 @@ export function mapHtml(current: number, width: number): string {
         : boss && state === 'locked'
           ? `<img class="marker boss" src="${towerIcon(2, 3, 'tower')}" alt="" />`
           : '';
+    const got = stars[n - 1] ?? 0;
+    const starRow =
+      state === 'done'
+        ? `<div class="node-stars">${[1, 2, 3].map((i) => `<i class="${i <= got ? 'on' : ''}"></i>`).join('')}</div>`
+        : '';
     nodes += `<div class="node-wrap" style="left:${xOf(n)}%;top:${yOf(n)}px">${icon}
-      <button class="lvl ${state}${boss ? ' boss' : ''}" data-lv="${n}" ${state === 'locked' ? 'disabled' : ''} aria-label="Level ${n}">${n}</button></div>`;
+      <button class="lvl ${state}${boss ? ' boss' : ''}" data-lv="${n}" ${state === 'locked' ? 'disabled' : ''} aria-label="Level ${n}">${n}</button>${starRow}</div>`;
   }
   return `<div class="map-inner" style="height:${H}px">${bands}
     <svg class="road" width="${width}" height="${H}" viewBox="0 0 ${width} ${H}" aria-hidden="true">

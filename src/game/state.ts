@@ -71,6 +71,8 @@ export interface LevelDef {
   aiDelay: number;
   /** Production multiplier of enemy towers (below 1 makes the level easier). */
   enemyGrowth?: number;
+  /** Permanent player upgrades (shop): extra start troops, production and walking speed factors. */
+  player?: { start: number; growth: number; speed: number };
 }
 
 export interface GameState {

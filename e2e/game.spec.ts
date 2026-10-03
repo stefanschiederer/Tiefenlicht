@@ -79,6 +79,34 @@ test('the guide explains the rules and every tower', async ({ page }) => {
   await expect(page.locator('#playCur')).toBeVisible();
 });
 
+test('winning pays coins and stars, the shop sells upgrades', async ({ page }) => {
+  // level 6, first win with 3 stars: 20 + 12 + 30 = 62 coins, enough for the first upgrade (60)
+  await startAt(page, 6);
+  // hand every enemy tower to the player: the level is won on the next tick
+  await page.evaluate(() => {
+    const app = (window as unknown as { TW: { state: { towers: { owner: number }[] } } }).TW;
+    for (const t of app.state.towers) if (t.owner >= 2) t.owner = 1;
+  });
+  await expect(page.locator('.banner.win')).toBeVisible();
+  await expect(page.locator('.stars-big .star.on')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Weiter' }).click();
+  const coins = Number(await page.locator('.wallet .pill b').first().textContent());
+  expect(coins).toBeGreaterThan(50);
+  await page.getByRole('button', { name: 'Shop' }).click();
+  await page.locator('button.buy[data-up="army"]').click();
+  await expect(page.locator('.upg').first().locator('.pips i.on')).toHaveCount(1);
+});
+
+test('daily bonus can be collected once', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Tagesbonus' }).click();
+  await expect(page.locator('#coinCount')).toBeVisible();
+  await page.getByRole('button', { name: 'Einsammeln' }).click();
+  await page.getByRole('button', { name: 'Tagesbonus' }).click();
+  await expect(page.getByText('Heute schon abgeholt', { exact: false })).toBeVisible();
+});
+
 test('manifest and service worker are served', async ({ request }) => {
   expect((await request.get('./manifest.webmanifest')).ok()).toBe(true);
   expect((await request.get('./sw.js')).ok()).toBe(true);

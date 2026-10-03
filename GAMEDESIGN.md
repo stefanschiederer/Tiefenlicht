@@ -30,6 +30,14 @@ Die Art bleibt bei der Eroberung erhalten. Im Level der Einführung zeigt der St
 - Schwierigkeit: Gegner-Produktion 70 % + 0,8 % je Level (max. 100 %), KI-Takt 3,2 s − 0,045 s je Level (min. 1,3 s), Startvorsprung des Spielers 2–6 Soldaten. Geprüft mit einem einfachen Bot: Level 1–15 fast immer gewonnen, danach zunehmend schwerer.
 - Ab Level 4 generiert: punktsymmetrische Aufstellung, mehr Türme und stärkere Neutrale mit steigender Nummer, Mauern ab Level 6, schnellere KI.
 
+## Motivation (Meta-Spiel)
+
+- Sterne: 3 unter der Zielzeit (30 s + 7 s je Turm + 3 s je Mauer), 2 unter 1,75 × Zielzeit, sonst 1. Bestwerte werden gespeichert.
+- Münzen: 20 + 2 × Level + 10 je Stern, Boss-Level (jedes zehnte) doppelt, Wiederholungen ein Drittel.
+- Shop: Große Armee (+2 Startsoldaten je Stufe), Drill (+5 % Ausbildung), Marschstiefel (+5 % Tempo), je 10 Stufen, Kosten 60 + 60·n + 15·n².
+- Tagesbonus: 40 × Serientag (max. Tag 7), Serie reißt bei einem ausgelassenen Tag.
+- Kalibrierung: `npm run calibrate` wählt pro Level die erste Aufstellung, die ein einfacher Bot ohne Upgrades schafft (bis Level 15 in 3/3, bis 30 in 2/3, danach 1/3 Partien). Ein Test sichert das für Level 4–40.
+
 ## Bewusst weggelassen
 
 Skills, Fähigkeiten, Energie, Editor, Tages-Karte, Erfolge, Endlosmodus.

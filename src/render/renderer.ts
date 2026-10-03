@@ -22,6 +22,8 @@ interface Particle {
   max: number;
   color: string;
   size: number;
+  /** Soft round puff (dust) instead of a square spark. */
+  round?: boolean;
 }
 
 const TAU = Math.PI * 2;
@@ -40,6 +42,9 @@ export class Renderer {
   /** Cannon aim angle (screen radians) and recoil per tower. */
   private aim = new Map<number, { a: number; kick: number }>();
   private shots: { x1: number; y1: number; x2: number; y2: number; t: number }[] = [];
+  /** Hit wobble per tower (1 → 0). */
+  private shake = new Map<number, number>();
+  private dustAcc = 0;
   private bolts: { x1: number; y1: number; x2: number; y2: number; t: number }[] = [];
 
   constructor(readonly canvas: HTMLCanvasElement) {
@@ -72,6 +77,7 @@ export class Renderer {
         });
       } else if (e.type === 'hit') {
         const t = e.tower;
+        this.shake.set(t.id, 1);
         if (Math.random() < 0.5) this.burst(v.sx(t.x, t.y), v.sy(t.x, t.y) - 10, '#ffffff', 2);
       } else if (e.type === 'shot') {
         const t = e.tower;
@@ -152,6 +158,8 @@ export class Renderer {
     g.drawImage(this.ground, 0, 0);
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
+    this.drawClouds();
+    this.drawSelection(s, ui);
     this.drawLines(s);
     if (ui.drag) this.drawDrag(s, ui.drag);
     this.drawScene(s);
@@ -267,9 +275,54 @@ export class Renderer {
   }
 
   /* ------------------------------------------------------------------ towers and troops */
+  /** Slow cloud shadows drifting over the battlefield. */
+  private drawClouds(): void {
+    const g = this.g,
+      v = this.view;
+    const span = v.w + 600;
+    for (let i = 0; i < 3; i++) {
+      const x = ((this.time * (14 + i * 5) + i * 420) % span) - 300,
+        y = v.h * (0.22 + i * 0.3) + Math.sin(this.time * 0.1 + i) * 30;
+      const r = 150 + i * 40;
+      const grd = g.createRadialGradient(x, y, r * 0.2, x, y, r);
+      grd.addColorStop(0, 'rgba(10,30,10,0.10)');
+      grd.addColorStop(1, 'rgba(10,30,10,0)');
+      g.fillStyle = grd;
+      g.beginPath();
+      g.ellipse(x, y, r * 1.5, r * 0.8, 0, 0, TAU);
+      g.fill();
+    }
+  }
+
+  /** Glow under the tower a line is dragged from and under the hovered target. */
+  private drawSelection(s: GameState, ui: UiState): void {
+    const d = ui.drag;
+    if (!d) return;
+    const g = this.g,
+      v = this.view;
+    const glow = (id: number, color: string) => {
+      const t = tower(s, id);
+      const x = v.sx(t.x, t.y),
+        y = v.sy(t.x, t.y) + radiusOf(t) * v.k * 0.35;
+      const r = radiusOf(t) * v.k * (1.7 + 0.12 * Math.sin(this.time * 8));
+      const grd = g.createRadialGradient(x, y, r * 0.3, x, y, r);
+      grd.addColorStop(0, color);
+      grd.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = grd;
+      g.beginPath();
+      g.ellipse(x, y, r, r * 0.55, 0, 0, TAU);
+      g.fill();
+    };
+    glow(d.src, 'rgba(255,255,255,0.85)');
+    if (d.target !== null) glow(d.target, d.ok ? 'rgba(120,255,120,0.85)' : 'rgba(255,80,80,0.8)');
+  }
+
   private drawScene(s: GameState): void {
     const g = this.g,
       v = this.view;
+    // dust kicked up by marching troops
+    this.dustAcc += 1;
+    const dust = this.dustAcc % 6 === 0;
     type Item = { y: number; draw: () => void };
     const items: Item[] = [];
     const troopH = Math.max(17, Math.min(28, 38 * v.k));
@@ -279,6 +332,18 @@ export class Renderer {
         y = v.sy(p.x, p.y);
       const B = tower(s, u.dst);
       const dirX = v.sx(B.x, B.y) - v.sx(u.x0, u.y0);
+      if (dust && Math.random() < 0.35)
+        this.particles.push({
+          x: x - Math.sign(dirX) * 6,
+          y: y - 2,
+          vx: -Math.sign(dirX) * 12,
+          vy: -10,
+          life: 0.5,
+          max: 0.5,
+          color: 'rgba(240,230,200,0.8)',
+          size: 5 + Math.random() * 4,
+          round: true,
+        });
       items.push({
         y,
         draw: () => {
@@ -303,6 +368,7 @@ export class Renderer {
           const lvl = levelOf(t);
           const sp = towerSprite(t.owner, lvl, t.kind);
           const pop = this.pop.get(t.id) ?? 0;
+          const sh = this.shake.get(t.id) ?? 0;
           const k = ((radiusOf(t) * v.k * 1.18) / sp.r) * (1 + pop * 0.25);
           const ay = y + radiusOf(t) * v.k * 0.35;
           if (t.kind === 'cannon') {
@@ -317,7 +383,12 @@ export class Renderer {
             g.setLineDash([]);
             g.globalAlpha = 1;
           }
-          g.drawImage(sp.c, x - sp.ax * k, ay - sp.ay * k, sp.c.width * k, sp.c.height * k);
+          if (sh > 0) {
+            // squash and wobble when hit
+            const wob = Math.sin(this.time * 70 + t.id) * sh * 2.5,
+              sq = 1 - sh * 0.07;
+            g.drawImage(sp.c, x - sp.ax * k + wob, ay - sp.ay * k * sq, sp.c.width * k, sp.c.height * k * sq);
+          } else g.drawImage(sp.c, x - sp.ax * k, ay - sp.ay * k, sp.c.width * k, sp.c.height * k);
           if (t.kind === 'cannon') this.drawBarrel(t.id, t.owner, x, ay - (sp.gun ?? 0) * k, k);
           // troop count, drawn after all towers so no tower hides it
           const fs = Math.max(18, Math.min(32, radiusOf(t) * v.k * 0.9));
@@ -373,6 +444,11 @@ export class Renderer {
 
   private drawEffects(dt: number): void {
     const g = this.g;
+    for (const [id, v] of this.shake) {
+      const n = v - dt * 6;
+      if (n <= 0) this.shake.delete(id);
+      else this.shake.set(id, n);
+    }
     for (const st of this.aim.values()) st.kick = Math.max(0, st.kick - dt * 5);
     this.bolts = this.bolts.filter((b) => (b.t += dt) < 0.4);
     for (const b of this.bolts) {
@@ -435,10 +511,14 @@ export class Renderer {
     for (const p of this.particles) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vy += 300 * dt;
+      if (!p.round) p.vy += 300 * dt;
       g.globalAlpha = p.life / p.max;
       g.fillStyle = p.color;
-      g.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      if (p.round) {
+        g.beginPath();
+        g.arc(p.x, p.y, p.size * (1.4 - (p.life / p.max) * 0.6), 0, TAU);
+        g.fill();
+      } else g.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
     }
     g.globalAlpha = 1;
   }

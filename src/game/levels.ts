@@ -3,6 +3,7 @@ import { KINDS, NEUTRAL, PLAYER, TOWER_R, WALL_T, WORLD_H, WORLD_W, type TowerKi
 const SPECIAL: TowerKind[] = ['barracks', 'fortress', 'cannon', 'stable', 'castle', 'mage'];
 import { pointSegDist, rng, segSegDist } from './geom';
 import { computeReach } from './sim';
+import CALIBRATION from './calibration.json';
 import type { LevelDef, Tower, Wall } from './state';
 
 type TowerDef = LevelDef['towers'][number];
@@ -73,10 +74,22 @@ export function levelDef(n: number): LevelDef {
  * towers in between, walls from level 6. More towers, stronger neutrals and a faster enemy with n.
  */
 export function generate(n: number): LevelDef {
-  for (let attempt = 0; attempt < 200; attempt++) {
+  // CALIBRATION holds, per level, the first layout a simple bot can beat (scripts/calibrate.ts)
+  const first = (CALIBRATION as Record<string, number>)[String(n)] ?? 0;
+  for (let attempt = first; attempt < first + 200; attempt++) {
+    const def = generateAttempt(n, attempt);
+    if (def) return def;
+  }
+  // fallback: the hand-made level 3 layout
+  return { ...(HAND[3] as Omit<LevelDef, 'n'>), n };
+}
+
+/** One candidate layout for level n (deterministic per attempt); null if it is not playable. */
+export function generateAttempt(n: number, attempt: number): LevelDef | null {
+  {
     const rand = rng(n * 9973 + attempt * 131 + 7);
     const ri = (a: number, b: number) => a + Math.floor(rand() * (b - a + 1));
-    const two = n >= 15 && n % 5 === 2; // occasionally a second enemy
+    const two = n >= 22 && n % 5 === 2; // occasionally a second enemy
     const pairs = Math.min(2 + Math.floor(n / 4), 5);
     const towers: TowerDef[] = [];
     const start = 10 + Math.min(10, Math.floor(n / 3));
@@ -90,10 +103,10 @@ export function generate(n: number): LevelDef {
     // extra enemy tower on later levels
     const minD = TOWER_R * 4.4;
     const free = (x: number, y: number) => towers.every((o) => Math.hypot(o.x - x, o.y - y) >= minD);
-    if (!two && n >= 16 && rand() < 0.5) {
+    if (!two && n >= 20 && rand() < 0.35) {
       const x = ri(120, 600),
         y = ri(260, 380);
-      if (!free(x, y) || !free(WORLD_W - x, WORLD_H - y)) continue;
+      if (!free(x, y) || !free(WORLD_W - x, WORLD_H - y)) return null;
       towers.push(t(x, y, 2, 6 + Math.floor(n / 4)));
       towers.push(t(WORLD_W - x, WORLD_H - y, NEUTRAL, 6 + Math.floor(n / 4)));
     }
@@ -125,7 +138,7 @@ export function generate(n: number): LevelDef {
     // central tower sometimes
     if (rand() < 0.5 && free(WORLD_W / 2, WORLD_H / 2))
       towers.push(t(WORLD_W / 2, WORLD_H / 2, NEUTRAL, ri(10, 20 + Math.min(20, n))));
-    if (placed < 2) continue;
+    if (placed < 2) return null;
     // walls
     const walls: Wall[] = [];
     const wallCount = n < 6 ? 0 : Math.min(1 + Math.floor((n - 6) / 6), 3);
@@ -157,14 +170,12 @@ export function generate(n: number): LevelDef {
       n,
       towers,
       walls,
-      aiInterval: Math.max(1.3, 3.2 - n * 0.045),
+      aiInterval: Math.max(1.8, 3.2 - n * 0.035),
       aiDelay: Math.max(3, 7 - n * 0.12),
-      enemyGrowth: Math.min(1, 0.7 + n * 0.008),
+      enemyGrowth: Math.min(0.92, 0.7 + n * 0.0055),
     };
-    if (isPlayable(def)) return def;
+    return isPlayable(def) ? def : null;
   }
-  // fallback: the hand-made level 3 layout
-  return { ...(HAND[3] as Omit<LevelDef, 'n'>), n };
 }
 
 /** Every tower is reachable from the player's start over drawable lines. */

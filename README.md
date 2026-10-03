@@ -2,9 +2,9 @@
 
 Türme erobern im Stil von Tower War: Ziehe Linien von deinen blauen Türmen, schicke Soldaten los und nimm alle roten Türme ein. Browser- und Handyspiel als PWA, spielbar unter **https://stefanschiederer.github.io/Tiefenlicht/**. Auf dem iPhone in Safari „Teilen → Zum Home-Bildschirm“ wählen.
 
-| Kampagnen-Karte        | Spiel                    | Wüste                         | Schnee                        |
-| ---------------------- | ------------------------ | ----------------------------- | ----------------------------- |
-| ![Karte](docs/map.png) | ![Spiel](docs/march.png) | ![Level 14](docs/level14.png) | ![Level 25](docs/level25.png) |
+| Kampagnen-Karte        | Spiel                    | Sieg                  | Shop                   |
+| ---------------------- | ------------------------ | --------------------- | ---------------------- |
+| ![Karte](docs/map.png) | ![Spiel](docs/march.png) | ![Sieg](docs/win.png) | ![Shop](docs/shop.png) |
 
 ## Spielregeln
 
@@ -19,6 +19,10 @@ Türme erobern im Stil von Tower War: Ziehe Linien von deinen blauen Türmen, sc
 - Updates kommen automatisch und werden auf der Kampagnen-Karte eingespielt. Der Spielstand liegt im Browser-Speicher des Geräts und bleibt bei Updates erhalten.
 - Gewonnen ist das Level, wenn keine gegnerischen Türme mehr übrig sind.
 
+## Fortschritt
+
+Sterne für schnelle Siege, Münzen für jeden Sieg und den Tagesbonus, dauerhafte Upgrades im Shop. Alle zehn Level wartet ein Boss-Level mit doppelter Belohnung.
+
 ## Entwicklung
 
 ```bash
@@ -26,6 +30,7 @@ npm install
 npm run dev        # Entwicklungsserver
 npm run check      # Lint, Unit-Tests, Build
 npm run e2e        # Playwright (Desktop und iPhone hochkant)
+npm run calibrate  # Level mit dem Test-Bot prüfen und src/game/calibration.json neu schreiben
 ```
 
 - `src/game` – Regeln und Simulation (deterministisch, ohne DOM), Level-Generator, Gegner-KI.

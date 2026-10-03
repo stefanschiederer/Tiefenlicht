@@ -983,6 +983,12 @@ export function drawGround(
     trees.push([x, y]);
   }
   trees.sort((a, b) => a[1] - b[1]).forEach(([x, y]) => drawTree(g, x, y, s * (0.7 + rand() * 0.5), theme));
+  // warm sunlight from the top left
+  const sun = g.createLinearGradient(0, 0, w, h);
+  sun.addColorStop(0, 'rgba(255,244,200,0.16)');
+  sun.addColorStop(0.5, 'rgba(255,244,200,0)');
+  g.fillStyle = sun;
+  g.fillRect(0, 0, w, h);
   // soft vignette
   const vg = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.45, w / 2, h / 2, Math.max(w, h) * 0.75);
   vg.addColorStop(0, 'rgba(0,0,0,0)');

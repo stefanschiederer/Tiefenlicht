@@ -93,3 +93,11 @@ describe('enemy AI', () => {
     expect(s.result).not.toBeNull();
   });
 });
+
+describe('calibration', () => {
+  it.each(Array.from({ length: 37 }, (_, i) => i + 4))('the bot beats level %i often enough', async (n) => {
+    const { BOT_SPEEDS, botGame, requiredWins } = await import('@/game/bot');
+    const wins = BOT_SPEEDS.filter((e) => botGame(levelDef(n), e).win).length;
+    expect(wins).toBeGreaterThanOrEqual(requiredWins(n));
+  });
+});
