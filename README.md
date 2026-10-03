@@ -1,4 +1,6 @@
-# Tiefenlicht
+# Burgensturm
+
+Das Spiel heißt im Spiel **Burgensturm**; das Repository behält den Namen „Tiefenlicht“, damit der Link gleich bleibt.
 
 Türme erobern im Stil von Tower War: Ziehe Linien von deinen blauen Türmen, schicke Soldaten los und nimm alle roten Türme ein. Browser- und Handyspiel als PWA, spielbar unter **https://stefanschiederer.github.io/Tiefenlicht/**. Auf dem iPhone in Safari „Teilen → Zum Home-Bildschirm“ wählen.
 

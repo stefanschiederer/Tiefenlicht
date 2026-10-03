@@ -21,8 +21,8 @@ export default defineConfig({
       includeAssets: ['logo.svg', 'icons/*.png'],
       manifest: {
         id: 'tiefenlicht',
-        name: 'Tiefenlicht',
-        short_name: 'Tiefenlicht',
+        name: 'Burgensturm',
+        short_name: 'Burgensturm',
         description: 'Türme erobern: Linien ziehen, Soldaten schicken, alle roten Türme einnehmen.',
         lang: 'de',
         display: 'fullscreen',

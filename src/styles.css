@@ -1,4 +1,4 @@
-/* Tiefenlicht – Tower-War-style UI: bold rounded type, chunky buttons, bright colours. */
+/* Burgensturm – Tower-War-style UI: bold rounded type, chunky buttons, bright colours. */
 :root {
   --ink: #1d2530;
   --title: 'Baloo 2', 'Arial Black', 'Trebuchet MS', sans-serif;
@@ -337,43 +337,45 @@ button {
   position: relative;
   width: 100%;
 }
-.band {
-  position: absolute;
-  left: 0;
-  right: 0;
-  background-image:
-    radial-gradient(ellipse 140px 60px at 20% 30%, rgba(255, 255, 255, 0.14), transparent 70%),
-    radial-gradient(ellipse 180px 70px at 75% 65%, rgba(0, 0, 0, 0.05), transparent 70%),
-    radial-gradient(ellipse 120px 50px at 55% 12%, rgba(255, 255, 255, 0.12), transparent 70%);
-}
-.band-name {
-  position: absolute;
-  left: 12px;
-  bottom: 10px;
-  padding: 4px 12px;
-  border-radius: 14px;
-  background: rgba(29, 37, 48, 0.72);
-  color: #fff;
-  font-weight: 800;
-  font-size: 15px;
-}
 .road {
   position: absolute;
   inset: 0;
+  width: 100%;
   pointer-events: none;
 }
-.road path {
+.road .r0,
+.road .r1,
+.road .r2,
+.road .r3,
+.road .r4 {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.road .r0 {
+  stroke: rgba(20, 40, 20, 0.25);
+  stroke-width: 44;
+  transform: translateY(4px);
+}
 .road .r1 {
-  stroke: #1d2530;
+  stroke: #6b4a2a;
   stroke-width: 34;
 }
 .road .r2 {
-  stroke: #c9a46a;
-  stroke-width: 28;
+  stroke: #d9b77c;
+  stroke-width: 27;
+}
+.road .sign-a {
+  font:
+    800 13px 'Baloo 2',
+    sans-serif;
+  fill: #5a3a1a;
+}
+.road .sign-b {
+  font:
+    800 13px 'Baloo 2',
+    sans-serif;
+  fill: #1d2530;
 }
 .road .r3 {
   stroke: rgba(255, 255, 255, 0.55);
@@ -410,6 +412,7 @@ button {
   }
 }
 .lvl {
+  position: relative;
   width: 58px;
   height: 58px;
   border-radius: 50%;
@@ -422,34 +425,63 @@ button {
   place-items: center;
   padding: 0;
 }
+.lvl::after {
+  /* glossy highlight on every medallion */
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: 8%;
+  height: 32%;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
 .lvl.done {
-  background: linear-gradient(180deg, #7ee05a, #3fb52a);
+  background: radial-gradient(circle at 40% 35%, #a6ef7e, #3fb52a 70%);
   box-shadow:
     inset 0 -5px 0 #2b8a1b,
+    inset 0 0 0 3px rgba(255, 255, 255, 0.35),
     0 4px 0 #1d2530;
 }
 .lvl.current {
   width: 74px;
   height: 74px;
   font-size: 30px;
-  background: linear-gradient(180deg, #6fb2ff, #2f86ff);
+  background: radial-gradient(circle at 40% 35%, #9ccbff, #2f86ff 70%);
   box-shadow:
     inset 0 -6px 0 #1a5cc2,
+    inset 0 0 0 3px rgba(255, 255, 255, 0.4),
     0 5px 0 #1d2530,
-    0 0 0 8px rgba(255, 255, 255, 0.45);
+    0 0 0 8px rgba(255, 255, 255, 0.5),
+    0 0 26px 10px rgba(255, 230, 120, 0.55);
   animation: breathe 1.4s ease-in-out infinite;
 }
 .lvl.locked {
-  background: #c9ced6;
-  color: #8a94a3;
-  text-shadow: none;
+  background: radial-gradient(circle at 40% 35%, #e6eaef, #b9c1cb 70%);
+  color: #7d8796;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
   box-shadow:
-    inset 0 -5px 0 #a3acb8,
+    inset 0 -5px 0 #98a2ae,
     0 4px 0 #1d2530;
   opacity: 1;
 }
 .lvl.boss {
   border-radius: 18px;
+  width: 64px;
+  height: 64px;
+}
+.lvl.boss.locked {
+  background: radial-gradient(circle at 40% 35%, #ff9b9b, #d63a3a 70%);
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  box-shadow:
+    inset 0 -5px 0 #a82424,
+    0 4px 0 #1d2530;
+}
+.node-wrap .marker.boss {
+  width: 70px;
+  bottom: calc(100% - 18px);
 }
 .lvl:not(:disabled):active {
   transform: translateY(3px);

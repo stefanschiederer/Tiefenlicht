@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.0 – Burgensturm und schönere Kampagnen-Karte (2026-10-03)
+
+- Neuer Name im Spiel: **Burgensturm** (Titel, Karte, Startbildschirm, Anleitung, App-Name beim Installieren). Repository, Link, App-Kennung und Spielstände bleiben unverändert.
+- Kampagnen-Karte als gemalte Landschaft je Welt: Wiese mit Bäumen, Wäldchen, Dörfern, Teichen und Blumen; Wüste mit Kakteen, Dünen, Pyramiden, Oasen und Felsen; Schnee mit Bergen, verschneiten Tannen, gefrorenen Seen und Schneemännern; Herbst mit bunten Bäumen, Heuballen, Kürbissen und Pilzen.
+- Weiche, gewellte Übergänge zwischen den Welten und ein Holzschild am Anfang jeder Welt.
+- Level als glänzende Medaillons; das aktuelle Level leuchtet golden; Boss-Level rot mit Burg (nach dem Sieg blau).
+- Nebel über den noch nicht erreichten Leveln; Weg mit Schatten und Holzrand.
+
 ## 1.5.0 – Schönere Grafik (2026-10-03)
 
 - Wolkenschatten entfernt.

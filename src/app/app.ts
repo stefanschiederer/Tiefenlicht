@@ -1,10 +1,10 @@
 import { enemiesFor, type Enemy } from '@/game/ai';
-import { KINDS, PLAYER, TEAM_COLORS, type TowerKind } from '@/game/config';
+import { KINDS, PLAYER, TEAM_COLORS, themeOf, type TowerKind } from '@/game/config';
 import { levelDef } from '@/game/levels';
 import { addLine, checkLine, createGame, cutLines, drainEvents, radiusOf, step, strength } from '@/game/sim';
 import type { GameState } from '@/game/state';
 import { Renderer, type UiState } from '@/render/renderer';
-import { kindIcon, towerIcon } from '@/render/sprites';
+import { kindIcon, PALETTES, towerIcon } from '@/render/sprites';
 import { setSound, sfx, unlockAudio } from './audio';
 import { loadSave, writeSave, type Save } from './save';
 import { mapHtml, scrollToCurrent } from './map';
@@ -213,6 +213,7 @@ export class App {
   /* ------------------------------------------------------------------ screens */
   private setScreen(html: string | null): void {
     const el = $('screen');
+    el.style.background = '';
     el.hidden = html === null;
     el.className = `screen ${this.mode}`;
     $('panel').innerHTML = html ?? '';
@@ -222,7 +223,7 @@ export class App {
     this.mode = 'start';
     $('hud').hidden = true;
     this.setScreen(
-      `<div class="logo">Tiefenlicht</div>
+      `<div class="logo">Burgensturm</div>
        <div class="start-bottom">
          ${this.newKindCard()}
          <div class="level-big">Level ${this.state.def.n}</div>
@@ -252,7 +253,7 @@ export class App {
     $('hud').hidden = true;
     const cur = this.save.level;
     this.setScreen(
-      `<div class="map-top"><div><div class="map-title">Tiefenlicht</div><div class="map-tag">Erobere alle roten Türme!</div>
+      `<div class="map-top"><div><div class="map-title">Burgensturm</div><div class="map-tag">Erobere alle roten Türme!</div>
          <div class="wallet"><span class="pill">${ICON.coin}<b>${this.save.coins}</b></span><span class="pill">${ICON.star}<b>${totalStars(this.save)}</b></span></div></div>
          <div class="map-buttons"><button class="round" id="info" aria-label="Anleitung">${ICON.info}</button>
          <button class="round" id="sound" aria-label="Ton">${this.save.sound ? ICON.soundOn : ICON.soundOff}</button></div></div>
@@ -264,6 +265,8 @@ export class App {
        </div>`,
     );
     $('screen').className = 'screen map-screen';
+    // the area beside the map takes the colour of the current world
+    $('screen').style.background = PALETTES[themeOf(cur).id].outer;
     const map = $('map');
     scrollToCurrent(map);
     map.addEventListener('click', (e) => {
@@ -388,7 +391,7 @@ export class App {
     this.setScreen(
       `<div class="guide">
         <h2>So geht's</h2>
-        <p class="lead">Tiefenlicht ist ein Strategiespiel um Türme. Du bist <b class="blue">Blau</b>, der Gegner ist <b class="red">Rot</b>, graue Türme gehören noch niemandem. Erobere alle roten Türme, dann hast du das Level gewonnen.</p>
+        <p class="lead">Burgensturm ist ein Strategiespiel um Türme. Du bist <b class="blue">Blau</b>, der Gegner ist <b class="red">Rot</b>, graue Türme gehören noch niemandem. Erobere alle roten Türme, dann hast du das Level gewonnen.</p>
         <ul>
           <li><b>Linie ziehen:</b> Wische von einem blauen Turm zu einem anderen Turm. Deine Soldaten marschieren dann ununterbrochen hinüber.</li>
           <li><b>Erobern:</b> Jeder Soldat zieht einem fremden Turm einen ab. Fällt die Zahl unter null, gehört der Turm dir. Eigene Türme werden verstärkt.</li>
