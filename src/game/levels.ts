@@ -89,26 +89,38 @@ export function generateAttempt(n: number, attempt: number): LevelDef | null {
   {
     const rand = rng(n * 9973 + attempt * 131 + 7);
     const ri = (a: number, b: number) => a + Math.floor(rand() * (b - a + 1));
-    const two = n >= 22 && n % 5 === 2; // occasionally a second enemy
+    const boss = n % 10 === 0;
+    // more enemies later on: two from level 12 (every third level), three from level 30 (every fourth)
+    const enemies = n >= 30 && n % 4 === 1 ? 3 : n >= 12 && (n % 3 === 0 || n % 10 === 5) ? 2 : 1;
+    const two = enemies >= 2;
     const pairs = Math.min(2 + Math.floor(n / 4), 5);
     const towers: TowerDef[] = [];
-    const start = 10 + Math.min(10, Math.floor(n / 3));
+    const start = 10 + Math.min(14, Math.floor(n / 3)) + (boss ? 4 : 0);
     const px = ri(150, 570);
     // the player starts a little stronger (less so in late levels)
     towers.push(t(px, ri(1040, 1120), PLAYER, start + Math.max(2, 6 - Math.floor(n / 10))));
-    if (two) {
+    if (enemies === 3) {
+      towers.push(t(ri(80, 170), ri(200, 300), 2, start));
+      towers.push(t(ri(550, 640), ri(200, 300), 3, start));
+      towers.push(t(ri(300, 420), ri(110, 170), 4, start));
+    } else if (two) {
       towers.push(t(ri(90, 200), ri(160, 260), 2, start));
       towers.push(t(ri(520, 630), ri(160, 260), 3, start));
-    } else towers.push(t(WORLD_W - px, WORLD_H - (towers[0] as TowerDef).y, 2, start));
+    } else
+      towers.push(
+        // boss levels: the enemy holds a castle
+        t(WORLD_W - px, WORLD_H - (towers[0] as TowerDef).y, 2, start, boss && n >= 16 ? 'castle' : 'tower'),
+      );
     // extra enemy tower on later levels
     const minD = TOWER_R * 4.4;
     const free = (x: number, y: number) => towers.every((o) => Math.hypot(o.x - x, o.y - y) >= minD);
-    if (!two && n >= 20 && rand() < 0.35) {
+    if (!two && !boss && n >= 20 && rand() < 0.35) {
       const x = ri(120, 600),
         y = ri(260, 380);
       if (!free(x, y) || !free(WORLD_W - x, WORLD_H - y)) return null;
       towers.push(t(x, y, 2, 6 + Math.floor(n / 4)));
-      towers.push(t(WORLD_W - x, WORLD_H - y, NEUTRAL, 6 + Math.floor(n / 4)));
+      // the mirrored spot is the player's: both sides start with two towers
+      towers.push(t(WORLD_W - x, WORLD_H - y, PLAYER, 6 + Math.floor(n / 4)));
     }
     // special towers: the newest kind always shows up in the level that introduces it, then a mix
     const avail = SPECIAL.filter((k) => KINDS[k].from <= n);
@@ -141,7 +153,7 @@ export function generateAttempt(n: number, attempt: number): LevelDef | null {
     if (placed < 2) return null;
     // walls
     const walls: Wall[] = [];
-    const wallCount = n < 6 ? 0 : Math.min(1 + Math.floor((n - 6) / 6), 3);
+    const wallCount = n < 6 ? 0 : Math.min(1 + Math.floor((n - 6) / 12), 2);
     let wt = 0;
     while (walls.length < wallCount * 2 && wt++ < 300) {
       const cx = ri(100, 620),
@@ -170,9 +182,10 @@ export function generateAttempt(n: number, attempt: number): LevelDef | null {
       n,
       towers,
       walls,
-      aiInterval: Math.max(1.8, 3.2 - n * 0.035),
-      aiDelay: Math.max(3, 7 - n * 0.12),
-      enemyGrowth: Math.min(0.92, 0.7 + n * 0.0055),
+      // difficulty rises steadily up to level 80; boss levels (every tenth) are a notch harder
+      aiInterval: Math.max(1.4, 3.2 - n * 0.025) * (boss && n < 60 ? 0.85 : 1),
+      aiDelay: Math.max(2, 7 - n * 0.12) * (boss ? 0.6 : 1),
+      enemyGrowth: Math.min(1, 0.7 + n * 0.004) + (boss && n < 60 ? 0.04 : 0),
     };
     return isPlayable(def) ? def : null;
   }

@@ -762,6 +762,46 @@ interface Palette {
   bush: [string, string];
 }
 export const PALETTES: Record<Theme, Palette> = {
+  swamp: {
+    outer: '#4f7a3a',
+    field: '#7fa25a',
+    light: 'rgba(200,255,200,0.08)',
+    dark: 'rgba(30,60,20,0.12)',
+    tuft: 'rgba(40,70,30,0.5)',
+    flowers: ['#d7f5a0', '#ffffff'],
+    rock: ['#7d8574', '#a7ae9c'],
+    bush: ['#3e6b34', '#5b8a45'],
+  },
+  beach: {
+    outer: '#4fb7e3',
+    field: '#f5e2a8',
+    light: 'rgba(255,255,255,0.18)',
+    dark: 'rgba(160,120,50,0.08)',
+    tuft: 'rgba(120,150,60,0.35)',
+    flowers: ['#ff9ec7', '#ffffff', '#ffd166'],
+    rock: ['#b9a58a', '#dccbb0'],
+    bush: ['#5aa84a', '#7cc463'],
+  },
+  volcano: {
+    outer: '#3b2f2f',
+    field: '#8a6d5c',
+    light: 'rgba(255,180,120,0.08)',
+    dark: 'rgba(30,10,10,0.14)',
+    tuft: 'rgba(60,30,20,0.45)',
+    flowers: ['#ff6b2b', '#ffb21a'],
+    rock: ['#4a3b3b', '#6e5a5a'],
+    bush: ['#6b5a3a', '#8a7650'],
+  },
+  magic: {
+    outer: '#4b3a7a',
+    field: '#8f7fd0',
+    light: 'rgba(255,220,255,0.12)',
+    dark: 'rgba(40,20,90,0.12)',
+    tuft: 'rgba(60,40,120,0.45)',
+    flowers: ['#ffe8ff', '#9ff0ff', '#ffd166'],
+    rock: ['#6d6a9a', '#a7a3d6'],
+    bush: ['#4fb38f', '#7fe0b9'],
+  },
   grass: {
     outer: '#5fb235',
     field: '#8fd956',
@@ -818,6 +858,100 @@ export function drawTree(
   g.fill();
   g.strokeStyle = OUT;
   g.lineWidth = 2.5 * s;
+  if (theme === 'beach') {
+    // palm tree
+    g.strokeStyle = '#8a5a32';
+    g.lineWidth = 6 * s;
+    g.beginPath();
+    g.moveTo(x, y);
+    g.quadraticCurveTo(x + 8 * s, y - 24 * s, x + 2 * s, y - 46 * s);
+    g.stroke();
+    g.strokeStyle = '#3aa24a';
+    g.lineWidth = 6 * s;
+    for (const [dx, dy] of [
+      [-20, -40],
+      [22, -42],
+      [-14, -56],
+      [16, -58],
+      [0, -62],
+    ] as const) {
+      g.beginPath();
+      g.moveTo(x + 2 * s, y - 46 * s);
+      g.quadraticCurveTo(x + (dx / 2) * s, y + (dy - 10) * s, x + dx * s, y + dy * s);
+      g.stroke();
+    }
+    g.lineWidth = 2.5 * s;
+    g.strokeStyle = OUT;
+    return;
+  }
+  if (theme === 'volcano') {
+    // black rock spire with glowing cracks
+    g.fillStyle = '#3a2f2f';
+    g.beginPath();
+    g.moveTo(x - 16 * s, y);
+    g.lineTo(x - 6 * s, y - 46 * s);
+    g.lineTo(x + 4 * s, y - 30 * s);
+    g.lineTo(x + 10 * s, y - 52 * s);
+    g.lineTo(x + 18 * s, y);
+    g.closePath();
+    g.fill();
+    g.stroke();
+    g.strokeStyle = '#ff7a2b';
+    g.lineWidth = 2 * s;
+    g.beginPath();
+    g.moveTo(x - 4 * s, y - 6 * s);
+    g.lineTo(x, y - 22 * s);
+    g.lineTo(x + 6 * s, y - 34 * s);
+    g.stroke();
+    return;
+  }
+  if (theme === 'magic') {
+    // giant glowing mushroom
+    g.fillStyle = '#f3ead8';
+    g.beginPath();
+    g.roundRect(x - 5 * s, y - 26 * s, 10 * s, 28 * s, 4 * s);
+    g.fill();
+    g.stroke();
+    g.fillStyle = '#c45cff';
+    g.beginPath();
+    g.ellipse(x, y - 28 * s, 22 * s, 14 * s, 0, Math.PI, 0);
+    g.closePath();
+    g.fill();
+    g.stroke();
+    g.fillStyle = '#ffe8ff';
+    for (const [dx, dy] of [
+      [-10, -33],
+      [6, -37],
+      [12, -30],
+    ] as const) {
+      g.beginPath();
+      g.arc(x + dx * s, y + dy * s, 2.6 * s, 0, TAU);
+      g.fill();
+    }
+    return;
+  }
+  if (theme === 'swamp') {
+    // dead, crooked tree
+    g.strokeStyle = '#5a4630';
+    g.lineWidth = 6 * s;
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x - 2 * s, y - 30 * s);
+    g.lineTo(x - 14 * s, y - 44 * s);
+    g.moveTo(x - 2 * s, y - 30 * s);
+    g.lineTo(x + 12 * s, y - 46 * s);
+    g.moveTo(x + 4 * s, y - 38 * s);
+    g.lineTo(x + 4 * s, y - 54 * s);
+    g.stroke();
+    g.fillStyle = 'rgba(120,160,90,0.8)';
+    g.beginPath();
+    g.ellipse(x - 14 * s, y - 46 * s, 8 * s, 5 * s, 0, 0, TAU);
+    g.ellipse(x + 12 * s, y - 48 * s, 8 * s, 5 * s, 0, 0, TAU);
+    g.fill();
+    g.strokeStyle = OUT;
+    g.lineWidth = 2.5 * s;
+    return;
+  }
   if (theme === 'desert') {
     // cactus
     g.fillStyle = '#4f9d4a';

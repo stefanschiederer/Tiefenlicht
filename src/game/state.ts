@@ -47,6 +47,9 @@ export interface Wall {
   y1: number;
   x2: number;
   y2: number;
+  /** Hit points: troops marching into the wall knock it down; at 0 it crumbles. */
+  hp?: number;
+  max?: number;
 }
 
 export type GameEvent =
@@ -57,8 +60,35 @@ export type GameEvent =
   | { type: 'hit'; tower: Tower; owner: number }
   | { type: 'shot'; tower: Tower; x: number; y: number }
   | { type: 'zap'; tower: Tower; target: Tower }
+  | { type: 'rocket'; target: Tower; x: number; y: number }
+  | { type: 'wallhit'; x: number; y: number }
+  | { type: 'wallbreak'; wall: Wall }
   | { type: 'clash'; x: number; y: number; a: number; b: number }
   | { type: 'end'; result: 'win' | 'lose' };
+
+export interface PlayerBonus {
+  start: number;
+  growth: number;
+  speed: number;
+  send?: number;
+  attack?: number;
+  defense?: number;
+  cap?: number;
+}
+
+export interface Rocket {
+  id: number;
+  target: number;
+  /** Flight progress 0..1 (negative = still waiting to launch). */
+  t: number;
+  damage: number;
+  /** Fraction of the damage dealt to enemy towers near the target. */
+  splash: number;
+  /** Launch point (world units) and a sideways curve for the flight path. */
+  x0: number;
+  y0: number;
+  bend: number;
+}
 
 export interface LevelDef {
   /** 1-based level number. */
@@ -71,8 +101,9 @@ export interface LevelDef {
   aiDelay: number;
   /** Production multiplier of enemy towers (below 1 makes the level easier). */
   enemyGrowth?: number;
-  /** Permanent player upgrades (shop): extra start troops, production and walking speed factors. */
-  player?: { start: number; growth: number; speed: number };
+  /** Permanent player skills: start troops, factors for production, walking speed, line output,
+   *  damage dealt and damage taken, and extra tower capacity. */
+  player?: PlayerBonus;
 }
 
 export interface GameState {
@@ -80,6 +111,7 @@ export interface GameState {
   towers: Tower[];
   lines: Line[];
   troops: Troop[];
+  rockets: Rocket[];
   walls: Wall[];
   /** reach[a][b]: a straight line from tower a to b crosses no wall and no other tower. */
   reach: boolean[][];

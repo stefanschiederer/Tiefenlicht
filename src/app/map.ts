@@ -1,4 +1,4 @@
-import { THEMES, themeOf, type Theme } from '@/game/config';
+import { themeOf, type Theme } from '@/game/config';
 import { PALETTES, towerIcon } from '@/render/sprites';
 
 /* Campaign map: one tall SVG landscape (worlds, decorations, road, fog) with DOM level buttons on top. */
@@ -69,6 +69,46 @@ const DECO: Record<Theme, ((x: number, y: number, s: number, r: () => number) =>
     (x, y, s) =>
       `<g ${at(x, y, s)}>${SHADOW(12)}<circle cy="-10" r="11" fill="#fff" ${S}/><circle cy="-28" r="8" fill="#fff" ${S}/><path d="M0 -28 l9 2 l-9 2Z" fill="#ff8a3d"/><rect x="-7" y="-41" width="14" height="6" rx="2" fill="#2d3440"/><circle cx="-3" cy="-30" r="1.4" fill="${OUT}"/></g>`,
   ],
+  swamp: [
+    (x, y, s) =>
+      `<g ${at(x, y, s)}>${SHADOW(14)}<path d="M0 0 L-2 -30 L-14 -44 M-2 -30 L12 -46 M4 -38 L4 -54" stroke="#5a4630" stroke-width="6" stroke-linecap="round" fill="none"/><ellipse cx="-14" cy="-46" rx="8" ry="5" fill="#7fa25a"/><ellipse cx="12" cy="-48" rx="8" ry="5" fill="#7fa25a"/></g>`,
+    (x, y, s) =>
+      `<g ${at(x, y, s)}><ellipse cy="-6" rx="34" ry="13" fill="#4f7a5a" ${S}/><ellipse cx="-10" cy="-8" rx="6" ry="3" fill="#7fc46a"/><ellipse cx="12" cy="-4" rx="5" ry="2.6" fill="#7fc46a"/><circle cx="12" cy="-6" r="1.8" fill="#ff9ec7"/></g>`,
+    (x, y, s) =>
+      `<g ${at(x, y, s)}><path d="M-8 0 q-2 -18 -6 -26 M0 0 q0 -20 2 -30 M8 0 q2 -16 6 -24" stroke="#5b7a34" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="-14" cy="-28" rx="2.5" ry="6" fill="#8a5a32"/><ellipse cx="2" cy="-32" rx="2.5" ry="6" fill="#8a5a32"/></g>`,
+    (x, y, s) =>
+      `<g ${at(x, y, s)}>${SHADOW(12)}<ellipse cy="-8" rx="14" ry="9" fill="#3e6b34" ${S}/><ellipse cx="-4" cy="-11" rx="6" ry="4" fill="#5b8a45"/></g>`,
+  ],
+  beach: [
+    (x, y, s) =>
+      `<g ${at(x, y, s)}>${SHADOW(16)}<path d="M0 0 Q8 -24 2 -46" stroke="#8a5a32" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M2 -46 Q-10 -56 -20 -40 M2 -46 Q14 -58 22 -42 M2 -46 Q-6 -66 -14 -56 M2 -46 Q8 -68 16 -58 M2 -46 Q2 -70 0 -62" stroke="#3aa24a" stroke-width="6" fill="none" stroke-linecap="round"/></g>`,
+    (x, y, s) =>
+      `<g ${at(x, y, s)}><path d="M-46 -4 q12 -8 24 0 t24 0 t24 0 t24 0" stroke="#4fb7e3" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M-40 -8 q10 -6 20 0 t20 0 t20 0" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>`,
+    (x, y, s) =>
+      `<g ${at(x, y, s)}><path d="M-8 0 a8 8 0 0 1 16 0z" fill="#ffd6e0" ${S}/><path d="M-4 0 l2 -6 M0 0 v-7 M4 0 l-2 -6" stroke="#e8a0b4" stroke-width="1.5"/></g>`,
+    (x, y, s) =>
+      `<g ${at(x, y, s)}>${SHADOW(14)}<rect x="-12" y="-22" width="24" height="4" rx="2" fill="#ff6b6b" ${S}/><path d="M0 -20 v20" stroke="#8a5a32" stroke-width="3"/><path d="M-16 -22 Q0 -40 16 -22Z" fill="#ffffff" ${S}/><path d="M-6 -22 Q0 -38 6 -22" fill="#ff6b6b"/></g>`,
+  ],
+  volcano: [
+    (x, y, s) =>
+      `<g ${at(x, y, s)}>${SHADOW(16)}<path d="M-16 0 L-6 -46 L4 -30 L10 -52 L18 0Z" fill="#3a2f2f" ${S}/><path d="M-4 -6 L0 -22 L6 -34" stroke="#ff7a2b" stroke-width="2" fill="none"/></g>`,
+    (x, y, s) =>
+      `<g ${at(x, y, s)}><ellipse cy="-6" rx="30" ry="12" fill="#ff6b1a" ${S}/><ellipse cx="-6" cy="-8" rx="18" ry="6" fill="#ffb21a"/><circle cx="10" cy="-6" r="2.5" fill="#fff1b0"/></g>`,
+    (x, y, s) =>
+      `<g ${at(x, y, s)}><path d="M-60 0 L-10 -80 L40 0Z" fill="#4a3b3b" ${S}/><path d="M-22 -60 L-10 -80 L2 -60 Q-10 -54 -22 -60Z" fill="#ff7a2b"/><circle cx="-6" cy="-92" r="8" fill="rgba(120,120,120,.6)"/><circle cx="4" cy="-104" r="11" fill="rgba(140,140,140,.45)"/></g>`,
+    (x, y, s) =>
+      `<g ${at(x, y, s)}>${SHADOW(14)}<path d="M-14 0 L-11 -11 L-2 -16 L9 -12 L14 -1Z" fill="#4a3b3b" ${S}/><path d="M-6 -10 L0 -6 L6 -11" stroke="#ff7a2b" stroke-width="1.6" fill="none"/></g>`,
+  ],
+  magic: [
+    (x, y, s) =>
+      `<g ${at(x, y, s)}>${SHADOW(16)}<rect x="-5" y="-26" width="10" height="28" rx="4" fill="#f3ead8" ${S}/><path d="M-22 -28 A22 14 0 0 1 22 -28Z" fill="#c45cff" ${S}/><circle cx="-10" cy="-33" r="2.6" fill="#ffe8ff"/><circle cx="6" cy="-37" r="2.6" fill="#ffe8ff"/></g>`,
+    (x, y, s) =>
+      `<g ${at(x, y, s)}>${SHADOW(14)}<path d="M-8 0 L-4 -30 L2 0Z M2 0 L8 -22 L12 0Z M-14 0 L-12 -16 L-6 0Z" fill="#9ff0ff" ${S}/><path d="M-4 -30 L-2 -10" stroke="#fff" stroke-width="2"/></g>`,
+    (x, y, s) =>
+      `<g ${at(x, y, s)}>${SHADOW(18)}<rect x="-4" y="-20" width="8" height="22" rx="3" fill="#6b4a8a" ${S}/><circle cy="-32" r="19" fill="#4fb38f" ${S}/><circle cx="-5" cy="-37" r="10" fill="#7fe0b9"/><circle cx="8" cy="-28" r="2" fill="#ffe8ff"/></g>`,
+    (x, y, s) =>
+      `<g ${at(x, y, s)}><circle cx="-6" cy="-4" r="3" fill="#ffe8ff"/><circle cx="5" cy="-6" r="3" fill="#9ff0ff"/><circle cx="0" cy="2" r="3" fill="#ffd166"/></g>`,
+  ],
   autumn: [
     (x, y, s) =>
       `<g ${at(x, y, s)}>${SHADOW(18)}<rect x="-4" y="-20" width="8" height="22" rx="3" fill="#7a4b25" ${S}/><circle cy="-32" r="19" fill="#e0702a" ${S}/><circle cx="-5" cy="-37" r="10" fill="#f59a3d"/></g>`,
@@ -89,6 +129,10 @@ const WEIGHTS: Record<Theme, number[]> = {
   desert: [4, 2, 1, 1, 2],
   snow: [5, 1, 1, 1],
   autumn: [3, 3, 1, 1, 1],
+  swamp: [4, 2, 2, 3],
+  beach: [4, 1, 2, 1],
+  volcano: [4, 1, 1, 3],
+  magic: [4, 2, 3, 2],
 };
 function pick<T>(items: T[], weights: number[], r: () => number): T {
   const total = weights.reduce((a, b) => a + b, 0);
@@ -180,7 +224,7 @@ export function mapHtml(current: number, width: number, stars: number[] = []): s
       .join('');
     // signpost at the start of the world, on the side away from the road
     const sx = xOf(first) > 50 ? 22 : width - 150;
-    signs += signpost(sx, bottom - STEP * 1.05, w + 1, (THEMES.find((t) => t.id === theme.id) ?? theme).name);
+    signs += signpost(sx, bottom - STEP * 1.05, w + 1, theme.name);
   }
 
   // road: dark rim, sand, centre dashes, finished part in blue

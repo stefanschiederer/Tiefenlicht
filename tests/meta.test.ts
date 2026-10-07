@@ -35,9 +35,9 @@ describe('upgrades', () => {
   });
   it('apply to the player in the simulation', () => {
     const s = defaultSave();
-    s.upgrades = { army: 3, drill: 2, boots: 1 };
+    s.upgrades = { ...s.upgrades, army: 3, drill: 2, boots: 1 };
     const b = playerBonus(s);
-    expect(b).toEqual({ start: 6, growth: 1.1, speed: 1.05 });
+    expect(b).toMatchObject({ start: 6, growth: 1.1, speed: 1.05, send: 1, attack: 1, defense: 1, cap: 0 });
     const def = levelDef(1);
     def.player = b;
     const g = createGame(def);
@@ -67,10 +67,20 @@ describe('save compatibility', () => {
     expect(s.sound).toBe(false);
     expect(s.coins).toBe(0);
     expect(s.stars.slice(0, 6)).toEqual([1, 1, 1, 1, 1, 1]);
-    expect(s.upgrades).toEqual({ army: 0, drill: 0, boots: 0 });
+    expect(Object.values(s.upgrades).every((x) => x === 0)).toBe(true);
   });
   it('survives garbage', () => {
     expect(parseSave('{nope').level).toBe(1);
     expect(parseSave(null).level).toBe(1);
+  });
+});
+
+describe('worlds', () => {
+  it('the first eight worlds are all different and later worlds never repeat the one before', async () => {
+    const { themeOf } = await import('@/game/config');
+    const ids = Array.from({ length: 8 }, (_, w) => themeOf(w * 10 + 1).id);
+    expect(new Set(ids).size).toBe(8);
+    for (let w = 1; w < 40; w++) expect(themeOf(w * 10 + 1).id).not.toBe(themeOf(w * 10 - 9).id);
+    expect(themeOf(81).name).toMatch(/II$/);
   });
 });

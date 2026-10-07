@@ -20,12 +20,24 @@ export const LINES_PER_LEVEL = [1, 2, 3] as const;
 export const GROWTH = [1, 1.3, 1.6] as const;
 /** Production stops at this count; reinforcements can still push a tower up to MAX_TROOPS. */
 export const GROW_CAP = 50;
-export const MAX_TROOPS = 99;
-/** Seconds between two troops leaving a tower on one line. */
+/** Kept for compatibility: towers never hold more than their cap. */
+export const MAX_TROOPS = GROW_CAP;
+/**
+ * Tower War rule: a tower with lines stops growing and keeps its number; every line sends troops at
+ * the tower's production rate times this factor, without taking them from the tower.
+ */
+export const LINE_RATE = 1.6;
+/** A tower at its cap (MAX) sends this many troops at once. */
+export const MAX_BURST = 2;
+/** Seconds between two troops on a fresh line (first troop leaves quickly). */
 export const SEND_INTERVAL = 0.5;
+/** Rocket swarm: rockets per strike, flight time (s), splash radius (world units). */
+export const ROCKETS_PER_STRIKE = 5;
+export const ROCKET_FLIGHT = 0.9;
+export const ROCKET_SPLASH = 170;
 /** Troop walking speed in world units per second. */
 export const TROOP_SPEED = 115;
-/** Wall thickness (world units); lines may not cross walls. */
+/** Wall thickness (world units). Lines may cross walls, but troops must knock the wall down first. */
 export const WALL_T = 22;
 
 /** Tower kinds (Tower-War-style special towers). */
@@ -62,7 +74,7 @@ export const KINDS: Record<TowerKind, KindDef> = {
   },
   cannon: {
     name: 'Kanonenturm',
-    desc: 'Schießt auf fremde Soldaten in seiner Nähe. Neutrale Kanonen schießen auf alle.',
+    desc: 'Schießt auf fremde Soldaten in seiner Nähe, je mehr Soldaten er hat, desto weiter. Zieht selbst keine Linien. Neutrale Kanonen schießen auf alle.',
     growth: 0.5,
     damage: 1,
     from: 8,
@@ -94,18 +106,34 @@ export const KINDS: Record<TowerKind, KindDef> = {
 export const MAGE_RANGE = 340;
 export const MAGE_RELOAD = 7;
 export const MAGE_DAMAGE = 4;
-export const CANNON_RANGE = 200;
+/** Cannon range grows with its troops: from CANNON_RANGE_MIN (0) to CANNON_RANGE (full). */
+export const CANNON_RANGE = 280;
+export const CANNON_RANGE_MIN = 110;
 /** Seconds between two cannon shots. */
 export const CANNON_RELOAD = 0.75;
 
 /** Landscape of a level: every ten levels the campaign moves to the next world. */
-export type Theme = 'grass' | 'desert' | 'snow' | 'autumn';
+export type Theme = 'grass' | 'desert' | 'snow' | 'autumn' | 'swamp' | 'volcano' | 'beach' | 'magic';
 export const THEMES: { id: Theme; name: string }[] = [
   { id: 'grass', name: 'Grüne Wiesen' },
   { id: 'desert', name: 'Heiße Wüste' },
   { id: 'snow', name: 'Eisige Berge' },
   { id: 'autumn', name: 'Goldener Herbst' },
+  { id: 'swamp', name: 'Nebelsumpf' },
+  { id: 'beach', name: 'Sonnenküste' },
+  { id: 'volcano', name: 'Feuerberge' },
+  { id: 'magic', name: 'Zauberwald' },
 ];
-export function themeOf(n: number): (typeof THEMES)[number] {
-  return THEMES[Math.floor((Math.max(1, n) - 1) / 10) % THEMES.length] as (typeof THEMES)[number];
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+/**
+ * World of a level (ten levels per world). The first eight worlds are all different; after that the
+ * landscapes come back in a shuffled order with a numeral ("Nebelsumpf II"), never in the same row.
+ */
+export function themeOf(n: number): { id: Theme; name: string } {
+  const w = Math.floor((Math.max(1, n) - 1) / 10);
+  if (w < THEMES.length) return THEMES[w] as { id: Theme; name: string };
+  const round = Math.floor(w / THEMES.length);
+  const idx = (w * 5 + round) % THEMES.length;
+  const base = THEMES[idx] as { id: Theme; name: string };
+  return { id: base.id, name: `${base.name} ${ROMAN[round + 1] ?? round + 1}` };
 }

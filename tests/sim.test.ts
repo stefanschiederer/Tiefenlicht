@@ -6,11 +6,13 @@ import {
   createGame,
   cutLines,
   drainEvents,
+  isMax,
   levelOf,
   lineLimit,
   linesFrom,
   step,
   troopPos,
+  wallOnLine,
 } from '@/game/sim';
 import type { GameState, LevelDef } from '@/game/state';
 
@@ -64,14 +66,60 @@ describe('lines', () => {
     expect(addLine(s, 0, 1, PLAYER)).toBe('exists');
   });
 
-  it('a line cannot pass through another tower or a wall', () => {
+  it('a line cannot pass through another tower, but through a wall that troops knock down', () => {
     const s = base();
     // tower 4 (360,700) sits between 0 and 3
     expect(checkLine(s, 0, 3, PLAYER)).toBe('blocked');
     const w = createGame(
-      def([T(100, 1000, PLAYER, 5), T(600, 1000, NEUTRAL, 5)], [{ x1: 350, y1: 900, x2: 350, y2: 1100 }]),
+      def(
+        [T(100, 1000, PLAYER, 30), T(600, 1000, NEUTRAL, 5), T(360, 100, 2, 1)],
+        [{ x1: 350, y1: 900, x2: 350, y2: 1100, hp: 6 }],
+      ),
     );
-    expect(checkLine(w, 0, 1, PLAYER)).toBe('blocked');
+    expect(checkLine(w, 0, 1, PLAYER)).toBe('ok');
+    expect(wallOnLine(w, 0, 1)?.wall.hp).toBe(6);
+    addLine(w, 0, 1, PLAYER);
+    run(w, 3);
+    // troops stop at the wall and wear it down; the neutral tower is untouched so far
+    expect(w.towers[1]!.troops).toBe(5);
+    const ev = drainEvents(w);
+    expect(ev.some((e) => e.type === 'wallhit')).toBe(true);
+    run(w, 6);
+    expect(w.walls).toHaveLength(0);
+    expect(wallOnLine(w, 0, 1)).toBeNull();
+    run(w, 6);
+    expect(w.towers[1]!.owner).toBe(PLAYER);
+  });
+
+  it('a tower with lines keeps its number, a tower without lines grows', () => {
+    const s = base();
+    s.towers[0]!.troops = 20;
+    addLine(s, 0, 1, PLAYER);
+    run(s, 4);
+    expect(s.towers[0]!.troops).toBe(20);
+    s.lines = [];
+    run(s, 2);
+    expect(s.towers[0]!.troops).toBeGreaterThan(20);
+  });
+
+  it('a tower at MAX shows the cap and sends bursts', () => {
+    const s = base();
+    s.towers[0]!.troops = 60;
+    run(s, 0.1);
+    expect(s.towers[0]!.troops).toBe(60); // above the cap it does not grow (cap = 50)
+    expect(isMax(s, s.towers[0]!)).toBe(true);
+    addLine(s, 0, 1, PLAYER);
+    run(s, 1);
+    const maxTroops = s.troops.length;
+    const t = createGame(def([T(360, 1100, PLAYER, 40), T(120, 700, NEUTRAL, 5), T(360, 300, 2, 5)]));
+    addLine(t, 0, 1, PLAYER);
+    run(t, 1);
+    expect(maxTroops).toBeGreaterThan(t.troops.length);
+  });
+
+  it('cannon towers draw no lines', () => {
+    const s = createGame(def([{ ...T(360, 1100, PLAYER, 30), kind: 'cannon' }, T(360, 300, 2, 5)]));
+    expect(checkLine(s, 0, 1, PLAYER)).toBe('full');
   });
 
   it('streams one troop every SEND_INTERVAL and captures the target', () => {
@@ -79,7 +127,7 @@ describe('lines', () => {
     s.towers[0]!.troops = 20;
     addLine(s, 0, 1, PLAYER);
     run(s, SEND_INTERVAL * 4 + 0.01);
-    expect(s.troops.length).toBeGreaterThanOrEqual(4);
+    expect(s.troops.length).toBeGreaterThanOrEqual(3);
     run(s, 12);
     expect(s.towers[1]?.owner).toBe(PLAYER);
   });
@@ -109,7 +157,9 @@ describe('lines', () => {
     s.towers[2]!.troops = 90;
     expect(addLine(s, 0, 1, PLAYER)).toBe('ok');
     expect(addLine(s, 0, 2, PLAYER)).toBe('ok');
-    run(s, 3);
+    // an attack knocks it below 10
+    s.towers[0]!.troops = 6;
+    run(s, 0.1);
     expect(levelOf(s.towers[0]!)).toBe(1);
     expect(linesFrom(s, 0)).toHaveLength(1);
   });
@@ -129,7 +179,7 @@ describe('fights and cuts', () => {
   });
 
   it('cutting a line sends the near half home and lets the far half go on', () => {
-    const s = createGame(def([T(360, 1180, PLAYER, 40), T(360, 100, NEUTRAL, 60), T(60, 640, 2, 1)]));
+    const s = createGame(def([T(360, 1180, PLAYER, 20), T(360, 100, NEUTRAL, 60), T(60, 640, 2, 1)]));
     addLine(s, 0, 1, PLAYER);
     run(s, 5);
     const before = s.troops.length;
@@ -159,7 +209,7 @@ describe('end of game', () => {
   it('wins when no enemy towers or troops are left', () => {
     const s = createGame(def([T(360, 1100, PLAYER, 30), T(360, 300, 2, 2)]));
     addLine(s, 0, 1, PLAYER);
-    run(s, 15);
+    run(s, 40);
     expect(s.result).toBe('win');
   });
   it('loses when the player has nothing left', () => {

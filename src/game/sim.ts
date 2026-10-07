@@ -3,7 +3,6 @@ import {
   GROWTH,
   LEVEL_UP,
   LINES_PER_LEVEL,
-  MAX_TROOPS,
   NEUTRAL,
   PLAYER,
   SEND_INTERVAL,
@@ -16,9 +15,17 @@ import {
   MAGE_DAMAGE,
   MAGE_RANGE,
   MAGE_RELOAD,
+  CANNON_RANGE_MIN,
+  LINE_RATE,
+  MAX_BURST,
+  ROCKET_FLIGHT,
+  ROCKET_SPLASH,
+  ROCKETS_PER_STRIKE,
+  WORLD_H,
+  WORLD_W,
 } from './config';
 import { pointSegDist, segIntersect, segSegDist } from './geom';
-import type { GameState, LevelDef, Line, Tower, Troop } from './state';
+import type { GameState, LevelDef, Line, Rocket, Tower, Troop, Wall } from './state';
 
 /* ------------------------------------------------------------------ derived values */
 
@@ -30,7 +37,25 @@ export function radiusOf(t: Tower): number {
   return TOWER_R * (1 + (levelOf(t) - 1) * 0.12);
 }
 export function lineLimit(t: Tower): number {
+  if (t.kind === 'cannon') return 0; // cannon towers only defend
   return (LINES_PER_LEVEL[levelOf(t) - 1] ?? 1) + (KINDS[t.kind].lines ?? 0);
+}
+/** Most troops a tower can hold (MAX). Player towers can hold more with the "Große Türme" skill. */
+export function capOf(s: GameState, t: Tower): number {
+  return GROW_CAP + (t.owner === PLAYER ? (s.def.player?.cap ?? 0) : 0);
+}
+export function isMax(s: GameState, t: Tower): boolean {
+  return t.troops >= capOf(s, t);
+}
+/** Troops per second a tower produces (no lines) or sends down each line. */
+export function rateOf(s: GameState, t: Tower): number {
+  const bonus =
+    t.owner >= 2 ? (s.def.enemyGrowth ?? 1) : t.owner === PLAYER ? (s.def.player?.growth ?? 1) : 1;
+  return (GROWTH[levelOf(t) - 1] ?? 1) * KINDS[t.kind].growth * bonus;
+}
+/** Cannon range grows with the troops in the cannon tower. */
+export function cannonRange(t: Tower): number {
+  return CANNON_RANGE_MIN + (CANNON_RANGE - CANNON_RANGE_MIN) * Math.min(1, t.troops / GROW_CAP);
 }
 export function linesFrom(s: GameState, id: number): Line[] {
   return s.lines.filter((l) => l.src === id);
@@ -66,7 +91,8 @@ export function createGame(def: LevelDef): GameState {
     towers,
     lines: [],
     troops: [],
-    walls: def.walls.map((w) => ({ ...w })),
+    rockets: [],
+    walls: def.walls.map((w) => ({ ...w, hp: w.hp ?? wallHp(def.n), max: w.hp ?? wallHp(def.n) })),
     reach: [],
     time: 0,
     nextId: 1,
@@ -77,7 +103,39 @@ export function createGame(def: LevelDef): GameState {
   return s;
 }
 
-/** Which tower pairs can be joined by a straight line (no wall, no third tower in between). */
+/** Hit points of the walls in level n. */
+export function wallHp(n: number): number {
+  return 12 + Math.floor(n / 2);
+}
+
+/**
+ * The first standing wall a line from tower a to tower b runs into, and the distance (from a's
+ * centre) at which troops hit it; null if the way is free.
+ */
+export function wallOnLine(s: GameState, a: number, b: number): { wall: Wall; d: number } | null {
+  const A = tower(s, a),
+    B = tower(s, b);
+  const D = Math.hypot(B.x - A.x, B.y - A.y) || 1;
+  let best: { wall: Wall; d: number } | null = null;
+  for (const w of s.walls) {
+    if ((w.hp ?? 1) <= 0) continue;
+    if (segSegDist(A.x, A.y, B.x, B.y, w.x1, w.y1, w.x2, w.y2) >= WALL_T / 2 + 6) continue;
+    // where the line meets the wall (closest point along the line), minus half the wall thickness
+    const u = segIntersect(w.x1, w.y1, w.x2, w.y2, A.x, A.y, B.x, B.y);
+    let along: number;
+    if (u !== null) along = u * D;
+    else {
+      // touches an end of the wall: use the closer wall end projected onto the line
+      const proj = (x: number, y: number) => ((x - A.x) * (B.x - A.x) + (y - A.y) * (B.y - A.y)) / D;
+      along = Math.min(proj(w.x1, w.y1), proj(w.x2, w.y2));
+    }
+    const d = Math.max(0, along - WALL_T * 0.8);
+    if (!best || d < best.d) best = { wall: w, d };
+  }
+  return best;
+}
+
+/** Which tower pairs can be joined by a straight line (no third tower in between; walls can be broken). */
 export function computeReach(s: Pick<GameState, 'towers' | 'walls'>): boolean[][] {
   const n = s.towers.length;
   const reach = Array.from({ length: n }, () => new Array<boolean>(n).fill(false));
@@ -86,19 +144,13 @@ export function computeReach(s: Pick<GameState, 'towers' | 'walls'>): boolean[][
       const A = s.towers[a] as Tower,
         B = s.towers[b] as Tower;
       let ok = true;
-      for (const w of s.walls)
-        if (segSegDist(A.x, A.y, B.x, B.y, w.x1, w.y1, w.x2, w.y2) < WALL_T / 2 + 6) {
+      for (const C of s.towers) {
+        if (C === A || C === B) continue;
+        if (pointSegDist(C.x, C.y, A.x, A.y, B.x, B.y) < TOWER_R * 0.95) {
           ok = false;
           break;
         }
-      if (ok)
-        for (const C of s.towers) {
-          if (C === A || C === B) continue;
-          if (pointSegDist(C.x, C.y, A.x, A.y, B.x, B.y) < TOWER_R * 0.95) {
-            ok = false;
-            break;
-          }
-        }
+      }
       (reach[a] as boolean[])[b] = ok;
       (reach[b] as boolean[])[a] = ok;
     }
@@ -197,11 +249,11 @@ export function troopPos(s: GameState, t: Troop): { x: number; y: number } {
   const k = Math.min(1, t.d / full);
   return { x: t.x0 + (B.x - t.x0) * k, y: t.y0 + (B.y - t.y0) * k };
 }
-function spawnTroop(s: GameState, line: Line): void {
+function spawnTroop(s: GameState, line: Line, behind = 0): void {
   const A = tower(s, line.src),
     B = tower(s, line.dst);
   const D = Math.hypot(B.x - A.x, B.y - A.y);
-  const start = radiusOf(A) * 0.5;
+  const start = radiusOf(A) * 0.5 - behind;
   s.troops.push({
     id: s.nextId++,
     owner: line.owner,
@@ -218,10 +270,12 @@ function spawnTroop(s: GameState, line: Line): void {
 function arrive(s: GameState, t: Troop): void {
   const B = tower(s, t.dst);
   if (B.owner === t.owner) {
-    B.troops = Math.min(MAX_TROOPS, B.troops + 1);
+    B.troops = Math.min(capOf(s, B), B.troops + 1);
     return;
   }
-  B.troops -= KINDS[B.kind].damage;
+  const atk = t.owner === PLAYER ? (s.def.player?.attack ?? 1) : 1;
+  const def = B.owner === PLAYER ? (s.def.player?.defense ?? 1) : 1;
+  B.troops -= KINDS[B.kind].damage * atk * def;
   s.events.push({ type: 'hit', tower: B, owner: t.owner });
   if (B.troops < 0) {
     const from = B.owner;
@@ -274,7 +328,7 @@ function cannons(s: GameState, dt: number): void {
     c.cool -= dt;
     if (c.cool > 0) continue;
     let best: Troop | null = null,
-      bestD = CANNON_RANGE;
+      bestD = cannonRange(c);
     let bx = 0,
       by = 0;
     for (const u of s.troops) {
@@ -321,22 +375,79 @@ function mages(s: GameState, dt: number): void {
   }
 }
 
+/**
+ * Rocket swarm (player special attack, bought with coins): several rockets fly in from behind the
+ * player's side and destroy troops in the target tower; with the splash skill nearby enemy towers
+ * are hit too. Rockets never capture a tower (it stays at 0 at least).
+ */
+export function fireRockets(s: GameState, target: number, damage: number, splash: number): boolean {
+  const T = s.towers[target];
+  if (!T || T.owner === PLAYER || T.owner === NEUTRAL || s.result) return false;
+  for (let i = 0; i < ROCKETS_PER_STRIKE; i++) {
+    s.rockets.push({
+      id: s.nextId++,
+      target,
+      t: -i * 0.09,
+      damage: damage / ROCKETS_PER_STRIKE,
+      splash,
+      x0: WORLD_W * (0.2 + 0.15 * i),
+      y0: WORLD_H + 120,
+      bend: (i - 2) * 60,
+    });
+  }
+  return true;
+}
+
+function rockets(s: GameState, dt: number): void {
+  if (!s.rockets.length) return;
+  const keep: Rocket[] = [];
+  for (const r of s.rockets) {
+    r.t += dt / ROCKET_FLIGHT;
+    if (r.t < 1) {
+      keep.push(r);
+      continue;
+    }
+    const T = tower(s, r.target);
+    T.troops = Math.max(0, T.troops - r.damage);
+    s.events.push({ type: 'rocket', target: T, x: T.x, y: T.y });
+    if (r.splash > 0)
+      for (const o of s.towers)
+        if (o !== T && o.owner === T.owner && Math.hypot(o.x - T.x, o.y - T.y) < ROCKET_SPLASH)
+          o.troops = Math.max(0, o.troops - r.damage * r.splash);
+  }
+  s.rockets = keep;
+}
+
+/** Position of a rocket in flight (world units), for drawing. */
+export function rocketPos(s: GameState, r: Rocket): { x: number; y: number; ang: number } {
+  const T = tower(s, r.target);
+  const t = Math.max(0, Math.min(1, r.t));
+  const mx = (r.x0 + T.x) / 2 + r.bend,
+    my = Math.min(r.y0, T.y) - 220;
+  const u = 1 - t;
+  const x = u * u * r.x0 + 2 * u * t * mx + t * t * T.x,
+    y = u * u * r.y0 + 2 * u * t * my + t * t * T.y;
+  const dx = 2 * u * (mx - r.x0) + 2 * t * (T.x - mx),
+    dy = 2 * u * (my - r.y0) + 2 * t * (T.y - my);
+  return { x, y, ang: Math.atan2(dy, dx) };
+}
+
 /* ------------------------------------------------------------------ step */
 
 export function step(s: GameState, dt: number): void {
   if (s.result) return;
   s.time += dt;
-  // production
+  // production: only towers without lines grow (Tower War: a tower with lines keeps its number)
+  const sending = new Set(s.lines.map((l) => l.src));
   for (const t of s.towers) {
-    if (t.owner === NEUTRAL) continue;
-    if (t.troops >= GROW_CAP) {
+    if (t.owner === NEUTRAL || sending.has(t.id)) continue;
+    const cap = capOf(s, t);
+    if (t.troops >= cap) {
       t.acc = 0;
       continue;
     }
-    const handicap =
-      t.owner >= 2 ? (s.def.enemyGrowth ?? 1) : t.owner === PLAYER ? (s.def.player?.growth ?? 1) : 1;
-    t.acc += (GROWTH[levelOf(t) - 1] ?? 1) * KINDS[t.kind].growth * handicap * dt;
-    while (t.acc >= 1 && t.troops < GROW_CAP) {
+    t.acc += rateOf(s, t) * dt;
+    while (t.acc >= 1 && t.troops < cap) {
       t.troops++;
       t.acc--;
     }
@@ -346,27 +457,38 @@ export function step(s: GameState, dt: number): void {
     const own = linesFrom(s, t.id);
     for (let k = own.length - 1; k >= lineLimit(t); k--) removeLine(s, own[k] as Line, 'retract');
   }
-  // sending
+  // sending: every line sends at the tower's rate without emptying it; MAX towers send bursts
   for (const l of s.lines) {
     l.age += dt;
     const A = tower(s, l.src);
     l.timer -= dt;
     while (l.timer <= 0) {
-      if (A.troops < 1) {
-        l.timer = 0;
-        break;
-      }
-      A.troops -= 1;
-      spawnTroop(s, l);
-      l.timer += SEND_INTERVAL;
+      const burst = isMax(s, A) ? MAX_BURST : 1;
+      for (let b = 0; b < burst; b++) spawnTroop(s, l, b * 9);
+      const send = A.owner === PLAYER ? (s.def.player?.send ?? 1) : 1;
+      l.timer += 1 / Math.max(0.2, rateOf(s, A) * LINE_RATE * send);
     }
   }
-  // walking
+  // walking; troops on a line stop at a standing wall and knock it down
   const arrived: Troop[] = [];
+  const blocked = new Map<number, { wall: Wall; d: number } | null>();
+  for (const l of s.lines) blocked.set(l.id, wallOnLine(s, l.src, l.dst));
+  const smashed = new Set<number>();
   for (const t of s.troops) {
     t.d += TROOP_SPEED * t.speed * dt;
+    const wb = t.line !== null ? blocked.get(t.line) : null;
+    if (wb && (wb.wall.hp ?? 0) > 0 && t.d >= wb.d) {
+      smashed.add(t.id);
+      wb.wall.hp = (wb.wall.hp ?? 1) - 1;
+      const p = troopPos(s, t);
+      s.events.push({ type: 'wallhit', x: p.x, y: p.y });
+      if (wb.wall.hp <= 0) s.events.push({ type: 'wallbreak', wall: wb.wall });
+      continue;
+    }
     if (t.d >= t.len) arrived.push(t);
   }
+  if (smashed.size) s.troops = s.troops.filter((t) => !smashed.has(t.id));
+  if (s.walls.some((w) => (w.hp ?? 1) <= 0)) s.walls = s.walls.filter((w) => (w.hp ?? 1) > 0);
   if (arrived.length) {
     const gone = new Set(arrived.map((t) => t.id));
     s.troops = s.troops.filter((t) => !gone.has(t.id));
@@ -375,6 +497,7 @@ export function step(s: GameState, dt: number): void {
   clashes(s);
   cannons(s, dt);
   mages(s, dt);
+  rockets(s, dt);
   // end of game
   const alive = (o: number) => s.towers.some((t) => t.owner === o) || s.troops.some((t) => t.owner === o);
   if (!alive(PLAYER)) {

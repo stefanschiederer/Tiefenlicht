@@ -111,6 +111,69 @@ button {
   transition: flex 0.3s;
 }
 
+/* ---- rocket swarm button ---- */
+#rocketBtn {
+  position: fixed;
+  left: 50%;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px 6px 8px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #ff9b6b, #ff5a2a);
+  border: 3px solid var(--ink);
+  box-shadow: 0 5px 0 var(--ink);
+  color: #fff;
+  font-weight: 800;
+  font-size: 18px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+#rocketBtn::before {
+  /* cooldown shade sliding down */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(29, 37, 48, 0.55);
+  transform-origin: bottom;
+  transform: scaleY(var(--cd, 0));
+  pointer-events: none;
+}
+#rocketBtn > svg {
+  width: 34px;
+  height: 34px;
+}
+#rocketBtn span {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+#rocketBtn span svg {
+  width: 20px;
+  height: 20px;
+}
+#rocketBtn small {
+  font-size: 12px;
+  opacity: 0.85;
+  margin-left: 4px;
+}
+#rocketBtn.armed {
+  animation: glow 0.8s ease-in-out infinite;
+  background: linear-gradient(180deg, #ffd166, #ff9b1a);
+}
+#rocketBtn.poor {
+  filter: grayscale(0.8);
+}
+#rocketBtn:active {
+  transform: translateX(-50%) translateY(3px);
+}
+#tip {
+  bottom: max(86px, calc(env(safe-area-inset-bottom) + 72px));
+}
+
 /* ---- tip ---- */
 #tip {
   position: fixed;
@@ -974,7 +1037,73 @@ button {
     transform: translate(var(--dx), 110vh) rotate(var(--rot));
   }
 }
+/* ---- skill tree ---- */
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+.branch {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 8px;
+  border-radius: 18px;
+  background: #f1f6fb;
+  border: 2px solid #d6e0ea;
+}
+.branch h3 {
+  margin: 0 0 6px 4px;
+  font-size: 18px;
+  text-align: left;
+  color: #2f86ff;
+}
+.skill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 14px;
+  background: #fff;
+  border: 2px solid #c9d9ea;
+  text-align: left;
+}
+.skill.maxed {
+  border-color: #ffd43b;
+  background: #fffbea;
+}
+.skill.locked {
+  opacity: 0.55;
+}
+.skill-icon svg {
+  width: 40px;
+  height: 40px;
+}
+.link {
+  width: 4px;
+  height: 12px;
+  margin: 0 auto;
+  background: #c9d3de;
+  border-radius: 2px;
+}
+.link.on {
+  background: #3fb52a;
+}
+@media (min-width: 720px) {
+  .card-box.shop {
+    width: min(900px, 100%);
+  }
+  .tree {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .branch {
+    flex: 1 1 260px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
+  #rocketBtn.armed,
   .lvl.current,
   .side-btn.glow,
   .stars-big .star.on,

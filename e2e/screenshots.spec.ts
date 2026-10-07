@@ -21,7 +21,7 @@ test('screenshots', async ({ page }, info) => {
   await page.goto('./');
   await page.waitForTimeout(800);
   await page.screenshot({ path: `e2e/screenshots/${tag}-map.png` });
-  await page.getByRole('button', { name: 'Shop' }).click();
+  await page.getByRole('button', { name: 'Skills' }).click();
   await page.waitForTimeout(400);
   await page.screenshot({ path: `e2e/screenshots/${tag}-shop.png` });
   await page.getByRole('button', { name: 'Zur Karte' }).click();
@@ -58,6 +58,19 @@ test('screenshots', async ({ page }, info) => {
   });
   await page.waitForTimeout(1600);
   await page.screenshot({ path: `e2e/screenshots/${tag}-win.png` });
+  // rocket swarm in flight (coins from the save above)
+  await startAt(page, 23);
+  await page.evaluate(() => {
+    const app = (window as unknown as { TW: { save: { coins: number } } }).TW;
+    app.save.coins = 500;
+  });
+  await page.waitForTimeout(4000);
+  const sn = await snap(page);
+  const foe = sn.towers.find((t) => t.owner >= 2)!;
+  await page.getByRole('button', { name: 'Raketenschwarm' }).click();
+  await page.mouse.click(foe.x, foe.y - 10);
+  await page.waitForTimeout(550);
+  await page.screenshot({ path: `e2e/screenshots/${tag}-rockets.png` });
   for (const lv of [22]) {
     await startAt(page, lv);
     await page.waitForTimeout(10000);

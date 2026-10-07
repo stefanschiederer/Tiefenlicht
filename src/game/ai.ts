@@ -1,6 +1,6 @@
 import { CANNON_RANGE, KINDS, NEUTRAL } from './config';
 import { pointSegDist, rng } from './geom';
-import { addLine, checkLine, dropLine, levelOf, lineLimit, linesFrom, tower } from './sim';
+import { addLine, checkLine, dropLine, levelOf, lineLimit, linesFrom, tower, wallOnLine } from './sim';
 import type { GameState, Tower } from './state';
 
 /**
@@ -82,6 +82,9 @@ export class Enemy {
         if (margin < 2 && !(d.owner !== NEUTRAL && levelOf(from) >= 2)) continue;
         score = margin * 0.8 - dist / 60 + (d.owner === NEUTRAL ? 4 : 8) + this.rand() * 4;
         if (d.kind === 'barracks' || d.kind === 'castle') score += 6;
+        // a wall in the way has to be knocked down first
+        const wb = wallOnLine(s, from.id, d.id);
+        if (wb) score -= (wb.wall.hp ?? 0) * 0.6;
         if (d.kind === 'mage' || d.kind === 'stable') score += 4;
         // lines that run past a foreign cannon lose soldiers
         for (const c of s.towers)

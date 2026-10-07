@@ -1,5 +1,16 @@
-import { CANNON_RANGE, TEAM_COLORS, TEAM_DARK, WALL_T, themeOf } from '@/game/config';
-import { levelOf, radiusOf, tower, troopPos } from '@/game/sim';
+import { TEAM_COLORS, TEAM_DARK, WALL_T, themeOf } from '@/game/config';
+import {
+  cannonRange,
+  isMax,
+  levelOf,
+  lineLimit,
+  linesFrom,
+  radiusOf,
+  rocketPos,
+  tower,
+  troopPos,
+  wallOnLine,
+} from '@/game/sim';
 import type { GameEvent, GameState, Line } from '@/game/state';
 import { drawGround, drawWall, towerSprite, troopSprite } from './sprites';
 import { View } from './view';
@@ -108,6 +119,24 @@ export class Renderer {
         this.bolts.push({ x1, y1, x2, y2, t: 0 });
         this.burst(x2, y2, '#c79bff', 18);
         this.burst(x2, y2, '#ffffff', 8);
+      } else if (e.type === 'rocket') {
+        const x = v.sx(e.x, e.y),
+          y = v.sy(e.x, e.y) - radiusOf(e.target) * v.k * 0.6;
+        this.burst(x, y, '#ff8a3d', 14);
+        this.burst(x, y, '#ffd43b', 8);
+        this.burst(x, y, '#555c66', 6);
+        this.rings.push({ x, y: v.sy(e.x, e.y), t: 0, color: '#ff8a3d' });
+        this.shake.set(e.target.id, 1);
+      } else if (e.type === 'wallhit') {
+        this.burst(v.sx(e.x, e.y), v.sy(e.x, e.y), '#9aa3ad', 3);
+      } else if (e.type === 'wallbreak') {
+        const w = e.wall;
+        for (let i = 0; i <= 6; i++) {
+          const f = i / 6,
+            wx = w.x1 + (w.x2 - w.x1) * f,
+            wy = w.y1 + (w.y2 - w.y1) * f;
+          this.burst(v.sx(wx, wy), v.sy(wx, wy), i % 2 ? '#c7cdd4' : '#7f8893', 8);
+        }
       } else if (e.type === 'clash') {
         this.burst(v.sx(e.x, e.y), v.sy(e.x, e.y), '#ffffff', 4);
       } else if (e.type === 'cut') {
@@ -155,8 +184,6 @@ export class Renderer {
         r: radiusOf(t) * v.k * 1.6,
       }));
       drawGround(gg, v.w, v.h, v.playArea(), s.def.n, themeOf(s.def.n).id, avoid);
-      for (const w of s.walls)
-        drawWall(gg, v.sx(w.x1, w.y1), v.sy(w.x1, w.y1), v.sx(w.x2, w.y2), v.sy(w.x2, w.y2), WALL_T * v.k);
       this.ground = c;
     }
     g.setTransform(1, 0, 0, 1, 0, 0);
@@ -164,10 +191,12 @@ export class Renderer {
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
     this.drawSelection(s, ui);
+    this.drawWalls(s);
     this.drawLines(s);
     if (ui.drag) this.drawDrag(s, ui.drag);
     this.drawScene(s);
     this.levelUps(s);
+    this.drawRockets(s);
     this.drawEffects(dt);
     this.drawWeather(s, dt);
     this.drawCut(ui);
@@ -200,6 +229,14 @@ export class Renderer {
         ay += ux * off;
         bx += -uy * off;
         by += ux * off;
+      }
+      // a standing wall in the way: the line (and the troops) end at the wall
+      const wb = wallOnLine(s, l.src, l.dst);
+      if (wb) {
+        const D = Math.hypot(B.x - A.x, B.y - A.y) || 1;
+        const f = Math.min(1, (wb.d + WALL_T * 0.4) / D);
+        bx = ax + (bx - ax) * f;
+        by = ay + (by - ay) * f;
       }
       const grow = Math.min(1, l.age / 0.22);
       const ex = ax + (bx - ax) * grow,
@@ -382,7 +419,7 @@ export class Renderer {
             g.globalAlpha = 0.45;
             g.lineWidth = 2.5;
             g.beginPath();
-            g.arc(x, y, CANNON_RANGE * v.k, 0, TAU);
+            g.arc(x, y, cannonRange(t) * v.k, 0, TAU);
             g.stroke();
             g.setLineDash([]);
             g.globalAlpha = 1;
@@ -404,13 +441,23 @@ export class Renderer {
             x,
             y: Math.min(top, ay - sp.top * k) - fs * 0.55,
             fs,
-            txt: String(Math.floor(t.troops)),
+            txt: isMax(s, t) ? 'MAX' : String(Math.floor(t.troops)),
             owner: t.owner,
+            slots: t.owner > 0 ? lineLimit(t) : 0,
+            used: linesFrom(s, t.id).length,
           });
         },
       });
     }
-    const labels: { x: number; y: number; fs: number; txt: string; owner: number }[] = [];
+    const labels: {
+      x: number;
+      y: number;
+      fs: number;
+      txt: string;
+      owner: number;
+      slots: number;
+      used: number;
+    }[] = [];
     items.sort((a, b) => a.y - b.y).forEach((it) => it.draw());
     g.textAlign = 'center';
     g.textBaseline = 'middle';
@@ -444,8 +491,135 @@ export class Renderer {
       g.lineWidth = l.fs * 0.2;
       g.strokeStyle = '#1d2530';
       g.strokeText(l.txt, l.x, l.y + 1);
-      g.fillStyle = '#ffffff';
+      g.fillStyle = l.txt === 'MAX' ? '#ffe066' : '#ffffff';
       g.fillText(l.txt, l.x, l.y + 1);
+      // line slots: white dot = free line, grey dot = line in use
+      if (l.slots > 0) {
+        const r = Math.max(3, l.fs * 0.2),
+          gap = r * 2.7;
+        const y0 = by + h + r + 3;
+        for (let i = 0; i < l.slots; i++) {
+          const dx = l.x + (i - (l.slots - 1) / 2) * gap;
+          g.fillStyle = i < l.used ? '#8a94a3' : '#ffffff';
+          g.strokeStyle = '#1d2530';
+          g.lineWidth = 1.8;
+          g.beginPath();
+          g.arc(dx, y0, r, 0, TAU);
+          g.fill();
+          g.stroke();
+        }
+      }
+    }
+  }
+
+  /** Walls with their hit points; cracks show when they are damaged. */
+  private drawWalls(s: GameState): void {
+    const g = this.g,
+      v = this.view;
+    for (const w of s.walls) {
+      const x1 = v.sx(w.x1, w.y1),
+        y1 = v.sy(w.x1, w.y1),
+        x2 = v.sx(w.x2, w.y2),
+        y2 = v.sy(w.x2, w.y2);
+      const thick = WALL_T * v.k;
+      drawWall(g, x1, y1, x2, y2, thick);
+      const hp = w.hp ?? 0,
+        max = w.max ?? hp;
+      const dmg = max ? 1 - hp / max : 0;
+      if (dmg > 0.15) {
+        // cracks
+        g.strokeStyle = 'rgba(40,45,55,0.75)';
+        g.lineWidth = 1.6;
+        const n = Math.ceil(dmg * 6);
+        for (let i = 0; i < n; i++) {
+          const f = (i + 0.5) / n,
+            cx = x1 + (x2 - x1) * f,
+            cy = y1 + (y2 - y1) * f;
+          g.beginPath();
+          g.moveTo(cx - thick * 0.3, cy - thick * 0.25);
+          g.lineTo(cx, cy + thick * 0.05);
+          g.lineTo(cx + thick * 0.2, cy - thick * 0.2);
+          g.lineTo(cx + thick * 0.35, cy + thick * 0.2);
+          g.stroke();
+        }
+      }
+      // hit point badge
+      const mx = (x1 + x2) / 2,
+        my = (y1 + y2) / 2 - thick * 0.75;
+      const fs = Math.max(10, Math.min(14, 17 * v.k));
+      g.font = `800 ${fs}px "Baloo 2", "Arial Black", sans-serif`;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      const txt = String(Math.ceil(hp));
+      const bw = g.measureText(txt).width + fs * 1.4,
+        bh = fs * 1.2;
+      g.fillStyle = '#5b6573';
+      g.strokeStyle = '#1d2530';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.roundRect(mx - bw / 2, my - bh / 2, bw, bh, bh / 2);
+      g.fill();
+      g.stroke();
+      // tiny heart-shaped shield
+      g.fillStyle = '#ff6b6b';
+      g.beginPath();
+      g.arc(mx - bw / 2 + fs * 0.45, my, fs * 0.22, 0, TAU);
+      g.fill();
+      g.fillStyle = '#fff';
+      g.fillText(txt, mx + fs * 0.2, my + 1);
+    }
+  }
+
+  /** Rockets of a rocket swarm in flight, with a smoke trail. */
+  private drawRockets(s: GameState): void {
+    const g = this.g,
+      v = this.view;
+    for (const r of s.rockets) {
+      if (r.t < 0) continue;
+      const p = rocketPos(s, r);
+      const x = v.sx(p.x, p.y),
+        y = v.sy(p.x, p.y);
+      // direction in screen space
+      const q = rocketPos(s, { ...r, t: Math.min(1, r.t + 0.02) });
+      const a = Math.atan2(v.sy(q.x, q.y) - y, v.sx(q.x, q.y) - x);
+      if (Math.random() < 0.7)
+        this.particles.push({
+          x: x - Math.cos(a) * 10,
+          y: y - Math.sin(a) * 10,
+          vx: (Math.random() - 0.5) * 20,
+          vy: (Math.random() - 0.5) * 20,
+          life: 0.5,
+          max: 0.5,
+          color: 'rgba(220,220,220,0.7)',
+          size: 4 + Math.random() * 3,
+          round: true,
+        });
+      g.save();
+      g.translate(x, y);
+      g.rotate(a);
+      g.fillStyle = '#ffb21a';
+      g.beginPath();
+      g.moveTo(-10, 0);
+      g.lineTo(-20 - Math.random() * 6, -3);
+      g.lineTo(-20 - Math.random() * 6, 3);
+      g.closePath();
+      g.fill();
+      g.fillStyle = '#e8eef5';
+      g.strokeStyle = '#1d2530';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.roundRect(-11, -4, 18, 8, 4);
+      g.fill();
+      g.stroke();
+      g.fillStyle = '#ff4545';
+      g.beginPath();
+      g.moveTo(7, -4);
+      g.lineTo(13, 0);
+      g.lineTo(7, 4);
+      g.closePath();
+      g.fill();
+      g.stroke();
+      g.restore();
     }
   }
 
@@ -525,7 +699,18 @@ export class Renderer {
     }
     const g = this.g,
       v = this.view;
-    const want = theme === 'snow' ? 60 : theme === 'autumn' ? 22 : theme === 'desert' ? 30 : 8;
+    const want =
+      theme === 'snow'
+        ? 60
+        : theme === 'autumn'
+          ? 22
+          : theme === 'desert'
+            ? 30
+            : theme === 'volcano'
+              ? 40
+              : theme === 'magic' || theme === 'swamp'
+                ? 26
+                : 8;
     while (this.weather.length < want)
       this.weather.push({
         x: Math.random() * v.w,
@@ -535,7 +720,13 @@ export class Renderer {
       });
     for (const p of this.weather) {
       p.ph += dt;
-      if (theme === 'snow') {
+      if (theme === 'volcano') {
+        p.y -= 30 * p.s * dt;
+        p.x += Math.sin(p.ph * 1.4) * 14 * dt;
+      } else if (theme === 'magic' || theme === 'swamp') {
+        p.x += Math.cos(p.ph * 0.6) * 16 * dt;
+        p.y += Math.sin(p.ph * 0.9) * 12 * dt;
+      } else if (theme === 'snow') {
         p.y += 28 * p.s * dt;
         p.x += Math.sin(p.ph * 1.3) * 12 * dt;
       } else if (theme === 'autumn') {
@@ -552,7 +743,20 @@ export class Renderer {
       if (p.x > v.w + 10) p.x = -10;
       if (p.x < -10) p.x = v.w + 10;
       if (p.y < -10) p.y = v.h + 10;
-      if (theme === 'snow') {
+      if (theme === 'volcano') {
+        // rising embers
+        g.fillStyle = p.s > 1 ? 'rgba(255,170,60,0.9)' : 'rgba(255,90,40,0.85)';
+        g.beginPath();
+        g.arc(p.x, p.y, 1.8 * p.s, 0, TAU);
+        g.fill();
+      } else if (theme === 'magic' || theme === 'swamp') {
+        // fireflies / magic sparkles, pulsing
+        const a = 0.35 + 0.65 * Math.abs(Math.sin(p.ph * 2.5));
+        g.fillStyle = theme === 'magic' ? `rgba(255,230,255,${a})` : `rgba(230,255,140,${a})`;
+        g.beginPath();
+        g.arc(p.x, p.y, 2.2 * p.s, 0, TAU);
+        g.fill();
+      } else if (theme === 'snow') {
         g.fillStyle = 'rgba(255,255,255,0.9)';
         g.beginPath();
         g.arc(p.x, p.y, 2.2 * p.s, 0, TAU);

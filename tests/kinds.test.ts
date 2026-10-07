@@ -16,6 +16,33 @@ const def = (towers: LevelDef['towers']): LevelDef => ({
   aiDelay: 0,
 });
 
+describe('rocket swarm', () => {
+  it('destroys troops in an enemy tower after the flight, never below 0, with splash', async () => {
+    const { fireRockets } = await import('@/game/sim');
+    const s = createGame(
+      def([
+        { x: 360, y: 1150, owner: PLAYER, troops: 10 },
+        { x: 360, y: 300, owner: 2, troops: 30 },
+        { x: 460, y: 330, owner: 2, troops: 30 },
+        { x: 100, y: 600, owner: NEUTRAL, troops: 10 },
+      ]),
+    );
+    expect(fireRockets(s, 3, 15, 0)).toBe(false); // neutral towers cannot be targeted
+    expect(fireRockets(s, 1, 15, 0.4)).toBe(true);
+    s.towers[1]!.acc = -1000;
+    s.towers[2]!.acc = -1000;
+    run(s, 0.3);
+    expect(s.towers[1]!.troops).toBe(30);
+    run(s, 1.5);
+    expect(s.towers[1]!.troops).toBeCloseTo(15, 5);
+    expect(s.towers[2]!.troops).toBeCloseTo(30 - 15 * 0.4, 5);
+    expect(fireRockets(s, 1, 100, 0)).toBe(true);
+    run(s, 2);
+    expect(s.towers[1]!.troops).toBe(0);
+    expect(s.towers[1]!.owner).toBe(2);
+  });
+});
+
 describe('tower kinds', () => {
   it('barracks produce twice as fast', () => {
     const s = createGame(
@@ -41,7 +68,7 @@ describe('tower kinds', () => {
     s.towers[0]!.acc = -1000;
     addLine(s, 0, 1, PLAYER);
     const events = [];
-    for (let i = 0; i < 12 * 60; i++) {
+    for (let i = 0; i < 25 * 60; i++) {
       step(s, DT);
       events.push(...drainEvents(s));
     }
@@ -52,12 +79,21 @@ describe('tower kinds', () => {
     expect(s.towers[1]!.owner).toBe(PLAYER);
   });
 
+  it('cannon range grows with its troops', async () => {
+    const { cannonRange } = await import('@/game/sim');
+    const s = createGame(def([{ x: 100, y: 100, owner: NEUTRAL, troops: 0, kind: 'cannon' }]));
+    const c = s.towers[0]!;
+    const small = cannonRange(c);
+    c.troops = 50;
+    expect(cannonRange(c)).toBeGreaterThan(small * 2);
+  });
+
   it('cannons shoot foreign soldiers in range, not their own', () => {
     const s = createGame(
       def([
         { x: 360, y: 1150, owner: PLAYER, troops: 30 },
         { x: 360, y: 300, owner: 2, troops: 10 },
-        { x: 520, y: 720, owner: NEUTRAL, troops: 5, kind: 'cannon' },
+        { x: 520, y: 720, owner: NEUTRAL, troops: 40, kind: 'cannon' },
       ]),
     );
     addLine(s, 0, 1, PLAYER);
@@ -69,7 +105,7 @@ describe('tower kinds', () => {
       def([
         { x: 360, y: 1150, owner: PLAYER, troops: 30 },
         { x: 360, y: 300, owner: 2, troops: 10 },
-        { x: 520, y: 720, owner: PLAYER, troops: 5, kind: 'cannon' },
+        { x: 520, y: 720, owner: PLAYER, troops: 40, kind: 'cannon' },
       ]),
     );
     addLine(t, 0, 1, PLAYER);

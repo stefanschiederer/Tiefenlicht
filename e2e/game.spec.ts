@@ -92,9 +92,9 @@ test('winning pays coins and stars, the shop sells upgrades', async ({ page }) =
   await page.getByRole('button', { name: 'Weiter' }).click();
   const coins = Number(await page.locator('.wallet .pill b').first().textContent());
   expect(coins).toBeGreaterThan(50);
-  await page.getByRole('button', { name: 'Shop' }).click();
+  await page.getByRole('button', { name: 'Skills' }).click();
   await page.locator('button.buy[data-up="army"]').click();
-  await expect(page.locator('.upg').first().locator('.pips i.on')).toHaveCount(1);
+  await expect(page.locator('.skill').first().locator('.pips i.on')).toHaveCount(1);
 });
 
 test('daily bonus can be collected once', async ({ page }) => {
@@ -105,6 +105,28 @@ test('daily bonus can be collected once', async ({ page }) => {
   await page.getByRole('button', { name: 'Einsammeln' }).click();
   await page.getByRole('button', { name: 'Tagesbonus' }).click();
   await expect(page.getByText('Heute schon abgeholt', { exact: false })).toBeVisible();
+});
+
+test('rocket swarm: costs coins and destroys troops in an enemy tower', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.addInitScript(() => {
+    localStorage.setItem('tiefenlicht-towerwar-v1', JSON.stringify({ level: 5, sound: false, coins: 200 }));
+  });
+  await page.goto('./');
+  await page.locator('#playCur').click();
+  await page.getByRole('button', { name: 'Spielen' }).click();
+  const s = await snap(page);
+  const enemy = s.towers.find((t) => t.owner === 2)!;
+  const before = enemy.troops;
+  await page.getByRole('button', { name: 'Raketenschwarm' }).click();
+  await page.mouse.click(enemy.x, enemy.y - 10);
+  await page.waitForTimeout(1600);
+  const after = (await snap(page)).towers.find((t) => t.id === enemy.id)!;
+  expect(after.troops).toBeLessThan(before);
+  const coins = await page.evaluate(
+    () => (window as unknown as { TW: { save: { coins: number } } }).TW.save.coins,
+  );
+  expect(coins).toBe(160);
 });
 
 test('manifest and service worker are served', async ({ request }) => {

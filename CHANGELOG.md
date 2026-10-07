@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.7.0 – Tower-War-Mechanik, Raketen, Skill-Baum, zerstörbare Mauern, neue Welten (2026-10-07)
+
+- Mechanik wie in Tower War: Ein Turm mit Linien wächst nicht mehr, seine Zahl bleibt stehen, auch bei mehreren Linien. Linien schicken Soldaten, ohne den Turm zu leeren. Die Zahl sinkt nur durch Angriffe.
+- MAX: Ein voller Turm (50) zeigt „MAX“ statt der Zahl und schickt doppelt so viele Soldaten.
+- Linien-Punkte auf jedem Turm: weiß = freie Linie, grau = benutzt.
+- Raketenschwarm: Knopf unten im Spiel, kostet Münzen (40), Ziel antippen, fünf Raketen fliegen ein und zerstören Soldaten im gegnerischen Turm (nie unter 0); 5 s Abklingzeit.
+- Skill-Baum statt Shop: fünf Zweige (Armee, Tempo, Verteidigung, Raketen, Beute) mit elf Skills, jeder schaltet den nächsten frei: Große Armee, Drill, Elitetruppen, Marschstiefel, Fahnenträger, Dicke Mauern, Große Türme, Sprengkraft, Raketenwerkstatt, Splitterraketen, Kriegskasse.
+- Kanonenturm: Reichweite wächst mit seinen Soldaten (110 bis 280); er zieht keine Linien mehr.
+- Zerstörbare Mauern: Mauern haben Lebenspunkte (12 + Level/2). Linien dürfen durch Mauern führen; die Soldaten schlagen die Mauer erst ein, dann marschieren sie weiter. Risse zeigen den Schaden.
+- Acht verschiedene Welten: neu Nebelsumpf, Sonnenküste, Feuerberge, Zauberwald (eigene Farben, Bäume, Atmosphäre und Karten-Landschaft). Ab Welt 9 kommen die Landschaften gemischt mit Zusatz („Nebelsumpf II“) wieder, nie zweimal hintereinander.
+- Schwierigkeit: steigt bis Level 80 stetig; Boss-Level (jedes zehnte) mit Burg, mehr Startsoldaten und (bis Level 60) schnellerem Gegner; deutlich mehr Level mit zwei Gegnern, ab Level 30 auch drei. Hat der Gegner einen zweiten Startturm, bekommst du auch einen.
+- Alle Level 4–150 neu mit dem Test-Bot geprüft (der jetzt auch verteidigt); Bosse müssen mindestens in 1 von 3 Partien schaffbar sein.
+- Zielzeiten für 3 Sterne angepasst, weil Partien schneller sind.
+
 ## 1.6.0 – Burgensturm und schönere Kampagnen-Karte (2026-10-03)
 
 - Neuer Name im Spiel: **Burgensturm** (Titel, Karte, Startbildschirm, Anleitung, App-Name beim Installieren). Repository, Link, App-Kennung und Spielstände bleiben unverändert.

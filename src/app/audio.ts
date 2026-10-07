@@ -53,4 +53,8 @@ export const sfx = {
   win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'triangle', 0.2, 0, i * 0.12)),
   lose: () => [392, 330, 262].forEach((f, i) => tone(f, 0.3, 'triangle', 0.18, -20, i * 0.18)),
   tap: () => tone(700, 0.05, 'sine', 0.1),
+  rocket: () => {
+    for (let i = 0; i < 5; i++) tone(300 + i * 40, 0.35, 'sawtooth', 0.04, 600, i * 0.08);
+  },
+  boom: () => tone(90, 0.3, 'square', 0.1, -50),
 };

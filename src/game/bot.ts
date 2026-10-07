@@ -16,6 +16,15 @@ export function botMove(s: GameState, seen: Map<number, number>): void {
     const stuck = d.owner !== PLAYER && last !== undefined && d.troops >= last - 0.5;
     if (stuck || (d.owner === PLAYER && d.troops > 20)) dropLine(s, l);
   }
+  // defend: answer an enemy line into one of our towers with a line back to its source (troops clash)
+  for (const l of s.lines) {
+    if (l.owner === PLAYER) continue;
+    const d = s.towers[l.dst];
+    const src = s.towers[l.src];
+    if (!d || !src || d.owner !== PLAYER) continue;
+    if (s.lines.some((x) => x.owner === PLAYER && x.src === d.id && x.dst === src.id)) continue;
+    if (checkLine(s, d.id, src.id, PLAYER) === 'ok') addLine(s, d.id, src.id, PLAYER);
+  }
   for (const t of s.towers.filter((t) => t.owner === PLAYER).sort((a, b) => b.troops - a.troops)) {
     if (t.troops < 6) continue;
     const target = s.towers
@@ -47,5 +56,6 @@ export function botGame(def: LevelDef, every: number, maxSeconds = 300): { win: 
 export const BOT_SPEEDS = [40, 60, 90] as const;
 /** Wins the calibration bot needs out of three games: all early on, fewer later. */
 export function requiredWins(n: number): number {
+  if (n % 10 === 0) return 1; // boss levels may be tough, but must be beatable
   return n <= 15 ? 3 : n <= 30 ? 2 : 1;
 }

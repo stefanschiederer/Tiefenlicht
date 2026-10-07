@@ -1,4 +1,15 @@
-export type UpgradeId = 'army' | 'drill' | 'boots';
+export type UpgradeId =
+  | 'army'
+  | 'drill'
+  | 'elite'
+  | 'boots'
+  | 'lines'
+  | 'walls'
+  | 'towers'
+  | 'blast'
+  | 'workshop'
+  | 'cluster'
+  | 'loot';
 
 export interface Save {
   /** Next level to play (1-based). */
@@ -24,7 +35,19 @@ export function defaultSave(): Save {
     coins: 0,
     stars: [],
     times: [],
-    upgrades: { army: 0, drill: 0, boots: 0 },
+    upgrades: {
+      army: 0,
+      drill: 0,
+      elite: 0,
+      boots: 0,
+      lines: 0,
+      walls: 0,
+      towers: 0,
+      blast: 0,
+      workshop: 0,
+      cluster: 0,
+      loot: 0,
+    },
     daily: '',
     streak: 0,
   };

@@ -11,7 +11,10 @@ describe('levels', () => {
   it.each(LEVELS)('level %i is valid and playable', (n) => {
     const d = levelDef(n);
     expect(d.n).toBe(n);
-    expect(d.towers.filter((t) => t.owner === PLAYER)).toHaveLength(1);
+    // one start tower, two when the enemy also starts with an extra tower
+    const mine = d.towers.filter((t) => t.owner === PLAYER).length;
+    expect(mine).toBeGreaterThanOrEqual(1);
+    expect(mine).toBeLessThanOrEqual(2);
     expect(d.towers.some((t) => t.owner >= 2)).toBe(true);
     for (const t of d.towers) {
       expect(t.x).toBeGreaterThanOrEqual(TOWER_R);
@@ -26,6 +29,20 @@ describe('levels', () => {
         expect(Math.hypot(A.x - B.x, A.y - B.y)).toBeGreaterThan(TOWER_R * 2.5);
       }
     expect(isPlayable(d)).toBe(true);
+  });
+
+  it('boss levels have a stronger enemy, later levels have more enemies', () => {
+    const enemies = (n: number) =>
+      new Set(
+        levelDef(n)
+          .towers.filter((t) => t.owner >= 2)
+          .map((t) => t.owner),
+      ).size;
+    expect(levelDef(20).towers.some((t) => t.owner === 2 && t.kind === 'castle')).toBe(true);
+    expect(levelDef(20).enemyGrowth).toBeGreaterThan(levelDef(19).enemyGrowth ?? 0);
+    const multi = Array.from({ length: 40 }, (_, i) => enemies(i + 21)).filter((e) => e >= 2).length;
+    expect(multi).toBeGreaterThanOrEqual(12);
+    expect(Array.from({ length: 40 }, (_, i) => enemies(i + 30)).some((e) => e === 3)).toBe(true);
   });
 
   it('is deterministic', () => {
