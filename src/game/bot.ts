@@ -11,10 +11,14 @@ export function botMove(s: GameState, seen: Map<number, number>): void {
   for (const l of s.lines.filter((l) => l.owner === PLAYER)) {
     const d = s.towers[l.dst];
     if (!d) continue;
-    const last = seen.get(l.id);
-    seen.set(l.id, d.troops);
-    const stuck = d.owner !== PLAYER && last !== undefined && d.troops >= last - 0.5;
-    if (stuck || (d.owner === PLAYER && d.troops > 20)) dropLine(s, l);
+    // seen holds the target count when the line started to stall; cut after 4 stalled checks
+    const key = l.id * 2,
+      age = l.id * 2 + 1;
+    const last = seen.get(key);
+    const stalled = d.owner !== PLAYER && last !== undefined && d.troops >= last - 0.5;
+    seen.set(age, stalled ? (seen.get(age) ?? 0) + 1 : 0);
+    if (!stalled) seen.set(key, d.troops);
+    if ((seen.get(age) ?? 0) >= 4 || (d.owner === PLAYER && d.troops > 20)) dropLine(s, l);
   }
   // defend: answer an enemy line into one of our towers with a line back to its source (troops clash)
   for (const l of s.lines) {

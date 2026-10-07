@@ -18,6 +18,8 @@ import {
   CANNON_RANGE_MIN,
   LINE_RATE,
   MAX_BURST,
+  LINE_COST_BASE,
+  LINE_COST_PER,
   ROCKET_FLIGHT,
   ROCKET_SPLASH,
   ROCKETS_PER_STRIKE,
@@ -159,7 +161,14 @@ export function computeReach(s: Pick<GameState, 'towers' | 'walls'>): boolean[][
 
 /* ------------------------------------------------------------------ actions */
 
-export type LineResult = 'ok' | 'same' | 'blocked' | 'exists' | 'full' | 'not-owner';
+export type LineResult = 'ok' | 'same' | 'blocked' | 'exists' | 'full' | 'poor' | 'not-owner';
+
+/** Troops it costs to draw a line from tower a to tower b. */
+export function lineCost(s: GameState, a: number, b: number): number {
+  const A = tower(s, a),
+    B = tower(s, b);
+  return LINE_COST_BASE + Math.floor(Math.hypot(B.x - A.x, B.y - A.y) / LINE_COST_PER);
+}
 
 /** Why a line from a to b could not be drawn, or 'ok'. Does not change the state. */
 export function checkLine(s: GameState, a: number, b: number, owner: number): LineResult {
@@ -170,6 +179,7 @@ export function checkLine(s: GameState, a: number, b: number, owner: number): Li
   if (!s.reach[a]?.[b]) return 'blocked';
   if (s.lines.some((l) => l.src === a && l.dst === b)) return 'exists';
   if (linesFrom(s, a).length >= lineLimit(A)) return 'full';
+  if (A.troops < lineCost(s, a, b) + 1) return 'poor';
   return 'ok';
 }
 
@@ -179,9 +189,12 @@ export function checkLine(s: GameState, a: number, b: number, owner: number): Li
  */
 export function addLine(s: GameState, a: number, b: number, owner: number): LineResult {
   const reverse = s.lines.find((l) => l.src === b && l.dst === a && l.owner === owner);
+  // check the cost before touching a line that would be reversed
+  if (reverse && s.towers[a] && s.towers[a].troops < lineCost(s, a, b) + 1) return 'poor';
   if (reverse) removeLine(s, reverse, 'retract');
   const r = checkLine(s, a, b, owner);
   if (r !== 'ok') return r;
+  tower(s, a).troops -= lineCost(s, a, b);
   const line: Line = { id: s.nextId++, src: a, dst: b, owner, timer: SEND_INTERVAL * 0.4, age: 0 };
   s.lines.push(line);
   s.events.push({ type: 'line', line });
@@ -463,10 +476,10 @@ export function step(s: GameState, dt: number): void {
     const A = tower(s, l.src);
     l.timer -= dt;
     while (l.timer <= 0) {
-      const burst = isMax(s, A) ? MAX_BURST : 1;
-      for (let b = 0; b < burst; b++) spawnTroop(s, l, b * 9);
+      spawnTroop(s, l);
       const send = A.owner === PLAYER ? (s.def.player?.send ?? 1) : 1;
-      l.timer += 1 / Math.max(0.2, rateOf(s, A) * LINE_RATE * send);
+      const burst = isMax(s, A) ? MAX_BURST : 1;
+      l.timer += 1 / Math.max(0.2, rateOf(s, A) * LINE_RATE * send * burst);
     }
   }
   // walking; troops on a line stop at a standing wall and knock it down

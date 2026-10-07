@@ -11,7 +11,7 @@ Türme erobern im Stil von Tower War: Ziehe Linien von deinen blauen Türmen, sc
 ## Spielregeln
 
 - Jeder Turm zeigt seine Soldaten. Eigene Türme ohne Linie bilden laufend neue Soldaten aus (bis MAX = 50), graue (neutrale) nicht.
-- Ziehe von einem blauen Turm zu einem anderen Turm. Die Linie bleibt, und Soldaten marschieren ununterbrochen hinüber. Die Zahl des Turms bleibt dabei stehen; ein MAX-Turm schickt doppelt so viele. Weiße Punkte zeigen freie Linien, graue benutzte.
+- Ziehe von einem blauen Turm zu einem anderen Turm. Die Linie bleibt, und Soldaten marschieren ununterbrochen hinüber. Eine neue Linie kostet je nach Länge ein paar Soldaten; danach bleibt die Zahl des Turms stehen. Ein MAX-Turm schickt schneller. Weiße Punkte zeigen freie Linien, graue benutzte.
 - Soldaten, die einen fremden Turm erreichen, ziehen dort einen ab. Fällt die Zahl unter null, gehört der Turm dir. Soldaten, die einen eigenen Turm erreichen, verstärken ihn.
 - Türme wachsen mit ihren Soldaten: ab 10 Stufe 2 (zwei Linien), ab 25 Stufe 3 (drei Linien). Schrumpft ein Turm, verliert er überzählige Linien.
 - Treffen sich Soldaten zweier Farben auf derselben Strecke, kämpfen sie eins gegen eins.

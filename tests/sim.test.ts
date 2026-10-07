@@ -8,6 +8,7 @@ import {
   drainEvents,
   isMax,
   levelOf,
+  lineCost,
   lineLimit,
   linesFrom,
   step,
@@ -95,11 +96,14 @@ describe('lines', () => {
     const s = base();
     s.towers[0]!.troops = 20;
     addLine(s, 0, 1, PLAYER);
+    // drawing the line costs troops, then the number stays
+    const after = s.towers[0]!.troops;
+    expect(after).toBe(20 - lineCost(s, 0, 1));
     run(s, 4);
-    expect(s.towers[0]!.troops).toBe(20);
+    expect(s.towers[0]!.troops).toBe(after);
     s.lines = [];
     run(s, 2);
-    expect(s.towers[0]!.troops).toBeGreaterThan(20);
+    expect(s.towers[0]!.troops).toBeGreaterThan(after);
   });
 
   it('a tower at MAX shows the cap and sends bursts', () => {
@@ -133,7 +137,7 @@ describe('lines', () => {
   });
 
   it('a captured tower loses its lines', () => {
-    const s = createGame(def([T(360, 1100, PLAYER, 40), T(360, 700, 2, 1), T(600, 300, NEUTRAL, 50)]));
+    const s = createGame(def([T(360, 1100, PLAYER, 40), T(360, 700, 2, 5), T(600, 300, NEUTRAL, 50)]));
     expect(addLine(s, 1, 2, 2)).toBe('ok');
     s.towers[1]!.acc = -100; // freeze the enemy tower's growth for the test
     addLine(s, 0, 1, PLAYER);
@@ -152,7 +156,7 @@ describe('lines', () => {
 
   it('a shrinking tower retracts lines it can no longer hold', () => {
     const s = base();
-    s.towers[0]!.troops = 12;
+    s.towers[0]!.troops = 20;
     s.towers[1]!.troops = 90;
     s.towers[2]!.troops = 90;
     expect(addLine(s, 0, 1, PLAYER)).toBe('ok');
@@ -162,6 +166,18 @@ describe('lines', () => {
     run(s, 0.1);
     expect(levelOf(s.towers[0]!)).toBe(1);
     expect(linesFrom(s, 0)).toHaveLength(1);
+  });
+});
+
+describe('line cost', () => {
+  it('drawing a line costs troops by length and needs enough troops', () => {
+    const s = createGame(def([T(360, 1180, PLAYER, 3), T(360, 100, NEUTRAL, 5), T(60, 640, 2, 1)]));
+    const cost = lineCost(s, 0, 1);
+    expect(cost).toBeGreaterThanOrEqual(4);
+    expect(addLine(s, 0, 1, PLAYER)).toBe('poor');
+    s.towers[0]!.troops = cost + 1;
+    expect(addLine(s, 0, 1, PLAYER)).toBe('ok');
+    expect(s.towers[0]!.troops).toBe(1);
   });
 });
 

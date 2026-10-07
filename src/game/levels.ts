@@ -95,7 +95,7 @@ export function generateAttempt(n: number, attempt: number): LevelDef | null {
     const two = enemies >= 2;
     const pairs = Math.min(2 + Math.floor(n / 4), 5);
     const towers: TowerDef[] = [];
-    const start = 10 + Math.min(14, Math.floor(n / 3)) + (boss ? 4 : 0);
+    const start = 10 + Math.min(14, Math.floor(n / 3)) + (boss && n < 40 ? 3 : 0);
     const px = ri(150, 570);
     // the player starts a little stronger (less so in late levels)
     towers.push(t(px, ri(1040, 1120), PLAYER, start + Math.max(2, 6 - Math.floor(n / 10))));
@@ -109,7 +109,13 @@ export function generateAttempt(n: number, attempt: number): LevelDef | null {
     } else
       towers.push(
         // boss levels: the enemy holds a castle
-        t(WORLD_W - px, WORLD_H - (towers[0] as TowerDef).y, 2, start, boss && n >= 16 ? 'castle' : 'tower'),
+        t(
+          WORLD_W - px,
+          WORLD_H - (towers[0] as TowerDef).y,
+          2,
+          start + (boss && n >= 80 ? 4 : 0),
+          boss && n >= 16 && n < 80 ? 'castle' : 'tower',
+        ),
       );
     // extra enemy tower on later levels
     const minD = TOWER_R * 4.4;
@@ -183,9 +189,9 @@ export function generateAttempt(n: number, attempt: number): LevelDef | null {
       towers,
       walls,
       // difficulty rises steadily up to level 80; boss levels (every tenth) are a notch harder
-      aiInterval: Math.max(1.4, 3.2 - n * 0.025) * (boss && n < 60 ? 0.85 : 1),
+      aiInterval: Math.max(1.4, 3.2 - n * 0.025) * (boss && n < 40 ? 0.85 : 1),
       aiDelay: Math.max(2, 7 - n * 0.12) * (boss ? 0.6 : 1),
-      enemyGrowth: Math.min(1, 0.7 + n * 0.004) + (boss && n < 60 ? 0.04 : 0),
+      enemyGrowth: Math.min(1, 0.7 + n * 0.004) + (boss && n < 40 ? 0.04 : 0),
     };
     return isPlayable(def) ? def : null;
   }

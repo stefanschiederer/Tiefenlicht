@@ -43,14 +43,14 @@ export const UPGRADES: UpgradeDef[] = [
     id: 'army',
     branch: 'Armee',
     name: 'Große Armee',
-    desc: (l) => `+${l * 2} Soldaten im Startturm`,
+    desc: (l) => `+${l} Soldaten im Startturm`,
     max: 10,
   },
   {
     id: 'drill',
     branch: 'Armee',
     name: 'Drill',
-    desc: (l) => `+${l * 5} % Ausbildungstempo`,
+    desc: (l) => `+${l * 3} % Ausbildungstempo`,
     max: 10,
     req: { id: 'army', lvl: 2 },
   },
@@ -58,17 +58,17 @@ export const UPGRADES: UpgradeDef[] = [
     id: 'elite',
     branch: 'Armee',
     name: 'Elitetruppen',
-    desc: (l) => `Deine Soldaten treffen ${l * 6} % härter`,
+    desc: (l) => `Deine Soldaten treffen ${l * 4} % härter`,
     max: 5,
     req: { id: 'drill', lvl: 3 },
     price: 1.5,
   },
-  { id: 'boots', branch: 'Tempo', name: 'Marschstiefel', desc: (l) => `+${l * 5} % Marschtempo`, max: 10 },
+  { id: 'boots', branch: 'Tempo', name: 'Marschstiefel', desc: (l) => `+${l * 3} % Marschtempo`, max: 10 },
   {
     id: 'lines',
     branch: 'Tempo',
     name: 'Fahnenträger',
-    desc: (l) => `Linien schicken ${l * 5} % mehr Soldaten`,
+    desc: (l) => `Linien schicken ${l * 3} % mehr Soldaten`,
     max: 10,
     req: { id: 'boots', lvl: 2 },
     price: 1.3,
@@ -77,14 +77,14 @@ export const UPGRADES: UpgradeDef[] = [
     id: 'walls',
     branch: 'Verteidigung',
     name: 'Dicke Mauern',
-    desc: (l) => `Angreifer richten ${l * 4} % weniger aus`,
+    desc: (l) => `Angreifer richten ${l * 3} % weniger aus`,
     max: 10,
   },
   {
     id: 'towers',
     branch: 'Verteidigung',
     name: 'Große Türme',
-    desc: (l) => `Deine Türme fassen ${l * 5} Soldaten mehr`,
+    desc: (l) => `Deine Türme fassen ${l * 3} Soldaten mehr`,
     max: 5,
     req: { id: 'walls', lvl: 3 },
     price: 1.4,
@@ -143,14 +143,30 @@ export function rocketStats(s: Save): { damage: number; cost: number; splash: nu
 export function playerBonus(s: Save): NonNullable<LevelDef['player']> {
   const u = s.upgrades;
   return {
-    start: u.army * 2,
-    growth: 1 + u.drill * 0.05,
-    speed: 1 + u.boots * 0.05,
-    send: 1 + u.lines * 0.05,
-    attack: 1 + u.elite * 0.06,
-    defense: 1 - u.walls * 0.04,
-    cap: u.towers * 5,
+    start: u.army,
+    growth: 1 + u.drill * 0.03,
+    speed: 1 + u.boots * 0.03,
+    send: 1 + u.lines * 0.03,
+    attack: 1 + u.elite * 0.04,
+    defense: 1 - u.walls * 0.03,
+    cap: u.towers * 3,
   };
+}
+
+/**
+ * The enemy grows along with part of the player's skills (production, line output, hits), so skills
+ * keep helping without turning every level into a walkover.
+ */
+export function enemyScale(s: Save): number {
+  const b = playerBonus(s);
+  const power =
+    b.growth -
+    1 +
+    ((b.send ?? 1) - 1) +
+    ((b.attack ?? 1) - 1) +
+    (b.speed - 1) * 0.5 +
+    (1 - (b.defense ?? 1)) * 0.5;
+  return 1 + 0.35 * power;
 }
 
 /** Coins for a win including the loot skill. */

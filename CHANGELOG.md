@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.0 – Balance: kein Schneeball mehr durch Skills (2026-10-07)
+
+- Linien kosten Soldaten: 1 plus 1 je 220 Einheiten Länge (meist 2–5). Der Turm muss danach noch mindestens einen Soldaten haben. Beim Ziehen steht der Preis an der Linie („−3“), rot wenn er zu teuer ist. Gilt auch für den Gegner.
+- MAX-Türme schicken 1,5-mal so schnell statt doppelt so viele; Linien sind etwas langsamer (1,45 × Produktion statt 1,6 ×).
+- Skills schwächer: Große Armee +1 statt +2 Soldaten je Stufe, Drill, Marschstiefel und Fahnenträger +3 % statt +5 %, Elitetruppen +4 %, Dicke Mauern −3 %, Große Türme +3 Plätze. Gekaufte Stufen bleiben erhalten.
+- Der Gegner wächst mit einem Teil deiner Kampf-Skills mit (35 %). Skills helfen weiter spürbar, machen Level aber nicht mehr in Sekunden fertig.
+- Boss-Level: Burg bis Level 70, ab Level 80 ein normaler Turm mit mehr Startsoldaten; Zusatzbonus für Bosse nur bis Level 40.
+- Bot und Gegner kappen Linien erst, wenn sie mehrere Sekunden nichts bewirken (weniger teures Neuziehen). Alle Level 4–150 neu kalibriert.
+
 ## 1.7.0 – Tower-War-Mechanik, Raketen, Skill-Baum, zerstörbare Mauern, neue Welten (2026-10-07)
 
 - Mechanik wie in Tower War: Ein Turm mit Linien wächst nicht mehr, seine Zahl bleibt stehen, auch bei mehreren Linien. Linien schicken Soldaten, ohne den Turm zu leeren. Die Zahl sinkt nur durch Angriffe.

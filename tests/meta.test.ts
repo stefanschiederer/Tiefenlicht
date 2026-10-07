@@ -37,11 +37,11 @@ describe('upgrades', () => {
     const s = defaultSave();
     s.upgrades = { ...s.upgrades, army: 3, drill: 2, boots: 1 };
     const b = playerBonus(s);
-    expect(b).toMatchObject({ start: 6, growth: 1.1, speed: 1.05, send: 1, attack: 1, defense: 1, cap: 0 });
+    expect(b).toMatchObject({ start: 3, growth: 1.06, speed: 1.03, send: 1, attack: 1, defense: 1, cap: 0 });
     const def = levelDef(1);
     def.player = b;
     const g = createGame(def);
-    expect(g.towers.find((t) => t.owner === PLAYER)?.troops).toBe(levelDef(1).towers[0]!.troops + 6);
+    expect(g.towers.find((t) => t.owner === PLAYER)?.troops).toBe(levelDef(1).towers[0]!.troops + 3);
   });
 });
 

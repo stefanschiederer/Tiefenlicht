@@ -10,7 +10,8 @@ for (let n = 4; n <= LAST; n++) {
   let chosen = -1,
     fallback = 0,
     best = -1;
-  for (let attempt = 0, tried = 0; attempt < 400 && tried < 40; attempt++) {
+  const budget = n % 10 === 0 ? 80 : 40;
+  for (let attempt = 0, tried = 0; attempt < 600 && tried < budget; attempt++) {
     const def = generateAttempt(n, attempt);
     if (!def) continue;
     tried++;

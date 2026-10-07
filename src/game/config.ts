@@ -26,9 +26,15 @@ export const MAX_TROOPS = GROW_CAP;
  * Tower War rule: a tower with lines stops growing and keeps its number; every line sends troops at
  * the tower's production rate times this factor, without taking them from the tower.
  */
-export const LINE_RATE = 1.6;
-/** A tower at its cap (MAX) sends this many troops at once. */
-export const MAX_BURST = 2;
+export const LINE_RATE = 1.45;
+/** A tower at its cap (MAX) sends this much faster on every line. */
+export const MAX_BURST = 1.5;
+/**
+ * Drawing a line costs troops (splitting is a decision, not free): a base cost plus one troop per
+ * LINE_COST_PER world units of length. The tower must keep at least one troop.
+ */
+export const LINE_COST_BASE = 1;
+export const LINE_COST_PER = 220;
 /** Seconds between two troops on a fresh line (first troop leaves quickly). */
 export const SEND_INTERVAL = 0.5;
 /** Rocket swarm: rockets per strike, flight time (s), splash radius (world units). */

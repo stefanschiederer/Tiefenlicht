@@ -13,6 +13,8 @@ export class Enemy {
   private rand: () => number;
   /** Target troop count seen at the last decision, per attack line (to spot stalemates). */
   private seen = new Map<number, number>();
+  /** Consecutive decisions in which an attack line made no progress. */
+  private stalls = new Map<number, number>();
 
   constructor(
     readonly owner: number,
@@ -46,8 +48,11 @@ export class Enemy {
         const hopeless = d.owner !== this.owner && d.troops > t.troops + 25;
         // an attack that makes no progress: pull back, gather troops, strike again later
         const last = this.seen.get(l.id);
-        const stuck = d.owner !== this.owner && last !== undefined && d.troops >= last - 0.5;
-        this.seen.set(l.id, d.troops);
+        const stalled = d.owner !== this.owner && last !== undefined && d.troops >= last - 0.5;
+        if (!stalled) this.seen.set(l.id, d.troops);
+        const n = stalled ? (this.stalls.get(l.id) ?? 0) + 1 : 0;
+        this.stalls.set(l.id, n);
+        const stuck = n >= 3;
         if (done || hopeless || (stuck && this.rand() < 0.7)) {
           dropLine(s, l);
           this.seen.delete(l.id);
