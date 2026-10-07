@@ -1171,60 +1171,6 @@ export function drawGround(
   g.fillRect(0, 0, w, h);
 }
 
-/** Stone wall between (x1,y1) and (x2,y2) in screen space: top face, front face, bricks. */
-export function drawWall(
-  g: CanvasRenderingContext2D,
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-  thick: number,
-): void {
-  const h = thick * 0.7;
-  g.lineCap = 'round';
-  g.strokeStyle = 'rgba(20,50,20,0.25)';
-  g.lineWidth = thick + 6;
-  g.beginPath();
-  g.moveTo(x1 + 4, y1 + h * 0.6 + 4);
-  g.lineTo(x2 + 4, y2 + h * 0.6 + 4);
-  g.stroke();
-  g.strokeStyle = OUT;
-  g.lineWidth = thick + 5;
-  g.beginPath();
-  g.moveTo(x1, y1 + h * 0.5);
-  g.lineTo(x2, y2 + h * 0.5);
-  g.moveTo(x1, y1);
-  g.lineTo(x2, y2);
-  g.stroke();
-  g.strokeStyle = '#7f8893';
-  g.lineWidth = thick;
-  g.beginPath();
-  g.moveTo(x1, y1 + h * 0.5);
-  g.lineTo(x2, y2 + h * 0.5);
-  g.stroke();
-  g.strokeStyle = '#c7cdd4';
-  g.beginPath();
-  g.moveTo(x1, y1);
-  g.lineTo(x2, y2);
-  g.stroke();
-  // brick joints
-  const len = Math.hypot(x2 - x1, y2 - y1),
-    ux = (x2 - x1) / len,
-    uy = (y2 - y1) / len;
-  g.strokeStyle = 'rgba(60,70,80,0.45)';
-  g.lineWidth = 1.5;
-  g.lineCap = 'butt';
-  for (let d = thick * 0.8; d < len - thick * 0.4; d += thick * 0.9) {
-    const cx = x1 + ux * d,
-      cy = y1 + uy * d;
-    g.beginPath();
-    g.moveTo(cx - uy * thick * 0.45, cy + ux * thick * 0.45);
-    g.lineTo(cx + uy * thick * 0.45, cy - ux * thick * 0.45);
-    g.stroke();
-  }
-  g.lineCap = 'round';
-}
-
 /** Data URL of a tower kind in neutral grey (for the "Neu" card). */
 export function kindIcon(kind: TowerKind): string {
   return towerIcon(0, 2, kind);
@@ -1269,4 +1215,308 @@ function renderIcon(owner: number, level: 1 | 2 | 3, kind: TowerKind): string {
     g.stroke();
   }
   return c.toDataURL();
+}
+
+/* ------------------------------------------------------------------ walls and obstacles */
+
+type Pt = [number, number];
+const STONE = { top: '#e3e7ec', front: '#b9c1cb', side: '#97a1ad', joint: 'rgba(60,70,82,0.35)' };
+
+function quad(g: CanvasRenderingContext2D, p: Pt[], fill: string): void {
+  g.fillStyle = fill;
+  g.beginPath();
+  p.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.closePath();
+  g.fill();
+  g.stroke();
+}
+
+/** Extruded box over the ground quad `base` (4 corners), height h; draws the faces facing the viewer. */
+function prism(
+  g: CanvasRenderingContext2D,
+  base: Pt[],
+  h: number,
+  top: string,
+  front: string,
+  side: string,
+): void {
+  const up = (p: Pt): Pt => [p[0], p[1] - h];
+  const cx = base.reduce((a, p) => a + p[0], 0) / 4,
+    cy = base.reduce((a, p) => a + p[1], 0) / 4;
+  for (let i = 0; i < 4; i++) {
+    const a = base[i] as Pt,
+      b = base[(i + 1) % 4] as Pt;
+    const mx = (a[0] + b[0]) / 2 - cx,
+      my = (a[1] + b[1]) / 2 - cy;
+    if (my <= 0.01) continue; // faces pointing away from the viewer stay hidden
+    quad(g, [a, b, up(b), up(a)], Math.abs(mx) > Math.abs(my) ? side : front);
+  }
+  quad(g, base.map(up), top);
+}
+
+/**
+ * Stone wall in the Tower War look: a 2.5D rampart with crenellations and round corner towers.
+ * `damage` 0..1 removes merlons and adds cracks.
+ */
+export function drawWall(
+  g: CanvasRenderingContext2D,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  thick: number,
+  damage = 0,
+): void {
+  const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+  const ux = (x2 - x1) / len,
+    uy = (y2 - y1) / len;
+  const nx = -uy * (thick / 2),
+    ny = ux * (thick / 2);
+  const H = thick * 1.25;
+  g.lineJoin = 'round';
+  g.strokeStyle = OUT;
+  g.lineWidth = Math.max(1.5, thick * 0.11);
+  // ground shadow
+  g.fillStyle = 'rgba(20,40,20,0.22)';
+  g.beginPath();
+  g.moveTo(x1 + nx + 5, y1 + ny + 6);
+  g.lineTo(x2 + nx + 5, y2 + ny + 6);
+  g.lineTo(x2 - nx + 5, y2 - ny + 6);
+  g.lineTo(x1 - nx + 5, y1 - ny + 6);
+  g.closePath();
+  g.fill();
+  const base: Pt[] = [
+    [x1 + nx, y1 + ny],
+    [x2 + nx, y2 + ny],
+    [x2 - nx, y2 - ny],
+    [x1 - nx, y1 - ny],
+  ];
+  prism(g, base, H, STONE.top, STONE.front, STONE.side);
+  // brick joints on the visible long face
+  const face = ny > 0 ? 1 : -1;
+  g.save();
+  g.strokeStyle = STONE.joint;
+  g.lineWidth = 1.2;
+  const fx = nx * face,
+    fy = ny * face;
+  for (let row = 1; row < 3; row++) {
+    const z = (H * row) / 3;
+    g.beginPath();
+    g.moveTo(x1 + fx, y1 + fy - z);
+    g.lineTo(x2 + fx, y2 + fy - z);
+    g.stroke();
+  }
+  const step = thick * 0.9;
+  for (let d = step * 0.5, k = 0; d < len - step * 0.3; d += step * 0.5, k++) {
+    const row = k % 3;
+    const px = x1 + ux * d + fx,
+      py = y1 + uy * d + fy;
+    g.beginPath();
+    g.moveTo(px, py - (H * row) / 3);
+    g.lineTo(px, py - (H * (row + 1)) / 3);
+    g.stroke();
+  }
+  g.restore();
+  // crenellations on top
+  const n = Math.max(2, Math.floor(len / (thick * 1.1)));
+  const mw = (len / n) * 0.55;
+  const removed = Math.round(damage * n * 0.7);
+  for (let i = 0; i < n; i++) {
+    if (removed && (i * 7 + 3) % n < removed) continue;
+    const c = ((i + 0.5) / n) * len;
+    const ax = x1 + ux * (c - mw / 2),
+      ay = y1 + uy * (c - mw / 2) - H,
+      bx = x1 + ux * (c + mw / 2),
+      by = y1 + uy * (c + mw / 2) - H;
+    prism(
+      g,
+      [
+        [ax + nx * 0.9, ay + ny * 0.9],
+        [bx + nx * 0.9, by + ny * 0.9],
+        [bx - nx * 0.9, by - ny * 0.9],
+        [ax - nx * 0.9, ay - ny * 0.9],
+      ],
+      thick * 0.45,
+      STONE.top,
+      STONE.front,
+      STONE.side,
+    );
+  }
+  // round corner towers (front one last)
+  const pillar = (px: number, py: number) => {
+    const r = thick * 0.75,
+      ph = H * 1.45,
+      ry = r * 0.45;
+    const grd = g.createLinearGradient(px - r, 0, px + r, 0);
+    grd.addColorStop(0, STONE.top);
+    grd.addColorStop(0.5, STONE.front);
+    grd.addColorStop(1, STONE.side);
+    g.fillStyle = grd;
+    g.beginPath();
+    g.moveTo(px - r, py);
+    g.lineTo(px - r, py - ph);
+    g.ellipse(px, py - ph, r, ry, 0, Math.PI, 0, true);
+    g.lineTo(px + r, py);
+    g.ellipse(px, py, r, ry, 0, 0, Math.PI);
+    g.closePath();
+    g.fill();
+    g.stroke();
+    g.fillStyle = STONE.top;
+    g.beginPath();
+    g.ellipse(px, py - ph, r, ry, 0, 0, TAU);
+    g.fill();
+    g.stroke();
+    g.fillStyle = '#7d8793';
+    g.beginPath();
+    g.ellipse(px, py - ph, r * 0.55, ry * 0.55, 0, 0, TAU);
+    g.fill();
+  };
+  if (y1 < y2) {
+    pillar(x1, y1);
+    pillar(x2, y2);
+  } else {
+    pillar(x2, y2);
+    pillar(x1, y1);
+  }
+  // cracks
+  if (damage > 0.15) {
+    g.strokeStyle = 'rgba(40,45,55,0.8)';
+    g.lineWidth = 1.6;
+    const cracks = Math.ceil(damage * 5);
+    for (let i = 0; i < cracks; i++) {
+      const f = (i + 0.5) / cracks,
+        cx = x1 + (x2 - x1) * f + fx,
+        cy = y1 + (y2 - y1) * f + fy - H * 0.2;
+      g.beginPath();
+      g.moveTo(cx - thick * 0.25, cy - H * 0.7);
+      g.lineTo(cx, cy - H * 0.4);
+      g.lineTo(cx - thick * 0.1, cy - H * 0.15);
+      g.lineTo(cx + thick * 0.2, cy);
+      g.stroke();
+    }
+  }
+}
+
+/** Impassable obstacle (screen coordinates, radius in px), styled for the world. */
+export function drawBlock(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  kind: 'rocks' | 'pond' | 'grove',
+  theme: Theme,
+  seed: number,
+): void {
+  const rand = prand(seed);
+  const p = PALETTES[theme];
+  g.lineJoin = 'round';
+  g.strokeStyle = OUT;
+  g.lineWidth = Math.max(2, r * 0.05);
+  if (kind === 'pond') {
+    const water =
+      theme === 'volcano'
+        ? ['#ff6b1a', '#ffb21a']
+        : theme === 'snow'
+          ? ['#bfe3ff', '#e6f5ff']
+          : theme === 'magic'
+            ? ['#7b5cff', '#c7b3ff']
+            : ['#4fb7e3', '#8fd8f5'];
+    g.fillStyle = p.rock[0];
+    g.beginPath();
+    g.ellipse(x, y + r * 0.05, r * 1.12, r * 0.72, 0, 0, TAU);
+    g.fill();
+    g.fillStyle = water[0] as string;
+    g.beginPath();
+    g.ellipse(x, y, r, r * 0.62, 0, 0, TAU);
+    g.fill();
+    g.stroke();
+    g.fillStyle = water[1] as string;
+    g.beginPath();
+    g.ellipse(x - r * 0.2, y - r * 0.12, r * 0.55, r * 0.22, -0.2, 0, TAU);
+    g.fill();
+    // reeds / stones on the shore
+    for (let i = 0; i < 5; i++) {
+      const a = Math.PI * (0.15 + rand() * 0.7),
+        sx = x + Math.cos(a) * r * 0.95 * (rand() < 0.5 ? -1 : 1),
+        sy = y + Math.sin(a) * r * 0.55;
+      if (theme === 'volcano' || theme === 'snow') {
+        g.fillStyle = p.rock[1];
+        g.beginPath();
+        g.ellipse(sx, sy, r * 0.12, r * 0.08, 0, 0, TAU);
+        g.fill();
+        g.stroke();
+      } else {
+        g.strokeStyle = '#3f8f3a';
+        g.lineWidth = Math.max(1.5, r * 0.04);
+        g.beginPath();
+        g.moveTo(sx, sy);
+        g.lineTo(sx - r * 0.04, sy - r * 0.28);
+        g.moveTo(sx + r * 0.05, sy);
+        g.lineTo(sx + r * 0.08, sy - r * 0.22);
+        g.stroke();
+        g.strokeStyle = OUT;
+      }
+    }
+    return;
+  }
+  if (kind === 'grove') {
+    const trees: [number, number, number][] = [];
+    for (let i = 0; i < 6; i++) {
+      const a = rand() * TAU,
+        d = rand() * r * 0.75;
+      trees.push([x + Math.cos(a) * d, y + Math.sin(a) * d * 0.7 + r * 0.25, 0.8 + rand() * 0.45]);
+    }
+    trees.sort((a, b) => a[1] - b[1]).forEach(([tx, ty, s]) => drawTree(g, tx, ty, (s * r) / 46, theme));
+    return;
+  }
+  // rocks: three boulders with highlights (snow caps in the snow world)
+  const stones: [number, number, number][] = [
+    [x - r * 0.35, y + r * 0.1, r * 0.55],
+    [x + r * 0.3, y + r * 0.2, r * 0.48],
+    [x + r * 0.02, y - r * 0.25, r * 0.62],
+  ];
+  const rock = theme === 'volcano' ? ['#3a2f2f', '#5a4848'] : p.rock;
+  g.fillStyle = 'rgba(20,40,20,0.22)';
+  g.beginPath();
+  g.ellipse(x + 6, y + r * 0.45, r * 1.05, r * 0.38, 0, 0, TAU);
+  g.fill();
+  for (const [sx, sy, sr] of stones.sort((a, b) => a[1] - b[1])) {
+    g.fillStyle = rock[0] as string;
+    g.beginPath();
+    g.moveTo(sx - sr, sy + sr * 0.35);
+    g.lineTo(sx - sr * 0.75, sy - sr * 0.45);
+    g.lineTo(sx - sr * 0.1, sy - sr * 0.85);
+    g.lineTo(sx + sr * 0.7, sy - sr * 0.5);
+    g.lineTo(sx + sr, sy + sr * 0.3);
+    g.lineTo(sx + sr * 0.3, sy + sr * 0.55);
+    g.closePath();
+    g.fill();
+    g.stroke();
+    g.fillStyle = rock[1] as string;
+    g.beginPath();
+    g.moveTo(sx - sr * 0.6, sy - sr * 0.35);
+    g.lineTo(sx - sr * 0.1, sy - sr * 0.7);
+    g.lineTo(sx + sr * 0.45, sy - sr * 0.42);
+    g.lineTo(sx - sr * 0.05, sy - sr * 0.15);
+    g.closePath();
+    g.fill();
+    if (theme === 'snow') {
+      g.fillStyle = '#ffffff';
+      g.beginPath();
+      g.moveTo(sx - sr * 0.55, sy - sr * 0.4);
+      g.lineTo(sx - sr * 0.1, sy - sr * 0.8);
+      g.lineTo(sx + sr * 0.6, sy - sr * 0.5);
+      g.quadraticCurveTo(sx, sy - sr * 0.4, sx - sr * 0.55, sy - sr * 0.4);
+      g.fill();
+    }
+    if (theme === 'volcano') {
+      g.strokeStyle = '#ff7a2b';
+      g.beginPath();
+      g.moveTo(sx - sr * 0.3, sy + sr * 0.2);
+      g.lineTo(sx, sy - sr * 0.1);
+      g.lineTo(sx + sr * 0.25, sy + sr * 0.15);
+      g.stroke();
+      g.strokeStyle = OUT;
+    }
+  }
 }

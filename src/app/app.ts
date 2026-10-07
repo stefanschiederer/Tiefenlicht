@@ -148,10 +148,11 @@ export class App {
   private pointerId: number | null = null;
   private cutLast: { x: number; y: number } | null = null;
   private last = 0;
-  private acc = 0;
   private drewLine = false;
   private tipTimer = 0;
   private rocketArmed = false;
+  /** Slow-motion moment between the winning capture and the win screen. */
+  private ending: { t: number; result: 'win' | 'lose' } | null = null;
   private rocketCool = 0;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -173,6 +174,7 @@ export class App {
 
   /* ------------------------------------------------------------------ level lifecycle */
   loadLevel(n: number): void {
+    this.ending = null;
     const def = levelDef(n);
     def.player = playerBonus(this.save);
     def.enemyGrowth = (def.enemyGrowth ?? 1) * enemyScale(this.save);
@@ -613,11 +615,23 @@ export class App {
   private frame(now: number): void {
     const dt = Math.min(0.1, (now - (this.last || now)) / 1000);
     this.last = now;
+    // after the deciding capture the battlefield runs on in slow motion for a moment
+    let scale = 1;
+    if (this.ending) {
+      this.ending.t -= dt;
+      scale = 0.3;
+      if (this.ending.t <= 0) {
+        const r = this.ending.result;
+        this.ending = null;
+        this.finish(r);
+      }
+    }
     if (this.mode === 'play') {
-      this.acc += dt;
-      const h = 1 / 60;
-      while (this.acc >= h) {
-        this.acc -= h;
+      // simulate with the real frame time in steps of at most 1/60 s: smooth on 60 Hz and 120 Hz screens
+      let left = dt * scale;
+      while (left > 1e-6) {
+        const h = Math.min(1 / 60, left);
+        left -= h;
         for (const e of this.enemies) e.update(this.state, h);
         step(this.state, h);
       }
@@ -627,7 +641,12 @@ export class App {
         if (e.type === 'capture') sfx.capture(e.tower.owner === PLAYER);
         else if (e.type === 'hit') sfx.hit();
         else if (e.type === 'rocket' || e.type === 'wallbreak') sfx.boom();
-        else if (e.type === 'end') this.finish(e.result);
+        else if (e.type === 'end') {
+          if (e.result === 'win') this.ending = { t: 1.1, result: 'win' };
+          else this.finish('lose');
+        }
+        if (e.type === 'capture' && (e.tower.owner === PLAYER || e.from === PLAYER))
+          this.renderer.cameraShake(5);
       }
       this.updateBar();
       if (this.rocketCool > 0) {
@@ -638,10 +657,10 @@ export class App {
         this.tipTimer -= dt;
         if (this.tipTimer <= 0) this.tip('', 0);
       }
-    } else this.acc = 0;
+    }
     const cutAge = 0.18;
     this.ui.cut = this.ui.cut.filter((p) => now / 1000 - p.t < cutAge);
-    this.renderer.render(this.state, this.ui, dt);
+    this.renderer.render(this.state, this.ui, dt * scale);
     requestAnimationFrame((t) => this.frame(t));
   }
 

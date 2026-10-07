@@ -76,6 +76,15 @@ export interface PlayerBonus {
   cap?: number;
 }
 
+/** An obstacle nobody can cross or destroy (rocks, a pond, a grove…); lines may not pass it. */
+export interface Block {
+  x: number;
+  y: number;
+  r: number;
+  /** Drawing style; the look also depends on the world. */
+  kind: 'rocks' | 'pond' | 'grove';
+}
+
 export interface Rocket {
   id: number;
   target: number;
@@ -95,6 +104,8 @@ export interface LevelDef {
   n: number;
   towers: { x: number; y: number; owner: number; troops: number; kind?: TowerKind }[];
   walls: Wall[];
+  /** Impassable obstacles (max. 1–2 per map). */
+  blocks?: Block[];
   /** Seconds between enemy decisions. */
   aiInterval: number;
   /** Enemy waits this long before its first move. */
@@ -113,6 +124,7 @@ export interface GameState {
   troops: Troop[];
   rockets: Rocket[];
   walls: Wall[];
+  blocks: Block[];
   /** reach[a][b]: a straight line from tower a to b crosses no wall and no other tower. */
   reach: boolean[][];
   time: number;

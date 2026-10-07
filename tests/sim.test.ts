@@ -116,6 +116,14 @@ describe('lines', () => {
     expect(maxTroops).toBeGreaterThan(t.troops.length);
   });
 
+  it('impassable obstacles block lines for good', () => {
+    const d = def([T(360, 1100, PLAYER, 30), T(360, 300, 2, 5), T(60, 600, NEUTRAL, 5)]);
+    d.blocks = [{ x: 360, y: 700, r: 50, kind: 'rocks' }];
+    const s = createGame(d);
+    expect(checkLine(s, 0, 1, PLAYER)).toBe('blocked');
+    expect(checkLine(s, 0, 2, PLAYER)).toBe('ok');
+  });
+
   it('cannon towers draw no lines', () => {
     const s = createGame(def([{ ...T(360, 1100, PLAYER, 30), kind: 'cannon' }, T(360, 300, 2, 5)]));
     expect(checkLine(s, 0, 1, PLAYER)).toBe('full');

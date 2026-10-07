@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.10.0 – Flüssiger, schönere Mauern, Hindernisse (2026-10-07)
+
+- Flüssiger: Die Spiellogik läuft mit der Bildrate des Displays (auch 120 Hz), kurze Zeitlupe beim Siegtreffer, leichtes Kamerawackeln bei Eroberungen.
+- Mauern wie in Tower War: Sie stehen als Schutzmauer vor einem Turm (gespiegelt auch vor dem passenden Turm auf deiner Seite) und sehen aus wie echte Burgmauern: 2.5D-Mauerwerk mit Zinnen, runden Ecktürmen und Schatten. Schaden lässt Zinnen fallen und Risse entstehen; Lebenspunkte stehen mit Herz auf einem Schild.
+- Neu: unüberwindbare Hindernisse, ab Level 5 ein bis zwei pro Karte: Felsen (im Schnee verschneit, im Vulkan glühend), Teiche (Eis, Lava, Zauberwasser) und Wäldchen in der Pflanzenwelt der jeweiligen Welt. Linien kommen dort nicht durch.
+- Weniger Türme pro Karte (höchstens drei neutrale Paare).
+- Alle Level neu kalibriert.
+
 ## 1.9.0 – Altes Liniensystem zurück (2026-10-07)
 
 - Linien funktionieren wieder wie gewohnt: Jede Linie schickt alle 0,5 s einen Soldaten und nimmt ihn aus dem Turm; der Turm wächst dabei weiter. Keine Linienkosten mehr, keine eingefrorene Zahl, keine Gratis-Soldaten.

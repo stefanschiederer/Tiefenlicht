@@ -45,6 +45,25 @@ describe('levels', () => {
     expect(Array.from({ length: 40 }, (_, i) => enemies(i + 30)).some((e) => e === 3)).toBe(true);
   });
 
+  it('has at most two impassable obstacles and puts walls in front of towers', () => {
+    for (let n = 1; n <= 60; n++) {
+      const d = levelDef(n);
+      const blocks = d.blocks ?? [];
+      expect(blocks.length).toBeLessThanOrEqual(2);
+      if (n < 5) expect(blocks).toHaveLength(0);
+      else if (n > 3) expect(blocks.length).toBeGreaterThanOrEqual(1);
+      for (const w of d.walls) {
+        const mx = (w.x1 + w.x2) / 2,
+          my = (w.y1 + w.y2) / 2;
+        const nearest = Math.min(...d.towers.map((t) => Math.hypot(t.x - mx, t.y - my)));
+        expect(nearest).toBeLessThan(TOWER_R + 70);
+      }
+    }
+    expect(
+      Array.from({ length: 50 }, (_, i) => levelDef(i + 10).blocks?.length ?? 0).some((b) => b === 2),
+    ).toBe(true);
+  });
+
   it('is deterministic', () => {
     expect(levelDef(17)).toEqual(levelDef(17));
   });

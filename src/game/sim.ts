@@ -24,7 +24,7 @@ import {
   WORLD_W,
 } from './config';
 import { pointSegDist, segIntersect, segSegDist } from './geom';
-import type { GameState, LevelDef, Line, Rocket, Tower, Troop, Wall } from './state';
+import type { Block, GameState, LevelDef, Line, Rocket, Tower, Troop, Wall } from './state';
 
 /* ------------------------------------------------------------------ derived values */
 
@@ -91,6 +91,7 @@ export function createGame(def: LevelDef): GameState {
     lines: [],
     troops: [],
     rockets: [],
+    blocks: (def.blocks ?? []).map((b) => ({ ...b })),
     walls: def.walls.map((w) => ({ ...w, hp: w.hp ?? wallHp(def.n), max: w.hp ?? wallHp(def.n) })),
     reach: [],
     time: 0,
@@ -135,7 +136,7 @@ export function wallOnLine(s: GameState, a: number, b: number): { wall: Wall; d:
 }
 
 /** Which tower pairs can be joined by a straight line (no third tower in between; walls can be broken). */
-export function computeReach(s: Pick<GameState, 'towers' | 'walls'>): boolean[][] {
+export function computeReach(s: { towers: Tower[]; blocks?: Block[] }): boolean[][] {
   const n = s.towers.length;
   const reach = Array.from({ length: n }, () => new Array<boolean>(n).fill(false));
   for (let a = 0; a < n; a++)
@@ -143,13 +144,19 @@ export function computeReach(s: Pick<GameState, 'towers' | 'walls'>): boolean[][
       const A = s.towers[a] as Tower,
         B = s.towers[b] as Tower;
       let ok = true;
-      for (const C of s.towers) {
-        if (C === A || C === B) continue;
-        if (pointSegDist(C.x, C.y, A.x, A.y, B.x, B.y) < TOWER_R * 0.95) {
+      for (const k of s.blocks ?? [])
+        if (pointSegDist(k.x, k.y, A.x, A.y, B.x, B.y) < k.r + 8) {
           ok = false;
           break;
         }
-      }
+      if (ok)
+        for (const C of s.towers) {
+          if (C === A || C === B) continue;
+          if (pointSegDist(C.x, C.y, A.x, A.y, B.x, B.y) < TOWER_R * 0.95) {
+            ok = false;
+            break;
+          }
+        }
       (reach[a] as boolean[])[b] = ok;
       (reach[b] as boolean[])[a] = ok;
     }

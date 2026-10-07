@@ -12,7 +12,7 @@ import {
   wallOnLine,
 } from '@/game/sim';
 import type { GameEvent, GameState, Line } from '@/game/state';
-import { drawGround, drawWall, towerSprite, troopSprite } from './sprites';
+import { drawBlock, drawGround, drawWall, towerSprite, troopSprite } from './sprites';
 import { View } from './view';
 
 export interface UiState {
@@ -61,6 +61,7 @@ export class Renderer {
   /** Last known level per tower (level-up sparkle). */
   private lastLevel = new Map<number, number>();
   private levelState: GameState | null = null;
+  private shakeAmt = 0;
   private bolts: { x1: number; y1: number; x2: number; y2: number; t: number }[] = [];
 
   constructor(readonly canvas: HTMLCanvasElement) {
@@ -164,11 +165,19 @@ export class Renderer {
     }
   }
 
+  /** Short camera shake (pixels), e.g. when a tower changes hands. */
+  cameraShake(px: number): void {
+    this.shakeAmt = Math.max(this.shakeAmt, px);
+  }
+
   render(s: GameState, ui: UiState, dt: number): void {
     this.time += dt;
     const g = this.g,
       v = this.view;
-    g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.shakeAmt = Math.max(0, this.shakeAmt - dt * 30);
+    const sx = (Math.random() - 0.5) * this.shakeAmt,
+      sy = (Math.random() - 0.5) * this.shakeAmt;
+    g.setTransform(this.dpr, 0, 0, this.dpr, sx * this.dpr, sy * this.dpr);
     // ground (cached per level and size)
     const key = `${v.w}x${v.h}:${v.rot}:${s.def.n}`;
     if (key !== this.groundKey || !this.ground) {
@@ -183,15 +192,26 @@ export class Renderer {
         y: v.sy(t.x, t.y),
         r: radiusOf(t) * v.k * 1.6,
       }));
+      for (const b of s.blocks) avoid.push({ x: v.sx(b.x, b.y), y: v.sy(b.x, b.y), r: b.r * v.k * 1.2 });
       drawGround(gg, v.w, v.h, v.playArea(), s.def.n, themeOf(s.def.n).id, avoid);
+      s.blocks.forEach((b, i) =>
+        drawBlock(
+          gg,
+          v.sx(b.x, b.y),
+          v.sy(b.x, b.y),
+          b.r * v.k,
+          b.kind,
+          themeOf(s.def.n).id,
+          s.def.n * 31 + i,
+        ),
+      );
       this.ground = c;
     }
     g.setTransform(1, 0, 0, 1, 0, 0);
-    g.drawImage(this.ground, 0, 0);
-    g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    g.drawImage(this.ground, sx * this.dpr, sy * this.dpr);
+    g.setTransform(this.dpr, 0, 0, this.dpr, sx * this.dpr, sy * this.dpr);
 
     this.drawSelection(s, ui);
-    this.drawWalls(s);
     this.drawLines(s);
     if (ui.drag) this.drawDrag(s, ui.drag);
     this.drawScene(s);
@@ -400,6 +420,11 @@ export class Renderer {
         },
       });
     }
+    for (const w of s.walls)
+      items.push({
+        y: Math.max(v.sy(w.x1, w.y1), v.sy(w.x2, w.y2)),
+        draw: () => this.drawWallAt(w),
+      });
     for (const t of s.towers) {
       const x = v.sx(t.x, t.y),
         y = v.sy(t.x, t.y);
@@ -512,62 +537,48 @@ export class Renderer {
     }
   }
 
-  /** Walls with their hit points; cracks show when they are damaged. */
-  private drawWalls(s: GameState): void {
+  /** One wall (screen space) and its hit point badge. */
+  private drawWallAt(w: GameState['walls'][number]): void {
     const g = this.g,
       v = this.view;
-    for (const w of s.walls) {
-      const x1 = v.sx(w.x1, w.y1),
-        y1 = v.sy(w.x1, w.y1),
-        x2 = v.sx(w.x2, w.y2),
-        y2 = v.sy(w.x2, w.y2);
-      const thick = WALL_T * v.k;
-      drawWall(g, x1, y1, x2, y2, thick);
-      const hp = w.hp ?? 0,
-        max = w.max ?? hp;
-      const dmg = max ? 1 - hp / max : 0;
-      if (dmg > 0.15) {
-        // cracks
-        g.strokeStyle = 'rgba(40,45,55,0.75)';
-        g.lineWidth = 1.6;
-        const n = Math.ceil(dmg * 6);
-        for (let i = 0; i < n; i++) {
-          const f = (i + 0.5) / n,
-            cx = x1 + (x2 - x1) * f,
-            cy = y1 + (y2 - y1) * f;
-          g.beginPath();
-          g.moveTo(cx - thick * 0.3, cy - thick * 0.25);
-          g.lineTo(cx, cy + thick * 0.05);
-          g.lineTo(cx + thick * 0.2, cy - thick * 0.2);
-          g.lineTo(cx + thick * 0.35, cy + thick * 0.2);
-          g.stroke();
-        }
-      }
-      // hit point badge
-      const mx = (x1 + x2) / 2,
-        my = (y1 + y2) / 2 - thick * 0.75;
-      const fs = Math.max(10, Math.min(14, 17 * v.k));
-      g.font = `800 ${fs}px "Baloo 2", "Arial Black", sans-serif`;
-      g.textAlign = 'center';
-      g.textBaseline = 'middle';
-      const txt = String(Math.ceil(hp));
-      const bw = g.measureText(txt).width + fs * 1.4,
-        bh = fs * 1.2;
-      g.fillStyle = '#5b6573';
-      g.strokeStyle = '#1d2530';
-      g.lineWidth = 2;
-      g.beginPath();
-      g.roundRect(mx - bw / 2, my - bh / 2, bw, bh, bh / 2);
-      g.fill();
-      g.stroke();
-      // tiny heart-shaped shield
-      g.fillStyle = '#ff6b6b';
-      g.beginPath();
-      g.arc(mx - bw / 2 + fs * 0.45, my, fs * 0.22, 0, TAU);
-      g.fill();
-      g.fillStyle = '#fff';
-      g.fillText(txt, mx + fs * 0.2, my + 1);
-    }
+    const x1 = v.sx(w.x1, w.y1),
+      y1 = v.sy(w.x1, w.y1),
+      x2 = v.sx(w.x2, w.y2),
+      y2 = v.sy(w.x2, w.y2);
+    const thick = WALL_T * v.k;
+    const hp = w.hp ?? 0,
+      max = w.max ?? hp;
+    drawWall(g, x1, y1, x2, y2, thick, max ? 1 - hp / max : 0);
+    // hit point badge with a heart, above the middle of the wall
+    const mx = (x1 + x2) / 2,
+      my = Math.min(y1, y2) + Math.abs(y2 - y1) / 2 - thick * 2.4;
+    const fs = Math.max(10, Math.min(14, 17 * v.k));
+    g.font = `800 ${fs}px "Baloo 2", "Arial Black", sans-serif`;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    const txt = String(Math.ceil(hp));
+    const bw = g.measureText(txt).width + fs * 1.6,
+      bh = fs * 1.25;
+    g.fillStyle = '#4a5260';
+    g.strokeStyle = '#1d2530';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.roundRect(mx - bw / 2, my - bh / 2, bw, bh, bh / 2);
+    g.fill();
+    g.stroke();
+    const hx = mx - bw / 2 + fs * 0.5,
+      hy = my - fs * 0.05,
+      hr = fs * 0.2;
+    g.fillStyle = '#ff5c6c';
+    g.beginPath();
+    g.arc(hx - hr * 0.55, hy - hr * 0.3, hr * 0.6, 0, TAU);
+    g.arc(hx + hr * 0.55, hy - hr * 0.3, hr * 0.6, 0, TAU);
+    g.moveTo(hx - hr * 1.1, hy - hr * 0.1);
+    g.lineTo(hx, hy + hr * 1.05);
+    g.lineTo(hx + hr * 1.1, hy - hr * 0.1);
+    g.fill();
+    g.fillStyle = '#fff';
+    g.fillText(txt, mx + fs * 0.25, my + 1);
   }
 
   /** Rockets of a rocket swarm in flight, with a smoke trail. */
