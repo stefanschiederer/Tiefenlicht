@@ -16,10 +16,7 @@ import {
   MAGE_RANGE,
   MAGE_RELOAD,
   CANNON_RANGE_MIN,
-  LINE_RATE,
   MAX_BURST,
-  LINE_COST_BASE,
-  LINE_COST_PER,
   ROCKET_FLIGHT,
   ROCKET_SPLASH,
   ROCKETS_PER_STRIKE,
@@ -161,14 +158,7 @@ export function computeReach(s: Pick<GameState, 'towers' | 'walls'>): boolean[][
 
 /* ------------------------------------------------------------------ actions */
 
-export type LineResult = 'ok' | 'same' | 'blocked' | 'exists' | 'full' | 'poor' | 'not-owner';
-
-/** Troops it costs to draw a line from tower a to tower b. */
-export function lineCost(s: GameState, a: number, b: number): number {
-  const A = tower(s, a),
-    B = tower(s, b);
-  return LINE_COST_BASE + Math.floor(Math.hypot(B.x - A.x, B.y - A.y) / LINE_COST_PER);
-}
+export type LineResult = 'ok' | 'same' | 'blocked' | 'exists' | 'full' | 'not-owner';
 
 /** Why a line from a to b could not be drawn, or 'ok'. Does not change the state. */
 export function checkLine(s: GameState, a: number, b: number, owner: number): LineResult {
@@ -179,7 +169,6 @@ export function checkLine(s: GameState, a: number, b: number, owner: number): Li
   if (!s.reach[a]?.[b]) return 'blocked';
   if (s.lines.some((l) => l.src === a && l.dst === b)) return 'exists';
   if (linesFrom(s, a).length >= lineLimit(A)) return 'full';
-  if (A.troops < lineCost(s, a, b) + 1) return 'poor';
   return 'ok';
 }
 
@@ -189,12 +178,9 @@ export function checkLine(s: GameState, a: number, b: number, owner: number): Li
  */
 export function addLine(s: GameState, a: number, b: number, owner: number): LineResult {
   const reverse = s.lines.find((l) => l.src === b && l.dst === a && l.owner === owner);
-  // check the cost before touching a line that would be reversed
-  if (reverse && s.towers[a] && s.towers[a].troops < lineCost(s, a, b) + 1) return 'poor';
   if (reverse) removeLine(s, reverse, 'retract');
   const r = checkLine(s, a, b, owner);
   if (r !== 'ok') return r;
-  tower(s, a).troops -= lineCost(s, a, b);
   const line: Line = { id: s.nextId++, src: a, dst: b, owner, timer: SEND_INTERVAL * 0.4, age: 0 };
   s.lines.push(line);
   s.events.push({ type: 'line', line });
@@ -450,10 +436,9 @@ export function rocketPos(s: GameState, r: Rocket): { x: number; y: number; ang:
 export function step(s: GameState, dt: number): void {
   if (s.result) return;
   s.time += dt;
-  // production: only towers without lines grow (Tower War: a tower with lines keeps its number)
-  const sending = new Set(s.lines.map((l) => l.src));
+  // production: every owned tower grows up to its cap
   for (const t of s.towers) {
-    if (t.owner === NEUTRAL || sending.has(t.id)) continue;
+    if (t.owner === NEUTRAL) continue;
     const cap = capOf(s, t);
     if (t.troops >= cap) {
       t.acc = 0;
@@ -470,16 +455,21 @@ export function step(s: GameState, dt: number): void {
     const own = linesFrom(s, t.id);
     for (let k = own.length - 1; k >= lineLimit(t); k--) removeLine(s, own[k] as Line, 'retract');
   }
-  // sending: every line sends at the tower's rate without emptying it; MAX towers send bursts
+  // sending: each line sends one troop per interval and takes it from the tower; MAX towers send faster
   for (const l of s.lines) {
     l.age += dt;
     const A = tower(s, l.src);
     l.timer -= dt;
     while (l.timer <= 0) {
-      spawnTroop(s, l);
+      if (A.troops < 1) {
+        l.timer = 0;
+        break;
+      }
       const send = A.owner === PLAYER ? (s.def.player?.send ?? 1) : 1;
       const burst = isMax(s, A) ? MAX_BURST : 1;
-      l.timer += 1 / Math.max(0.2, rateOf(s, A) * LINE_RATE * send * burst);
+      A.troops -= 1;
+      spawnTroop(s, l);
+      l.timer += SEND_INTERVAL / (send * burst);
     }
   }
   // walking; troops on a line stop at a standing wall and knock it down

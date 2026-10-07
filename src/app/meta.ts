@@ -157,16 +157,16 @@ export function playerBonus(s: Save): NonNullable<LevelDef['player']> {
  * The enemy grows along with part of the player's skills (production, line output, hits), so skills
  * keep helping without turning every level into a walkover.
  */
+/** Share of the player's combat skills the enemy grows along with (tunable for balance tests). */
+export let SCALE = 0.2;
+export function setScale(v: number): void {
+  SCALE = v;
+}
 export function enemyScale(s: Save): number {
   const b = playerBonus(s);
-  const power =
-    b.growth -
-    1 +
-    ((b.send ?? 1) - 1) +
-    ((b.attack ?? 1) - 1) +
-    (b.speed - 1) * 0.5 +
-    (1 - (b.defense ?? 1)) * 0.5;
-  return 1 + 0.35 * power;
+  // production, hits and armour count; faster sending is no pure advantage (it empties the tower)
+  const power = b.growth - 1 + ((b.attack ?? 1) - 1) + (1 - (b.defense ?? 1)) * 0.5;
+  return 1 + SCALE * power;
 }
 
 /** Coins for a win including the loot skill. */

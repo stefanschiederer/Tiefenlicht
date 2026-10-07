@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.0 – Altes Liniensystem zurück (2026-10-07)
+
+- Linien funktionieren wieder wie gewohnt: Jede Linie schickt alle 0,5 s einen Soldaten und nimmt ihn aus dem Turm; der Turm wächst dabei weiter. Keine Linienkosten mehr, keine eingefrorene Zahl, keine Gratis-Soldaten.
+- Alles andere bleibt: MAX-Anzeige (ein MAX-Turm schickt 1,5-mal so schnell), Linien-Punkte, Raketenschwarm, Skill-Baum, zerstörbare Mauern, Kanonen-Reichweite, acht Welten, Bosse und mehr Gegner.
+- Balance: Skills bleiben gedämpft; der Gegner wächst nur noch mit 20 % deiner Ausbildungs-, Treffer- und Mauer-Skills mit. Gemessen über Level 20–60: ohne Skills 64 % Siege, mittlere Skills 88 %, volle Skills 91 % bei ähnlicher Spieldauer.
+- Alle Level 4–150 neu kalibriert.
+
 ## 1.8.0 – Balance: kein Schneeball mehr durch Skills (2026-10-07)
 
 - Linien kosten Soldaten: 1 plus 1 je 220 Einheiten Länge (meist 2–5). Der Turm muss danach noch mindestens einen Soldaten haben. Beim Ziehen steht der Preis an der Linie („−3“), rot wenn er zu teuer ist. Gilt auch für den Gegner.

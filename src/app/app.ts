@@ -8,7 +8,6 @@ import {
   cutLines,
   drainEvents,
   fireRockets,
-  lineCost,
   radiusOf,
   step,
   strength,
@@ -708,7 +707,6 @@ export class App {
         const tgt = this.towerAt(e.offsetX, e.offsetY);
         d.target = tgt !== null && tgt !== d.src ? tgt : null;
         d.ok = d.target !== null && this.canDraw(d.src, d.target);
-        d.cost = d.target !== null ? lineCost(this.state, d.src, d.target) : undefined;
       } else if (this.cutLast) {
         const v = this.renderer.view;
         const a = v.toWorld(this.cutLast.x, this.cutLast.y),
@@ -737,8 +735,6 @@ export class App {
         sfx.error();
         if (r === 'full') this.tip('Dieser Turm hat keine freie Linie. Mehr Soldaten = mehr Linien.', 3);
         else if (r === 'blocked') this.tip('Der Weg ist versperrt.', 2);
-        else if (r === 'poor')
-          this.tip(`Zu wenig Soldaten: Diese Linie kostet ${lineCost(this.state, d.src, d.target)}.`, 2.5);
       }
     };
     canvas.addEventListener('pointerup', end);

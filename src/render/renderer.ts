@@ -17,7 +17,7 @@ import { View } from './view';
 
 export interface UiState {
   /** Line being drawn: source tower and pointer (screen px). */
-  drag: { src: number; px: number; py: number; target: number | null; ok: boolean; cost?: number } | null;
+  drag: { src: number; px: number; py: number; target: number | null; ok: boolean } | null;
   /** Swipe trail for cutting (screen px, newest last). */
   cut: { x: number; y: number; t: number }[];
   /** Tutorial hand from one tower to another. */
@@ -330,23 +330,6 @@ export class Renderer {
       this.g.globalAlpha = 0.75;
       this.lineBody(ax, ay, bx, by, { owner: A.owner }, lw);
       this.g.globalAlpha = 1;
-    }
-    // cost of the line (troops) next to the finger
-    if (d.target !== null && d.cost !== undefined) {
-      const g = this.g;
-      const tx = (ax + bx) / 2,
-        ty = (ay + by) / 2 - 18;
-      const txt = `−${d.cost}`;
-      g.font = '800 17px "Baloo 2", "Arial Black", sans-serif';
-      g.textAlign = 'center';
-      g.textBaseline = 'middle';
-      const w = g.measureText(txt).width + 16;
-      g.fillStyle = d.ok ? 'rgba(29,37,48,0.85)' : 'rgba(200,40,40,0.9)';
-      g.beginPath();
-      g.roundRect(tx - w / 2, ty - 12, w, 24, 12);
-      g.fill();
-      g.fillStyle = '#fff';
-      g.fillText(txt, tx, ty + 1);
     }
   }
 

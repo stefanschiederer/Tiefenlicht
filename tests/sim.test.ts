@@ -8,7 +8,6 @@ import {
   drainEvents,
   isMax,
   levelOf,
-  lineCost,
   lineLimit,
   linesFrom,
   step,
@@ -92,18 +91,14 @@ describe('lines', () => {
     expect(w.towers[1]!.owner).toBe(PLAYER);
   });
 
-  it('a tower with lines keeps its number, a tower without lines grows', () => {
+  it('sending takes troops from the tower, which keeps growing', () => {
     const s = base();
     s.towers[0]!.troops = 20;
     addLine(s, 0, 1, PLAYER);
-    // drawing the line costs troops, then the number stays
-    const after = s.towers[0]!.troops;
-    expect(after).toBe(20 - lineCost(s, 0, 1));
     run(s, 4);
-    expect(s.towers[0]!.troops).toBe(after);
-    s.lines = [];
-    run(s, 2);
-    expect(s.towers[0]!.troops).toBeGreaterThan(after);
+    // ~8 sent (2/s), ~5 grown (1.3/s at level 2)
+    expect(s.towers[0]!.troops).toBeLessThan(20);
+    expect(s.towers[0]!.troops).toBeGreaterThan(20 - 8);
   });
 
   it('a tower at MAX shows the cap and sends bursts', () => {
@@ -166,18 +161,6 @@ describe('lines', () => {
     run(s, 0.1);
     expect(levelOf(s.towers[0]!)).toBe(1);
     expect(linesFrom(s, 0)).toHaveLength(1);
-  });
-});
-
-describe('line cost', () => {
-  it('drawing a line costs troops by length and needs enough troops', () => {
-    const s = createGame(def([T(360, 1180, PLAYER, 3), T(360, 100, NEUTRAL, 5), T(60, 640, 2, 1)]));
-    const cost = lineCost(s, 0, 1);
-    expect(cost).toBeGreaterThanOrEqual(4);
-    expect(addLine(s, 0, 1, PLAYER)).toBe('poor');
-    s.towers[0]!.troops = cost + 1;
-    expect(addLine(s, 0, 1, PLAYER)).toBe('ok');
-    expect(s.towers[0]!.troops).toBe(1);
   });
 });
 
